@@ -1,0 +1,15 @@
+language: go
+
+go:
+  - 1.12.x
+
+sudo: required
+
+services:
+  - docker
+
+before_script:
+  - sudo apt-get -qq update
+
+script:
+  - make ci
