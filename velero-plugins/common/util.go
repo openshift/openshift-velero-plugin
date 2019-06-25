@@ -23,7 +23,15 @@ func ReplaceImageRefPrefix(s, oldPrefix, newPrefix string) (string, error) {
 		err := fmt.Errorf("image reference [%v] does not have prefix [%v]", s, oldPrefix)
 		return "", err
 	}
-	return fmt.Sprintf("%s/%s", newPrefix, refSplit[1]), nil
+	outPath := refSplit[1]
+	namespaceSplit := strings.SplitN(refSplit[1], "/", 2)
+	if len(namespaceSplit) == 2 && namespaceSplit[0] == "openshift" {
+		shaSplit := strings.SplitN(refSplit[1], "@", 2)
+		if len(shaSplit) == 2 {
+			outPath = shaSplit[0]
+		}
+	}
+	return fmt.Sprintf("%s/%s", newPrefix, outPath), nil
 }
 
 // HasImageRefPrefix returns true if the input image reference begins with
