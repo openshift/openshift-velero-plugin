@@ -30,6 +30,10 @@
   name = "github.com/openshift/client-go"
   branch = "release-4.2"
 
+[[constraint]]
+  name = "github.com/openshift/library-go"
+  branch = "release-4.2"
+
 [[override]]
   name = "github.com/openshift/api"
   branch = "release-4.2"

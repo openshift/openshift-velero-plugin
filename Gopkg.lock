@@ -219,6 +219,18 @@
   revision = "8892c0adc000741c33af70e05f4ede47725d0773"
 
 [[projects]]
+  branch = "release-4.2"
+  digest = "1:d7da23741e2be291bda3be66c16887a9bbebf48a1ea133a5fcd210c02b8ccee0"
+  name = "github.com/openshift/library-go"
+  packages = [
+    "pkg/image/internal/digest",
+    "pkg/image/internal/reference",
+    "pkg/image/reference",
+  ]
+  pruneopts = "NUT"
+  revision = "16a370625b52c7958783b8f74de58317236da6b4"
+
+[[projects]]
   branch = "master"
   digest = "1:89da0f0574bc94cfd0ac8b59af67bf76cdd110d503df2721006b9f0492394333"
   name = "github.com/petar/GoLLRB"
@@ -572,6 +584,7 @@
     "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1",
     "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1",
     "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1",
+    "github.com/openshift/library-go/pkg/image/reference",
     "github.com/sirupsen/logrus",
     "github.com/stretchr/testify/assert",
     "github.com/stretchr/testify/require",
