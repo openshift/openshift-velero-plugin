@@ -34,7 +34,7 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	}
 
 	annotations[RestoreServerVersion] = fmt.Sprintf("%v.%v", version.Major, version.Minor)
-	registryHostname, err := GetRegistryInfo(version.Major, version.Minor)
+	registryHostname, err := GetRegistryInfo(version.Major, version.Minor, p.Log)
 	if err != nil {
 		return nil, err
 	}

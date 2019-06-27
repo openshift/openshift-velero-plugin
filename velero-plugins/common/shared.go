@@ -8,13 +8,30 @@ import (
 	"strings"
 
 	"github.com/fusor/openshift-velero-plugin/velero-plugins/clients"
+	"github.com/openshift/library-go/pkg/image/reference"
+	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/version"
 )
 
-func GetRegistryInfo(major, minor string) (string, error) {
+func GetRegistryInfo(major, minor string, log logrus.FieldLogger) (string, error) {
+	imageClient, err := clients.ImageClient()
+	if err != nil {
+		return "", err
+	}
+	imageStreams, err := imageClient.ImageStreams("openshift").List(metav1.ListOptions{})
+	if err == nil && len(imageStreams.Items) > 0 {
+		if value := imageStreams.Items[0].Status.DockerImageRepository; len(value) > 0 {
+			ref, err := reference.Parse(value)
+			if err == nil {
+				log.Info("[GetRegistryInfo] value from imagestream")
+				return ref.Registry, nil
+			}
+		}
+	}
+
 	if major != "1" {
 		return "", fmt.Errorf("server version %v.%v not supported. Must be 1.x", major, minor)
 	}
@@ -35,6 +52,7 @@ func GetRegistryInfo(major, minor string) (string, error) {
 			return "", err
 		}
 		internalRegistry := registrySvc.Spec.ClusterIP + ":" + strconv.Itoa(int(registrySvc.Spec.Ports[0].Port))
+		log.Info("[GetRegistryInfo] value from clusterIP")
 		return internalRegistry, nil
 	} else {
 		config, err := cClient.ConfigMaps("openshift-apiserver").Get("config", metav1.GetOptions{})
@@ -50,6 +68,7 @@ func GetRegistryInfo(major, minor string) (string, error) {
 		if len(internalRegistry) == 0 {
 			return "", errors.New("InternalRegistryHostname not found")
 		}
+		log.Info("[GetRegistryInfo] value from clusterIP")
 		return internalRegistry, nil
 	}
 }

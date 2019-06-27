@@ -35,7 +35,7 @@ func (p *BackupPlugin) Execute(item runtime.Unstructured, backup *v1.Backup) (ru
 	}
 
 	annotations[BackupServerVersion] = fmt.Sprintf("%v.%v", version.Major, version.Minor)
-	registryHostname, err := GetRegistryInfo(version.Major, version.Minor)
+	registryHostname, err := GetRegistryInfo(version.Major, version.Minor, p.Log)
 	if err != nil {
 		return nil, nil, err
 	}
