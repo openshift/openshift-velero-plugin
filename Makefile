@@ -46,9 +46,8 @@ _output/$(BIN): $(BIN)/*.go
 				 $(BUILD_IMAGE) \
 				 go build -installsuffix "static"  -i -v -o _output/$(BIN) ./$(BIN)
 
-container: all
-	cp Dockerfile _output/Dockerfile
-	docker build -t $(IMAGE) -f _output/Dockerfile _output
+container:
+	docker build -t $(IMAGE) .
 
 test:
 	go test -installsuffix "static"  ./velero-plugins/...
