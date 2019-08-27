@@ -11,9 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+FROM golang:1.11 as builder
+WORKDIR /go/src/github.com/fusor/openshift-velero-plugin
+COPY . ./
+ENV BUILDTAGS containers_image_ostree_stub exclude_graphdriver_devicemapper exclude_graphdriver_btrfs containers_image_openpgp exclude_graphdriver_overlay
+ENV BIN velero-plugins
+RUN go build -installsuffix "static" -tags "$BUILDTAGS" -i -o _output/$BIN ./$BIN
 
-FROM alpine:3.6
+FROM registry.access.redhat.com/ubi8-minimal
 RUN mkdir /plugins
-ADD velero-* /plugins/
+COPY --from=builder /go/src/github.com/fusor/openshift-velero-plugin/_output/$BIN /plugins/
 USER nobody:nobody
-ENTRYPOINT ["/bin/ash", "-c", "cp /plugins/* /target/."]
+ENTRYPOINT ["/bin/bash", "-c", "cp /plugins/* /target/."]
