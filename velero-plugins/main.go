@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/fusor/openshift-velero-plugin/velero-plugins/build"
 	"github.com/fusor/openshift-velero-plugin/velero-plugins/common"
+	"github.com/fusor/openshift-velero-plugin/velero-plugins/cronjob"
 	"github.com/fusor/openshift-velero-plugin/velero-plugins/daemonset"
 	"github.com/fusor/openshift-velero-plugin/velero-plugins/deployment"
 	"github.com/fusor/openshift-velero-plugin/velero-plugins/deploymentconfig"
@@ -33,6 +34,7 @@ func main() {
 		RegisterRestoreItemAction("openshift.io/13-deployment-restore-plugin", newDeploymentRestorePlugin).
 		RegisterRestoreItemAction("openshift.io/14-statefulset-restore-plugin", newStatefulSetRestorePlugin).
 		RegisterRestoreItemAction("openshift.io/15-service-restore-plugin", newServiceRestorePlugin).
+		RegisterRestoreItemAction("openshift.io/16-cronjob-restore-plugin", newCronJobRestorePlugin).
 		Serve()
 }
 
@@ -62,6 +64,10 @@ func newDeploymentConfigRestorePlugin(logger logrus.FieldLogger) (interface{}, e
 
 func newJobRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
 	return &job.RestorePlugin{Log: logger}, nil
+}
+
+func newCronJobRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
+	return &cronjob.RestorePlugin{Log: logger}, nil
 }
 
 func newPodRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {

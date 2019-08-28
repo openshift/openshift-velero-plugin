@@ -38,6 +38,19 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	common.SwapContainerImageRefs(job.Spec.Template.Spec.Containers, backupRegistry, registry, p.Log)
 	common.SwapContainerImageRefs(job.Spec.Template.Spec.InitContainers, backupRegistry, registry, p.Log)
 
+	ownerRefs, err := common.GetOwnerReferences(input.ItemFromBackup)
+	if err != nil {
+		return nil, err
+	}
+	// Don't restore job if owned by CronJob
+	for i := range ownerRefs {
+		ref := ownerRefs[i]
+		if ref.Kind == "CronJob" {
+			p.Log.Infof("[job-restore] skipping restore of job %s, belongs to CronJob", job.Name)
+			return velero.NewRestoreItemActionExecuteOutput(input.Item).WithoutRestore(), nil
+		}
+	}
+
 	var out map[string]interface{}
 	objrec, _ := json.Marshal(job)
 	json.Unmarshal(objrec, &out)
