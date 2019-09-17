@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1API "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestRestorePluginAppliesTo(t *testing.T) {
@@ -20,28 +21,39 @@ func TestRestorePluginAppliesTo(t *testing.T) {
 
 func TestRestorePluginExecute(t *testing.T) {
 	t.Run("Test Execute() for build", func(t *testing.T) {
-		oldPushSecret := &corev1API.LocalObjectReference{Name: "oldsecret"}
+		secretList := corev1API.SecretList{
+			Items: []corev1API.Secret{
+				corev1API.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "builder-dockercfg-new",
+					},
+				},
+			},
+		}
+		oldDockercfgSecret := &corev1API.LocalObjectReference{Name: "builder-dockercfg-old"}
+		newDockercfgSecret := &corev1API.LocalObjectReference{Name: "builder-dockercfg-new"}
+		oldCustomSecret := &corev1API.LocalObjectReference{Name: "custom-old"}
 
 		build := buildv1API.Build{
 			Spec: buildv1API.BuildSpec{
 				CommonSpec: buildv1API.CommonSpec{
 					Strategy: buildv1API.BuildStrategy{
 						SourceStrategy: &buildv1API.SourceBuildStrategy{
-							PullSecret: oldPushSecret,
+							PullSecret: oldDockercfgSecret,
 						},
 					},
 					Output: buildv1API.BuildOutput{
-						PushSecret: oldPushSecret,
+						PushSecret: oldCustomSecret,
 					},
 				},
 			},
 		}
 
-		expectedPushSecret := &corev1API.LocalObjectReference{Name: "newsecret"}
+		newCommonSpec, err := UpdateCommonSpec(build.Spec.CommonSpec, "registry", "backupRegistry", &secretList, test.NewLogger())
+		assert.Equal(t, err, nil)
+		build.Spec.CommonSpec = newCommonSpec
 
-		build = createNewPushSecret(build, "newsecret")
-
-		assert.Equal(t, expectedPushSecret, build.Spec.Output.PushSecret)
-		assert.Equal(t, expectedPushSecret, build.Spec.Strategy.SourceStrategy.PullSecret)
+		assert.Equal(t, oldCustomSecret, build.Spec.Output.PushSecret)
+		assert.Equal(t, newDockercfgSecret, build.Spec.Strategy.SourceStrategy.PullSecret)
 	})
 }

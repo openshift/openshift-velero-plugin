@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/fusor/openshift-velero-plugin/velero-plugins/build"
+	"github.com/fusor/openshift-velero-plugin/velero-plugins/buildconfig"
 	"github.com/fusor/openshift-velero-plugin/velero-plugins/common"
 	"github.com/fusor/openshift-velero-plugin/velero-plugins/cronjob"
 	"github.com/fusor/openshift-velero-plugin/velero-plugins/daemonset"
@@ -35,6 +36,7 @@ func main() {
 		RegisterRestoreItemAction("openshift.io/14-statefulset-restore-plugin", newStatefulSetRestorePlugin).
 		RegisterRestoreItemAction("openshift.io/15-service-restore-plugin", newServiceRestorePlugin).
 		RegisterRestoreItemAction("openshift.io/16-cronjob-restore-plugin", newCronJobRestorePlugin).
+		RegisterRestoreItemAction("openshift.io/17-buildconfig-restore-plugin", newBuildConfigRestorePlugin).
 		Serve()
 }
 
@@ -48,6 +50,10 @@ func newCommonRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
 
 func newBuildRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
 	return &build.RestorePlugin{Log: logger}, nil
+}
+
+func newBuildConfigRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
+	return &buildconfig.RestorePlugin{Log: logger}, nil
 }
 
 func newDaemonSetRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
