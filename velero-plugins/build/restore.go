@@ -21,7 +21,7 @@ type RestorePlugin struct {
 	Log logrus.FieldLogger
 }
 
-// AppliesTo returns a velero.ResourceSelector that applies to everything
+// AppliesTo returns a velero.ResourceSelector that applies to builds
 func (p *RestorePlugin) AppliesTo() (velero.ResourceSelector, error) {
 	return velero.ResourceSelector{
 		IncludedResources: []string{"builds"},
@@ -36,59 +36,10 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	itemMarshal, _ := json.Marshal(input.Item)
 	json.Unmarshal(itemMarshal, &build)
 
-	secret, err := p.findBuilderDockercfgSecret(build)
-
+	build, err := p.updateSecretsAndDockerRefs(build)
 	if err != nil {
-		// TODO: Come back to this. This is ugly, should really return some type
-		// of error but I don't know what that is exactly
-		p.Log.Error("[build-restore] Skipping build: ", err)
-		return velero.NewRestoreItemActionExecuteOutput(input.Item), nil
-	}
-
-	p.Log.Info(fmt.Sprintf("[build-restore] Found new dockercfg secret: %v", secret))
-	build = createNewPushSecret(build, secret)
-
-	registry := build.Annotations[common.RestoreRegistryHostname]
-	if registry == "" {
-		err = fmt.Errorf("failed to find restore registry annotation")
+		p.Log.Error("[build-restore] error modifying build: ", err)
 		return nil, err
-	}
-	// Skip if not internal build
-	name := build.Spec.Strategy.SourceStrategy.From.Name
-	if !common.HasImageRefPrefix(name, build.Annotations[common.BackupRegistryHostname]) {
-		// Does not have internal registry hostname, skip
-		p.Log.Errorf("[build-restore] build is not from internal image, skipping")
-		return velero.NewRestoreItemActionExecuteOutput(input.Item), nil
-	}
-	shaSplit := strings.Split(name, "@")
-	if len(shaSplit) < 2 {
-		err = fmt.Errorf("unexpected image reference [%v]", name)
-		return nil, err
-	}
-	sha := shaSplit[1]
-	splitName := strings.Split(shaSplit[0], "/")
-	if len(splitName) < 2 {
-		err = fmt.Errorf("unexpected image reference [%v]", name)
-		return nil, err
-	}
-	namespacedName := splitName[len(splitName)-2:]
-	var newName string
-	if namespacedName[0] == "openshift" {
-		// This is a default imagestream/image from existing cluster
-		// Do NOT assume the same sha exists and use floating tag instead
-		newName = fmt.Sprintf("%s/%s/%s", registry, namespacedName[0], namespacedName[1])
-	} else {
-		newName = fmt.Sprintf("%s/%s/%s@%s", registry, namespacedName[0], namespacedName[1], sha)
-	}
-
-	// Replace all imageRefs
-	// This is safe because findBuilderDockercfgSecret will skip the build
-	// if it is not sourceBuildStrategyType
-	build.Spec.Strategy.SourceStrategy.From.Name = newName
-	for _, trigger := range build.Spec.TriggeredBy {
-		if trigger.ImageChangeBuild != nil {
-			trigger.ImageChangeBuild.ImageID = newName
-		}
 	}
 
 	var out map[string]interface{}
@@ -98,34 +49,150 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	return velero.NewRestoreItemActionExecuteOutput(&unstructured.Unstructured{Object: out}), nil
 }
 
-func (p *RestorePlugin) findBuilderDockercfgSecret(build buildv1API.Build) (string, error) {
-	if build.Spec.Strategy.Type != buildv1API.SourceBuildStrategyType {
-		return "", errors.New("No source build strategy type found")
-	}
-
+func (p *RestorePlugin) updateSecretsAndDockerRefs(build buildv1API.Build) (buildv1API.Build, error) {
 	client, err := clients.CoreClient()
 	if err != nil {
-		return "", err
+		return build, err
 	}
 
 	secretList, err := client.Secrets(build.Namespace).List(metav1.ListOptions{})
 	if err != nil {
-		return "", err
+		return build, err
+	}
+
+	registry := build.Annotations[common.RestoreRegistryHostname]
+	if registry == "" {
+		err = fmt.Errorf("failed to find restore registry annotation")
+		return build, err
+	}
+	backupRegistry := build.Annotations[common.BackupRegistryHostname]
+	if backupRegistry == "" {
+		err = fmt.Errorf("failed to find backup registry annotation")
+		return build, err
+	}
+
+	newCommonSpec, err := UpdateCommonSpec(build.Spec.CommonSpec, registry, backupRegistry, secretList, p.Log)
+	if err != nil {
+		return build, err
+	}
+	build.Spec.CommonSpec = newCommonSpec
+	return build, nil
+}
+
+func updateDockerReference(
+	fromRef corev1API.ObjectReference,
+	registry string,
+	backupRegistry string,
+	log logrus.FieldLogger,
+) ( corev1API.ObjectReference, error) {
+	if fromRef.Kind != "DockerImage" {
+		return fromRef, nil
+	}
+	newName, err := common.ReplaceImageRefPrefix(fromRef.Name, backupRegistry, registry)
+	if err != nil {
+		// Does not have internal registry hostname, skip
+		log.Infof("[build-restore-common] build is not from internal source image, skipping image reference swap")
+		return fromRef, nil
+	}
+	fromRef.Name = newName
+	return fromRef, nil
+}
+func updateDockerSecret(
+	secretRef *corev1API.LocalObjectReference,
+	secretList *corev1API.SecretList,
+	log logrus.FieldLogger,
+) ( *corev1API.LocalObjectReference, error) {
+	// If secret is empty or is anything other than "builder-dockercfg-<generated>"
+	// then leave it as-is. Either there's no secret or there's a custom one that
+	// should be migrated
+	if secretRef == nil || !strings.HasPrefix(secretRef.Name, "builder-dockercfg-") {
+		return secretRef, nil
 	}
 
 	for _, secret := range secretList.Items {
 		if strings.HasPrefix(secret.Name, "builder-dockercfg") {
-			return secret.Name, nil
+			log.Info(fmt.Sprintf("[build-restore-common] Found new dockercfg secret: %v", secret))
+			newSecret := corev1API.LocalObjectReference{Name: secret.Name}
+			return &newSecret, nil
 		}
 	}
 
-	return "", errors.New("Secret not found")
+	return nil, errors.New("Secret not found")
 }
 
-func createNewPushSecret(build buildv1API.Build, secret string) buildv1API.Build {
-	newPushSecret := corev1API.LocalObjectReference{Name: secret}
-	build.Spec.Output.PushSecret = &newPushSecret
-	build.Spec.Strategy.SourceStrategy.PullSecret = &newPushSecret
+// Updates docker references and secrets using CommonSpec, for both Build and BuildConfig
+func UpdateCommonSpec(
+	spec buildv1API.CommonSpec,
+	registry string,
+	backupRegistry string,
+	secretList *corev1API.SecretList,
+	log logrus.FieldLogger,
+) (buildv1API.CommonSpec, error) {
+	newSecret, err := updateDockerSecret(spec.Output.PushSecret, secretList, log)
+	if err != nil {
+		return spec, err
+	}
+	spec.Output.PushSecret = newSecret
+	if spec.Output.To != nil {
+		newTo, err := updateDockerReference(*spec.Output.To, registry, backupRegistry, log)
+		if err != nil {
+			return spec, err
+		}
+		spec.Output.To = &newTo
+	}
 
-	return build
+	if spec.Strategy.SourceStrategy != nil {
+		newSecret, err := updateDockerSecret(spec.Strategy.SourceStrategy.PullSecret, secretList, log)
+		if err != nil {
+			return spec, err
+		}
+		spec.Strategy.SourceStrategy.PullSecret = newSecret
+		newFrom, err := updateDockerReference(spec.Strategy.SourceStrategy.From, registry, backupRegistry, log)
+		if err != nil {
+			return spec, err
+		}
+		spec.Strategy.SourceStrategy.From = newFrom
+
+	}
+	if spec.Strategy.DockerStrategy != nil {
+		newSecret, err := updateDockerSecret(spec.Strategy.DockerStrategy.PullSecret, secretList, log)
+		if err != nil {
+			return spec, err
+		}
+		spec.Strategy.DockerStrategy.PullSecret = newSecret
+		if spec.Strategy.DockerStrategy.From != nil {
+			newFrom, err := updateDockerReference(*spec.Strategy.DockerStrategy.From, registry, backupRegistry, log)
+			if err != nil {
+				return spec, err
+			}
+			spec.Strategy.DockerStrategy.From = &newFrom
+		}
+	}
+	if spec.Strategy.CustomStrategy != nil {
+		newSecret, err := updateDockerSecret(spec.Strategy.CustomStrategy.PullSecret, secretList, log)
+		if err != nil {
+			return spec, err
+		}
+		spec.Strategy.CustomStrategy.PullSecret = newSecret
+		newFrom, err := updateDockerReference(spec.Strategy.CustomStrategy.From, registry, backupRegistry, log)
+		if err != nil {
+			return spec, err
+		}
+		spec.Strategy.CustomStrategy.From = newFrom
+	}
+	if spec.Source.Images != nil {
+		for _, imageSource := range spec.Source.Images {
+			newSecret, err := updateDockerSecret(imageSource.PullSecret, secretList, log)
+			if err != nil {
+				return spec, err
+			}
+			imageSource.PullSecret = newSecret
+			newFrom, err := updateDockerReference(imageSource.From, registry, backupRegistry, log)
+			if err != nil {
+				return spec, err
+			}
+			imageSource.From = newFrom
+		}
+	}
+	return spec, err
 }
