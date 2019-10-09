@@ -35,8 +35,20 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	if err != nil {
 		return nil, err
 	}
-	common.SwapContainerImageRefs(deploymentConfig.Spec.Template.Spec.Containers, backupRegistry, registry, p.Log)
-	common.SwapContainerImageRefs(deploymentConfig.Spec.Template.Spec.InitContainers, backupRegistry, registry, p.Log)
+	common.SwapContainerImageRefs(deploymentConfig.Spec.Template.Spec.Containers, backupRegistry, registry, p.Log, input.Restore.Spec.NamespaceMapping)
+	common.SwapContainerImageRefs(deploymentConfig.Spec.Template.Spec.InitContainers, backupRegistry, registry, p.Log, input.Restore.Spec.NamespaceMapping)
+
+	namespaceMapping := input.Restore.Spec.NamespaceMapping
+	newNamespace := namespaceMapping[deploymentConfig.Namespace]
+	if len(input.Restore.Spec.NamespaceMapping) > 0 {
+		for i := range deploymentConfig.Spec.Triggers {
+			// if trigger namespace is mapped to new one, swap it
+			triggerNamespace := deploymentConfig.Spec.Triggers[i].ImageChangeParams.From.Namespace
+			if namespaceMapping[triggerNamespace] != "" {
+				deploymentConfig.Spec.Triggers[i].ImageChangeParams.From.Namespace = newNamespace
+			}
+		}
+	}
 
 	var out map[string]interface{}
 	objrec, _ := json.Marshal(deploymentConfig)

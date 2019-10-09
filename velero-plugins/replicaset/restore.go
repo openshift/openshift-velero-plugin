@@ -35,8 +35,8 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	if err != nil {
 		return nil, err
 	}
-	common.SwapContainerImageRefs(replicaSet.Spec.Template.Spec.Containers, backupRegistry, registry, p.Log)
-	common.SwapContainerImageRefs(replicaSet.Spec.Template.Spec.InitContainers, backupRegistry, registry, p.Log)
+	common.SwapContainerImageRefs(replicaSet.Spec.Template.Spec.Containers, backupRegistry, registry, p.Log, input.Restore.Spec.NamespaceMapping)
+	common.SwapContainerImageRefs(replicaSet.Spec.Template.Spec.InitContainers, backupRegistry, registry, p.Log, input.Restore.Spec.NamespaceMapping)
 
 	ownerRefs, err := common.GetOwnerReferences(input.ItemFromBackup)
 	if err != nil {

@@ -49,7 +49,8 @@ func TestRestorePluginExecute(t *testing.T) {
 			},
 		}
 
-		newCommonSpec, err := UpdateCommonSpec(build.Spec.CommonSpec, "registry", "backupRegistry", &secretList, test.NewLogger())
+		namespaceMapping := make(map[string]string)
+		newCommonSpec, err := UpdateCommonSpec(build.Spec.CommonSpec, "registry", "backupRegistry", &secretList, test.NewLogger(), namespaceMapping)
 		assert.Equal(t, err, nil)
 		build.Spec.CommonSpec = newCommonSpec
 

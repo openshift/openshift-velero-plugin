@@ -35,8 +35,8 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	if err != nil {
 		return nil, err
 	}
-	common.SwapContainerImageRefs(cronjob.Spec.JobTemplate.Spec.Template.Spec.Containers, backupRegistry, registry, p.Log)
-	common.SwapContainerImageRefs(cronjob.Spec.JobTemplate.Spec.Template.Spec.InitContainers, backupRegistry, registry, p.Log)
+	common.SwapContainerImageRefs(cronjob.Spec.JobTemplate.Spec.Template.Spec.Containers, backupRegistry, registry, p.Log, input.Restore.Spec.NamespaceMapping)
+	common.SwapContainerImageRefs(cronjob.Spec.JobTemplate.Spec.Template.Spec.InitContainers, backupRegistry, registry, p.Log, input.Restore.Spec.NamespaceMapping)
 
 	var out map[string]interface{}
 	objrec, _ := json.Marshal(cronjob)
