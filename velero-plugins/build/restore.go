@@ -36,7 +36,7 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	itemMarshal, _ := json.Marshal(input.Item)
 	json.Unmarshal(itemMarshal, &build)
 
-	build, err := p.updateSecretsAndDockerRefs(build)
+	build, err := p.updateSecretsAndDockerRefs(build, input.Restore.Spec.NamespaceMapping)
 	if err != nil {
 		p.Log.Error("[build-restore] error modifying build: ", err)
 		return nil, err
@@ -49,13 +49,18 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	return velero.NewRestoreItemActionExecuteOutput(&unstructured.Unstructured{Object: out}), nil
 }
 
-func (p *RestorePlugin) updateSecretsAndDockerRefs(build buildv1API.Build) (buildv1API.Build, error) {
+func (p *RestorePlugin) updateSecretsAndDockerRefs(build buildv1API.Build, namespaceMapping map[string]string) (buildv1API.Build, error) {
 	client, err := clients.CoreClient()
 	if err != nil {
 		return build, err
 	}
 
-	secretList, err := client.Secrets(build.Namespace).List(metav1.ListOptions{})
+	buildNamespace := build.Namespace
+	if namespaceMapping[buildNamespace] != "" {
+		buildNamespace = namespaceMapping[buildNamespace]
+	}
+
+	secretList, err := client.Secrets(buildNamespace).List(metav1.ListOptions{})
 	if err != nil {
 		return build, err
 	}
@@ -71,7 +76,7 @@ func (p *RestorePlugin) updateSecretsAndDockerRefs(build buildv1API.Build) (buil
 		return build, err
 	}
 
-	newCommonSpec, err := UpdateCommonSpec(build.Spec.CommonSpec, registry, backupRegistry, secretList, p.Log)
+	newCommonSpec, err := UpdateCommonSpec(build.Spec.CommonSpec, registry, backupRegistry, secretList, p.Log, namespaceMapping)
 	if err != nil {
 		return build, err
 	}
@@ -84,11 +89,12 @@ func updateDockerReference(
 	registry string,
 	backupRegistry string,
 	log logrus.FieldLogger,
-) ( corev1API.ObjectReference, error) {
+	namespaceMapping map[string]string,
+) (corev1API.ObjectReference, error) {
 	if fromRef.Kind != "DockerImage" {
 		return fromRef, nil
 	}
-	newName, err := common.ReplaceImageRefPrefix(fromRef.Name, backupRegistry, registry)
+	newName, err := common.ReplaceImageRefPrefix(fromRef.Name, backupRegistry, registry, namespaceMapping)
 	if err != nil {
 		// Does not have internal registry hostname, skip
 		log.Infof("[build-restore-common] build is not from internal source image, skipping image reference swap")
@@ -101,7 +107,7 @@ func updateDockerSecret(
 	secretRef *corev1API.LocalObjectReference,
 	secretList *corev1API.SecretList,
 	log logrus.FieldLogger,
-) ( *corev1API.LocalObjectReference, error) {
+) (*corev1API.LocalObjectReference, error) {
 	// If secret is empty or is anything other than "builder-dockercfg-<generated>"
 	// then leave it as-is. Either there's no secret or there's a custom one that
 	// should be migrated
@@ -120,13 +126,14 @@ func updateDockerSecret(
 	return nil, errors.New("Secret not found")
 }
 
-// Updates docker references and secrets using CommonSpec, for both Build and BuildConfig
+// UpdateCommonSpec Updates docker references and secrets using CommonSpec, for both Build and BuildConfig
 func UpdateCommonSpec(
 	spec buildv1API.CommonSpec,
 	registry string,
 	backupRegistry string,
 	secretList *corev1API.SecretList,
 	log logrus.FieldLogger,
+	namespaceMapping map[string]string,
 ) (buildv1API.CommonSpec, error) {
 	newSecret, err := updateDockerSecret(spec.Output.PushSecret, secretList, log)
 	if err != nil {
@@ -134,7 +141,7 @@ func UpdateCommonSpec(
 	}
 	spec.Output.PushSecret = newSecret
 	if spec.Output.To != nil {
-		newTo, err := updateDockerReference(*spec.Output.To, registry, backupRegistry, log)
+		newTo, err := updateDockerReference(*spec.Output.To, registry, backupRegistry, log, namespaceMapping)
 		if err != nil {
 			return spec, err
 		}
@@ -147,7 +154,7 @@ func UpdateCommonSpec(
 			return spec, err
 		}
 		spec.Strategy.SourceStrategy.PullSecret = newSecret
-		newFrom, err := updateDockerReference(spec.Strategy.SourceStrategy.From, registry, backupRegistry, log)
+		newFrom, err := updateDockerReference(spec.Strategy.SourceStrategy.From, registry, backupRegistry, log, namespaceMapping)
 		if err != nil {
 			return spec, err
 		}
@@ -161,7 +168,7 @@ func UpdateCommonSpec(
 		}
 		spec.Strategy.DockerStrategy.PullSecret = newSecret
 		if spec.Strategy.DockerStrategy.From != nil {
-			newFrom, err := updateDockerReference(*spec.Strategy.DockerStrategy.From, registry, backupRegistry, log)
+			newFrom, err := updateDockerReference(*spec.Strategy.DockerStrategy.From, registry, backupRegistry, log, namespaceMapping)
 			if err != nil {
 				return spec, err
 			}
@@ -174,7 +181,7 @@ func UpdateCommonSpec(
 			return spec, err
 		}
 		spec.Strategy.CustomStrategy.PullSecret = newSecret
-		newFrom, err := updateDockerReference(spec.Strategy.CustomStrategy.From, registry, backupRegistry, log)
+		newFrom, err := updateDockerReference(spec.Strategy.CustomStrategy.From, registry, backupRegistry, log, namespaceMapping)
 		if err != nil {
 			return spec, err
 		}
@@ -187,7 +194,7 @@ func UpdateCommonSpec(
 				return spec, err
 			}
 			imageSource.PullSecret = newSecret
-			newFrom, err := updateDockerReference(imageSource.From, registry, backupRegistry, log)
+			newFrom, err := updateDockerReference(imageSource.From, registry, backupRegistry, log, namespaceMapping)
 			if err != nil {
 				return spec, err
 			}

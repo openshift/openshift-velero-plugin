@@ -13,7 +13,7 @@ import (
 
 // ReplaceImageRefPrefix replaces an image reference prefix with newPrefix.
 // If the input image reference does not start with oldPrefix, an error is returned
-func ReplaceImageRefPrefix(s, oldPrefix, newPrefix string) (string, error) {
+func ReplaceImageRefPrefix(s, oldPrefix, newPrefix string, namespaceMapping map[string]string) (string, error) {
 	refSplit := strings.SplitN(s, "/", 2)
 	if len(refSplit) != 2 {
 		err := fmt.Errorf("image reference [%v] does not have prefix [%v]", s, oldPrefix)
@@ -25,6 +25,9 @@ func ReplaceImageRefPrefix(s, oldPrefix, newPrefix string) (string, error) {
 	}
 	outPath := refSplit[1]
 	namespaceSplit := strings.SplitN(refSplit[1], "/", 2)
+	if len(namespaceSplit) == 2 && namespaceMapping[namespaceSplit[0]] != "" { // change namespace if mapping is enabled
+		outPath = strings.Join([]string{namespaceMapping[namespaceSplit[0]], namespaceSplit[1]}, "/")
+	}
 	if len(namespaceSplit) == 2 && namespaceSplit[0] == "openshift" {
 		shaSplit := strings.SplitN(refSplit[1], "@", 2)
 		if len(shaSplit) == 2 {
@@ -83,11 +86,11 @@ func ParseLocalImageReference(s, prefix string) (*LocalImageReference, error) {
 
 // SwapContainerImageRefs updates internal image references from
 // backup registry to restore registry pathnames
-func SwapContainerImageRefs(containers []corev1API.Container, oldRegistry, newRegistry string, log logrus.FieldLogger) {
+func SwapContainerImageRefs(containers []corev1API.Container, oldRegistry, newRegistry string, log logrus.FieldLogger, namespaceMapping map[string]string) {
 	for n, container := range containers {
 		imageRef := container.Image
 		log.Infof("[util] container image ref %s", imageRef)
-		newImageRef, err := ReplaceImageRefPrefix(imageRef, oldRegistry, newRegistry)
+		newImageRef, err := ReplaceImageRefPrefix(imageRef, oldRegistry, newRegistry, namespaceMapping)
 		if err == nil {
 			// Replace local image
 			log.Infof("[util] replacing container image ref %s with %s", imageRef, newImageRef)

@@ -34,7 +34,7 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	itemMarshal, _ := json.Marshal(input.Item)
 	json.Unmarshal(itemMarshal, &buildconfig)
 
-	buildconfig, err := p.updateSecretsAndDockerRefs(buildconfig)
+	buildconfig, err := p.updateSecretsAndDockerRefs(buildconfig, input.Restore.Spec.NamespaceMapping)
 	if err != nil {
 		p.Log.Error("[buildconfig-restore] error modifying buildconfig: ", err)
 		return nil, err
@@ -47,7 +47,7 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	return velero.NewRestoreItemActionExecuteOutput(&unstructured.Unstructured{Object: out}), nil
 }
 
-func (p *RestorePlugin) updateSecretsAndDockerRefs(buildconfig buildv1API.BuildConfig) (buildv1API.BuildConfig, error) {
+func (p *RestorePlugin) updateSecretsAndDockerRefs(buildconfig buildv1API.BuildConfig, namespaceMapping map[string]string) (buildv1API.BuildConfig, error) {
 	client, err := clients.CoreClient()
 	if err != nil {
 		return buildconfig, err
@@ -69,7 +69,7 @@ func (p *RestorePlugin) updateSecretsAndDockerRefs(buildconfig buildv1API.BuildC
 		return buildconfig, err
 	}
 
-	newCommonSpec, err := build.UpdateCommonSpec(buildconfig.Spec.CommonSpec, registry, backupRegistry, secretList, p.Log)
+	newCommonSpec, err := build.UpdateCommonSpec(buildconfig.Spec.CommonSpec, registry, backupRegistry, secretList, p.Log, namespaceMapping)
 	if err != nil {
 		return buildconfig, err
 	}
