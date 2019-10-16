@@ -42,6 +42,10 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	newNamespace := namespaceMapping[deploymentConfig.Namespace]
 	if len(input.Restore.Spec.NamespaceMapping) > 0 {
 		for i := range deploymentConfig.Spec.Triggers {
+			if deploymentConfig.Spec.Triggers[i].ImageChangeParams == nil {
+				continue
+			}
+
 			// if trigger namespace is mapped to new one, swap it
 			triggerNamespace := deploymentConfig.Spec.Triggers[i].ImageChangeParams.From.Namespace
 			if namespaceMapping[triggerNamespace] != "" {
