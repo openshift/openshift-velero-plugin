@@ -81,22 +81,6 @@
   revision = "2f1d1f20f75d5404f53b9edf6b53ed5505508675"
 
 [[projects]]
-  branch = "fusor-dev"
-  digest = "1:d4cbe62d2c79b1a661e3b8769e64dc4852b874adb570610eb128a67853cf6858"
-  name = "github.com/heptio/velero"
-  packages = [
-    "pkg/apis/velero/v1",
-    "pkg/cmd/util/flag",
-    "pkg/plugin/framework",
-    "pkg/plugin/generated",
-    "pkg/plugin/velero",
-    "pkg/util/logging",
-  ]
-  pruneopts = "NUT"
-  revision = "86cee052726b3017aacac9e59a48f53c229666ae"
-  source = "github.com/fusor/velero.git"
-
-[[projects]]
   digest = "1:406338ad39ab2e37b7f4452906442a3dbf0eb3379dd1f06aafb5c07e769a5fbb"
   name = "github.com/inconshreveable/mousetrap"
   packages = ["."]
@@ -245,6 +229,22 @@
   pruneopts = "NUT"
   revision = "ffdc059bfe9ce6a4e144ba849dbedead332c6053"
   version = "v1.3.0"
+
+[[projects]]
+  branch = "fusor-dev"
+  digest = "1:edb54d8509ea6f5479d4d50f578db931dae48711b50ab4b168b5823bf4f33302"
+  name = "github.com/vmware-tanzu/velero"
+  packages = [
+    "pkg/apis/velero/v1",
+    "pkg/cmd/util/flag",
+    "pkg/plugin/framework",
+    "pkg/plugin/generated",
+    "pkg/plugin/velero",
+    "pkg/util/logging",
+  ]
+  pruneopts = "NUT"
+  revision = "d35335021acf4d2535dd734caece505484688523"
+  source = "github.com/fusor/velero.git"
 
 [[projects]]
   branch = "master"
@@ -408,7 +408,7 @@
   version = "v2.2.2"
 
 [[projects]]
-  digest = "1:a937ed4322409fa22924f02124fd0727c19662f73cf15406646d19bdce972df2"
+  digest = "1:760e08df99c3c3b53764ef7c41c03ea9d90e8594d9df42364d9209e99a0352e1"
   name = "k8s.io/api"
   packages = [
     "admissionregistration/v1beta1",
@@ -449,11 +449,11 @@
     "storage/v1beta1",
   ]
   pruneopts = "NUT"
-  revision = "40a48860b5abbba9aa891b02b32da429b08d96a0"
-  version = "kubernetes-1.14.0"
+  revision = "3544db3b9e4494309507e02eced5cd9dcff47e6a"
+  version = "kubernetes-1.15.3"
 
 [[projects]]
-  digest = "1:8bcd63053adfbb2547a71424b03e09d19392ffed1010cb4643781d9ebfe3b900"
+  digest = "1:d8948a8e44ec1f0deb72d4a4f393a81094e58134122c7ac14e5ff3cadd1dcf23"
   name = "k8s.io/apimachinery"
   packages = [
     "pkg/api/errors",
@@ -461,7 +461,6 @@
     "pkg/api/resource",
     "pkg/apis/meta/v1",
     "pkg/apis/meta/v1/unstructured",
-    "pkg/apis/meta/v1beta1",
     "pkg/conversion",
     "pkg/conversion/queryparams",
     "pkg/fields",
@@ -493,11 +492,11 @@
     "third_party/forked/golang/reflect",
   ]
   pruneopts = "NUT"
-  revision = "d7deff9243b165ee192f5551710ea4285dcfd615"
-  version = "kubernetes-1.14.0"
+  revision = "f2f3a405f61d6c2cdc0d00687c1b5d90de91e9f0"
+  version = "kubernetes-1.15.3"
 
 [[projects]]
-  digest = "1:081169bb3093bf4c9377988a176a0eb5b4ee9bad431b7eba598a0987c9c09d9f"
+  digest = "1:881d5f2cb7b09ea4fa132858e8b7acfed0a99d58b32867b5bfafe0c42933fe1b"
   name = "k8s.io/client-go"
   packages = [
     "discovery",
@@ -521,8 +520,8 @@
     "util/keyutil",
   ]
   pruneopts = "NUT"
-  revision = "6ee68ca5fd8355d024d02f9db0b3b667e8357a0f"
-  version = "kubernetes-1.14.0"
+  revision = "e14f31a72a77f7aa82a95eaf542d1194fb027d04"
+  version = "kubernetes-1.15.3"
 
 [[projects]]
   digest = "1:c05ad592787fc6cdacf8c5309d826561aa4a7d9e4e7ea28660dfb2c77ff68ab0"
@@ -552,9 +551,6 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
-    "github.com/heptio/velero/pkg/apis/velero/v1",
-    "github.com/heptio/velero/pkg/plugin/framework",
-    "github.com/heptio/velero/pkg/plugin/velero",
     "github.com/openshift/api/apps/v1",
     "github.com/openshift/api/build/v1",
     "github.com/openshift/api/route/v1",
@@ -566,8 +562,12 @@
     "github.com/sirupsen/logrus",
     "github.com/stretchr/testify/assert",
     "github.com/stretchr/testify/require",
+    "github.com/vmware-tanzu/velero/pkg/apis/velero/v1",
+    "github.com/vmware-tanzu/velero/pkg/plugin/framework",
+    "github.com/vmware-tanzu/velero/pkg/plugin/velero",
     "k8s.io/api/apps/v1",
     "k8s.io/api/batch/v1",
+    "k8s.io/api/batch/v1beta1",
     "k8s.io/api/core/v1",
     "k8s.io/apimachinery/pkg/api/meta",
     "k8s.io/apimachinery/pkg/apis/meta/v1",

@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 
 	"github.com/fusor/openshift-velero-plugin/velero-plugins/common"
-	"github.com/heptio/velero/pkg/plugin/velero"
 	"github.com/sirupsen/logrus"
+	"github.com/vmware-tanzu/velero/pkg/plugin/velero"
 	batchv1beta1API "k8s.io/api/batch/v1beta1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )

@@ -5,9 +5,9 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 
-	v1 "github.com/heptio/velero/pkg/apis/velero/v1"
-	"github.com/heptio/velero/pkg/plugin/velero"
 	"github.com/sirupsen/logrus"
+	v1 "github.com/vmware-tanzu/velero/pkg/apis/velero/v1"
+	"github.com/vmware-tanzu/velero/pkg/plugin/velero"
 )
 
 // BackupPlugin is a backup item action plugin for Heptio Ark.

@@ -4,9 +4,9 @@ import (
 	"testing"
 
 	"github.com/fusor/openshift-velero-plugin/velero-plugins/util/test"
-	"github.com/heptio/velero/pkg/plugin/velero"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/vmware-tanzu/velero/pkg/plugin/velero"
 )
 
 func TestRestorePluginAppliesTo(t *testing.T) {
