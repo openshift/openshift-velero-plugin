@@ -3,8 +3,8 @@ package common
 import (
 	"fmt"
 
-	"github.com/heptio/velero/pkg/plugin/velero"
 	"github.com/sirupsen/logrus"
+	"github.com/vmware-tanzu/velero/pkg/plugin/velero"
 )
 
 // RestorePlugin is a restore item action plugin for Heptio Ark.

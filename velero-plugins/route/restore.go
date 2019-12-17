@@ -3,9 +3,9 @@ package route
 import (
 	"encoding/json"
 
-	"github.com/heptio/velero/pkg/plugin/velero"
 	routev1API "github.com/openshift/api/route/v1"
 	"github.com/sirupsen/logrus"
+	"github.com/vmware-tanzu/velero/pkg/plugin/velero"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 

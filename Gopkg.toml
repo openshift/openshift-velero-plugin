@@ -39,7 +39,7 @@
   branch = "release-4.2"
 
 [[constraint]]
-  name = "github.com/heptio/velero"
+  name = "github.com/vmware-tanzu/velero"
   branch = "fusor-dev"
   source = "github.com/fusor/velero.git"
 
@@ -49,15 +49,15 @@
 
 [[constraint]]
   name = "k8s.io/apimachinery"
-  version = "kubernetes-1.14.0"
+  version = "kubernetes-1.15.3"
 
 [[constraint]]
   name = "k8s.io/client-go"
-  version = "kubernetes-1.14.0"
+  version = "kubernetes-1.15.3"
 
 [[constraint]]
   name = "k8s.io/api"
-  version = "kubernetes-1.14.0"
+  version = "kubernetes-1.15.3"
 
 [[override]]
   name = "github.com/spf13/cobra"

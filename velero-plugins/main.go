@@ -17,8 +17,8 @@ import (
 	"github.com/fusor/openshift-velero-plugin/velero-plugins/service"
 	"github.com/fusor/openshift-velero-plugin/velero-plugins/serviceaccount"
 	"github.com/fusor/openshift-velero-plugin/velero-plugins/statefulset"
-	veleroplugin "github.com/heptio/velero/pkg/plugin/framework"
 	"github.com/sirupsen/logrus"
+	veleroplugin "github.com/vmware-tanzu/velero/pkg/plugin/framework"
 )
 
 func main() {
