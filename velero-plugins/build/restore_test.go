@@ -3,7 +3,7 @@ package build
 import (
 	"testing"
 
-	"github.com/fusor/openshift-velero-plugin/velero-plugins/util/test"
+	"github.com/konveyor/openshift-velero-plugin/velero-plugins/util/test"
 	buildv1API "github.com/openshift/api/build/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

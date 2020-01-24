@@ -1,7 +1,0 @@
-package main
-
-import (
-	"github.com/fusor/openshift-velero-plugin/velero-plugins/common"
-)
-func main() {
-}

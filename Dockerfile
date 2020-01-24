@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 FROM golang:1.11 as builder
-WORKDIR /go/src/github.com/fusor/openshift-velero-plugin
+WORKDIR /go/src/github.com/konveyor/openshift-velero-plugin
 COPY . ./
 ENV BUILDTAGS containers_image_ostree_stub exclude_graphdriver_devicemapper exclude_graphdriver_btrfs containers_image_openpgp exclude_graphdriver_overlay
 ENV BIN velero-plugins
@@ -20,6 +20,6 @@ RUN go build -installsuffix "static" -tags "$BUILDTAGS" -i -o _output/$BIN ./$BI
 
 FROM registry.access.redhat.com/ubi8-minimal
 RUN mkdir /plugins
-COPY --from=builder /go/src/github.com/fusor/openshift-velero-plugin/_output/$BIN /plugins/
+COPY --from=builder /go/src/github.com/konveyor/openshift-velero-plugin/_output/$BIN /plugins/
 USER nobody:nobody
 ENTRYPOINT ["/bin/bash", "-c", "cp /plugins/* /target/."]

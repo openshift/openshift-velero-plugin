@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/fusor/openshift-velero-plugin/velero-plugins/clients"
+	"github.com/konveyor/openshift-velero-plugin/velero-plugins/clients"
 	"github.com/openshift/library-go/pkg/image/reference"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/api/meta"

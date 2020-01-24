@@ -1,4 +1,4 @@
-# OpenShift Velero Plugin [![Build Status](https://travis-ci.com/fusor/openshift-velero-plugin.svg?branch=master)](https://travis-ci.com/fusor/openshift-velero-plugin) [![Maintainability](https://api.codeclimate.com/v1/badges/95d3aaf8af1cfdd529c4/maintainability)](https://codeclimate.com/github/fusor/ocp-velero-plugin/maintainability)
+# OpenShift Velero Plugin [![Build Status](https://travis-ci.com/konveyor/openshift-velero-plugin.svg?branch=master)](https://travis-ci.com/konveyor/openshift-velero-plugin) [![Maintainability](https://api.codeclimate.com/v1/badges/95d3aaf8af1cfdd529c4/maintainability)](https://codeclimate.com/github/konveyoropenshift-velero-plugin/maintainability)
 
 ## Kinds of Plugins
 
@@ -21,7 +21,7 @@ To build the image, run
 $ make container
 ```
 
-This builds an image tagged as `docker.io/fusor/openshift-velero-plugin`. If you want to specify a
+This builds an image tagged as `docker.io/konveyor/openshift-velero-plugin`. If you want to specify a
 different name, run
 
 ```bash
