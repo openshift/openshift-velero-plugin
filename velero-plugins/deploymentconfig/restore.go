@@ -3,7 +3,7 @@ package deploymentconfig
 import (
 	"encoding/json"
 
-	"github.com/fusor/openshift-velero-plugin/velero-plugins/common"
+	"github.com/konveyor/openshift-velero-plugin/velero-plugins/common"
 	appsv1API "github.com/openshift/api/apps/v1"
 	"github.com/sirupsen/logrus"
 	"github.com/vmware-tanzu/velero/pkg/plugin/velero"

@@ -231,7 +231,7 @@
   version = "v1.3.0"
 
 [[projects]]
-  branch = "fusor-dev"
+  branch = "konveyor-dev"
   digest = "1:edb54d8509ea6f5479d4d50f578db931dae48711b50ab4b168b5823bf4f33302"
   name = "github.com/vmware-tanzu/velero"
   packages = [
@@ -243,8 +243,8 @@
     "pkg/util/logging",
   ]
   pruneopts = "NUT"
-  revision = "d35335021acf4d2535dd734caece505484688523"
-  source = "github.com/fusor/velero.git"
+  revision = "eafaef2a4fb13029d7533e501dc57f9073f4e06b"
+  source = "github.com/konveyor/velero.git"
 
 [[projects]]
   branch = "master"

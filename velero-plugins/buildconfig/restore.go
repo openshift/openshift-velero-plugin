@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/fusor/openshift-velero-plugin/velero-plugins/build"
-	"github.com/fusor/openshift-velero-plugin/velero-plugins/clients"
-	"github.com/fusor/openshift-velero-plugin/velero-plugins/common"
+	"github.com/konveyor/openshift-velero-plugin/velero-plugins/build"
+	"github.com/konveyor/openshift-velero-plugin/velero-plugins/clients"
+	"github.com/konveyor/openshift-velero-plugin/velero-plugins/common"
 	buildv1API "github.com/openshift/api/build/v1"
 	"github.com/sirupsen/logrus"
 	"github.com/vmware-tanzu/velero/pkg/plugin/velero"
