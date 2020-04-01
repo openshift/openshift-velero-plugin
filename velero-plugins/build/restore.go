@@ -1,7 +1,6 @@
 package build
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -13,7 +12,6 @@ import (
 	"github.com/vmware-tanzu/velero/pkg/plugin/velero"
 	corev1API "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 // RestorePlugin is a restore item action plugin for Velero
@@ -30,23 +28,9 @@ func (p *RestorePlugin) AppliesTo() (velero.ResourceSelector, error) {
 
 // Execute action for the restore plugin for the build resource
 func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*velero.RestoreItemActionExecuteOutput, error) {
-	p.Log.Info("[build-restore] Entering build restore plugin")
+	p.Log.Info("[build-restore] Skipping restore of build to allow buildconfig to recreate it")
+	return velero.NewRestoreItemActionExecuteOutput(input.Item).WithoutRestore(), nil
 
-	build := buildv1API.Build{}
-	itemMarshal, _ := json.Marshal(input.Item)
-	json.Unmarshal(itemMarshal, &build)
-
-	build, err := p.updateSecretsAndDockerRefs(build, input.Restore.Spec.NamespaceMapping)
-	if err != nil {
-		p.Log.Error("[build-restore] error modifying build: ", err)
-		return nil, err
-	}
-
-	var out map[string]interface{}
-	objrec, _ := json.Marshal(build)
-	json.Unmarshal(objrec, &out)
-
-	return velero.NewRestoreItemActionExecuteOutput(&unstructured.Unstructured{Object: out}), nil
 }
 
 func (p *RestorePlugin) updateSecretsAndDockerRefs(build buildv1API.Build, namespaceMapping map[string]string) (buildv1API.Build, error) {
