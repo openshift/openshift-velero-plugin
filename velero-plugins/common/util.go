@@ -87,6 +87,9 @@ func ParseLocalImageReference(s, prefix string) (*LocalImageReference, error) {
 // SwapContainerImageRefs updates internal image references from
 // backup registry to restore registry pathnames
 func SwapContainerImageRefs(containers []corev1API.Container, oldRegistry, newRegistry string, log logrus.FieldLogger, namespaceMapping map[string]string) {
+	if oldRegistry == "" || newRegistry == "" {
+		return
+	}
 	for n, container := range containers {
 		imageRef := container.Image
 		log.Infof("[util] container image ref %s", imageRef)
@@ -107,13 +110,7 @@ func GetSrcAndDestRegistryInfo(item runtime.Unstructured) (string, string, error
 		return "", "", err
 	}
 	backupRegistry := annotations[BackupRegistryHostname]
-	if backupRegistry == "" {
-		return "", "", fmt.Errorf("failed to find backup registry annotation")
-	}
 	restoreRegistry := annotations[RestoreRegistryHostname]
-	if restoreRegistry == "" {
-		return "", "", fmt.Errorf("failed to find restore registry annotation")
-	}
 	return backupRegistry, restoreRegistry, nil
 }
 

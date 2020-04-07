@@ -5,13 +5,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/konveyor/openshift-velero-plugin/velero-plugins/clients"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/common"
 	buildv1API "github.com/openshift/api/build/v1"
 	"github.com/sirupsen/logrus"
 	"github.com/vmware-tanzu/velero/pkg/plugin/velero"
 	corev1API "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // RestorePlugin is a restore item action plugin for Velero
@@ -33,41 +31,6 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 
 }
 
-func (p *RestorePlugin) updateSecretsAndDockerRefs(build buildv1API.Build, namespaceMapping map[string]string) (buildv1API.Build, error) {
-	client, err := clients.CoreClient()
-	if err != nil {
-		return build, err
-	}
-
-	buildNamespace := build.Namespace
-	if namespaceMapping[buildNamespace] != "" {
-		buildNamespace = namespaceMapping[buildNamespace]
-	}
-
-	secretList, err := client.Secrets(buildNamespace).List(metav1.ListOptions{})
-	if err != nil {
-		return build, err
-	}
-
-	registry := build.Annotations[common.RestoreRegistryHostname]
-	if registry == "" {
-		err = fmt.Errorf("failed to find restore registry annotation")
-		return build, err
-	}
-	backupRegistry := build.Annotations[common.BackupRegistryHostname]
-	if backupRegistry == "" {
-		err = fmt.Errorf("failed to find backup registry annotation")
-		return build, err
-	}
-
-	newCommonSpec, err := UpdateCommonSpec(build.Spec.CommonSpec, registry, backupRegistry, secretList, p.Log, namespaceMapping)
-	if err != nil {
-		return build, err
-	}
-	build.Spec.CommonSpec = newCommonSpec
-	return build, nil
-}
-
 func updateDockerReference(
 	fromRef corev1API.ObjectReference,
 	registry string,
@@ -76,6 +39,9 @@ func updateDockerReference(
 	namespaceMapping map[string]string,
 ) (corev1API.ObjectReference, error) {
 	if fromRef.Kind != "DockerImage" {
+		return fromRef, nil
+	}
+	if registry == "" || backupRegistry == "" {
 		return fromRef, nil
 	}
 	newName, err := common.ReplaceImageRefPrefix(fromRef.Name, backupRegistry, registry, namespaceMapping)

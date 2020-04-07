@@ -2,7 +2,6 @@ package buildconfig
 
 import (
 	"encoding/json"
-	"fmt"
 
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/build"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/clients"
@@ -59,15 +58,7 @@ func (p *RestorePlugin) updateSecretsAndDockerRefs(buildconfig buildv1API.BuildC
 	}
 
 	registry := buildconfig.Annotations[common.RestoreRegistryHostname]
-	if registry == "" {
-		err = fmt.Errorf("failed to find restore registry annotation")
-		return buildconfig, err
-	}
 	backupRegistry := buildconfig.Annotations[common.BackupRegistryHostname]
-	if backupRegistry == "" {
-		err = fmt.Errorf("failed to find backup registry annotation")
-		return buildconfig, err
-	}
 
 	newCommonSpec, err := build.UpdateCommonSpec(buildconfig.Spec.CommonSpec, registry, backupRegistry, secretList, p.Log, namespaceMapping)
 	if err != nil {

@@ -2,7 +2,6 @@ package pod
 
 import (
 	"encoding/json"
-	"fmt"
 
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/common"
 	"github.com/sirupsen/logrus"
@@ -32,10 +31,9 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	json.Unmarshal(itemMarshal, &pod)
 	p.Log.Infof("[pod-restore] pod: %s", pod.Name)
 
-	registry := pod.Annotations[common.RestoreRegistryHostname]
-	backupRegistry := pod.Annotations[common.BackupRegistryHostname]
-	if registry == "" {
-		return nil, fmt.Errorf("failed to find restore registry annotation")
+	backupRegistry, registry, err := common.GetSrcAndDestRegistryInfo(input.Item)
+	if err != nil {
+		return nil, err
 	}
 	common.SwapContainerImageRefs(pod.Spec.Containers, backupRegistry, registry, p.Log, input.Restore.Spec.NamespaceMapping)
 	common.SwapContainerImageRefs(pod.Spec.InitContainers, backupRegistry, registry, p.Log, input.Restore.Spec.NamespaceMapping)
