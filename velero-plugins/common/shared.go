@@ -2,7 +2,6 @@ package common
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -49,7 +48,8 @@ func GetRegistryInfo(major, minor string, log logrus.FieldLogger) (string, error
 	} else if intVersion <= 11 {
 		registrySvc, err := cClient.Services("default").Get("docker-registry", metav1.GetOptions{})
 		if err != nil {
-			return "", err
+			// Return empty registry host but no error; registry not found
+			return "", nil
 		}
 		internalRegistry := registrySvc.Spec.ClusterIP + ":" + strconv.Itoa(int(registrySvc.Spec.Ports[0].Port))
 		log.Info("[GetRegistryInfo] value from clusterIP")
@@ -66,7 +66,7 @@ func GetRegistryInfo(major, minor string, log logrus.FieldLogger) (string, error
 		}
 		internalRegistry := serverConfig.ImagePolicyConfig.InternalRegistryHostname
 		if len(internalRegistry) == 0 {
-			return "", errors.New("InternalRegistryHostname not found")
+			return "", nil
 		}
 		log.Info("[GetRegistryInfo] value from clusterIP")
 		return internalRegistry, nil
