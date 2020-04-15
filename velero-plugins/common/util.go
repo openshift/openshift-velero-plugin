@@ -1,6 +1,7 @@
 package common
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -101,6 +102,35 @@ func SwapContainerImageRefs(containers []corev1API.Container, oldRegistry, newRe
 		}
 	}
 
+}
+
+// UpdatePullSecret updates registry pull (or push) secret
+// with a secret found in the dest cluster
+func UpdatePullSecret(
+	secretRef *corev1API.LocalObjectReference,
+	secretList *corev1API.SecretList,
+	log logrus.FieldLogger,
+) (*corev1API.LocalObjectReference, error) {
+	// If secret is empty or doesn't begin with "{builder|default|deployer}-dockercfg-"
+	// then leave it as-is. Either there's no secret or there's a custom one that
+	// should be migrated
+	if secretRef == nil {
+		return secretRef, nil
+	}
+
+	for _, prefix := range []string{"builder-dockercfg-", "default-dockercfg-", "deployer-dockercfg-"} {
+		if strings.HasPrefix(secretRef.Name, prefix) {
+			for _, secret := range secretList.Items {
+				if strings.HasPrefix(secret.Name, prefix) {
+					log.Info(fmt.Sprintf("[util] Found new dockercfg secret: %v", secret))
+					newSecret := corev1API.LocalObjectReference{Name: secret.Name}
+					return &newSecret, nil
+				}
+			}
+			return nil, errors.New("Secret not found")
+		}
+	}
+	return secretRef, nil
 }
 
 // GetSrcAndDestRegistryInfo returns the Registry hostname for both src and dest clusters
