@@ -1,10 +1,6 @@
 package build
 
 import (
-	"errors"
-	"fmt"
-	"strings"
-
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/common"
 	buildv1API "github.com/openshift/api/build/v1"
 	"github.com/sirupsen/logrus"
@@ -53,28 +49,6 @@ func updateDockerReference(
 	fromRef.Name = newName
 	return fromRef, nil
 }
-func updateDockerSecret(
-	secretRef *corev1API.LocalObjectReference,
-	secretList *corev1API.SecretList,
-	log logrus.FieldLogger,
-) (*corev1API.LocalObjectReference, error) {
-	// If secret is empty or is anything other than "builder-dockercfg-<generated>"
-	// then leave it as-is. Either there's no secret or there's a custom one that
-	// should be migrated
-	if secretRef == nil || !strings.HasPrefix(secretRef.Name, "builder-dockercfg-") {
-		return secretRef, nil
-	}
-
-	for _, secret := range secretList.Items {
-		if strings.HasPrefix(secret.Name, "builder-dockercfg") {
-			log.Info(fmt.Sprintf("[build-restore-common] Found new dockercfg secret: %v", secret))
-			newSecret := corev1API.LocalObjectReference{Name: secret.Name}
-			return &newSecret, nil
-		}
-	}
-
-	return nil, errors.New("Secret not found")
-}
 
 // UpdateCommonSpec Updates docker references and secrets using CommonSpec, for both Build and BuildConfig
 func UpdateCommonSpec(
@@ -85,7 +59,7 @@ func UpdateCommonSpec(
 	log logrus.FieldLogger,
 	namespaceMapping map[string]string,
 ) (buildv1API.CommonSpec, error) {
-	newSecret, err := updateDockerSecret(spec.Output.PushSecret, secretList, log)
+	newSecret, err := common.UpdatePullSecret(spec.Output.PushSecret, secretList, log)
 	if err != nil {
 		return spec, err
 	}
@@ -99,7 +73,7 @@ func UpdateCommonSpec(
 	}
 
 	if spec.Strategy.SourceStrategy != nil {
-		newSecret, err := updateDockerSecret(spec.Strategy.SourceStrategy.PullSecret, secretList, log)
+		newSecret, err := common.UpdatePullSecret(spec.Strategy.SourceStrategy.PullSecret, secretList, log)
 		if err != nil {
 			return spec, err
 		}
@@ -112,7 +86,7 @@ func UpdateCommonSpec(
 
 	}
 	if spec.Strategy.DockerStrategy != nil {
-		newSecret, err := updateDockerSecret(spec.Strategy.DockerStrategy.PullSecret, secretList, log)
+		newSecret, err := common.UpdatePullSecret(spec.Strategy.DockerStrategy.PullSecret, secretList, log)
 		if err != nil {
 			return spec, err
 		}
@@ -126,7 +100,7 @@ func UpdateCommonSpec(
 		}
 	}
 	if spec.Strategy.CustomStrategy != nil {
-		newSecret, err := updateDockerSecret(spec.Strategy.CustomStrategy.PullSecret, secretList, log)
+		newSecret, err := common.UpdatePullSecret(spec.Strategy.CustomStrategy.PullSecret, secretList, log)
 		if err != nil {
 			return spec, err
 		}
@@ -139,7 +113,7 @@ func UpdateCommonSpec(
 	}
 	if spec.Source.Images != nil {
 		for _, imageSource := range spec.Source.Images {
-			newSecret, err := updateDockerSecret(imageSource.PullSecret, secretList, log)
+			newSecret, err := common.UpdatePullSecret(imageSource.PullSecret, secretList, log)
 			if err != nil {
 				return spec, err
 			}

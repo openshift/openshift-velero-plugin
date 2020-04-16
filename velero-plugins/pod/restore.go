@@ -3,10 +3,12 @@ package pod
 import (
 	"encoding/json"
 
+	"github.com/konveyor/openshift-velero-plugin/velero-plugins/clients"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/common"
 	"github.com/sirupsen/logrus"
 	"github.com/vmware-tanzu/velero/pkg/plugin/velero"
 	corev1API "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -31,13 +33,6 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	json.Unmarshal(itemMarshal, &pod)
 	p.Log.Infof("[pod-restore] pod: %s", pod.Name)
 
-	backupRegistry, registry, err := common.GetSrcAndDestRegistryInfo(input.Item)
-	if err != nil {
-		return nil, err
-	}
-	common.SwapContainerImageRefs(pod.Spec.Containers, backupRegistry, registry, p.Log, input.Restore.Spec.NamespaceMapping)
-	common.SwapContainerImageRefs(pod.Spec.InitContainers, backupRegistry, registry, p.Log, input.Restore.Spec.NamespaceMapping)
-
 	ownerRefs, err := common.GetOwnerReferences(input.ItemFromBackup)
 	if err != nil {
 		return nil, err
@@ -48,6 +43,29 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 		return velero.NewRestoreItemActionExecuteOutput(input.Item).WithoutRestore(), nil
 	}
 
+	backupRegistry, registry, err := common.GetSrcAndDestRegistryInfo(input.Item)
+	if err != nil {
+		return nil, err
+	}
+	common.SwapContainerImageRefs(pod.Spec.Containers, backupRegistry, registry, p.Log, input.Restore.Spec.NamespaceMapping)
+	common.SwapContainerImageRefs(pod.Spec.InitContainers, backupRegistry, registry, p.Log, input.Restore.Spec.NamespaceMapping)
+
+	// update PullSecrets
+	client, err := clients.CoreClient()
+	if err != nil {
+		return nil, err
+	}
+	secretList, err := client.Secrets(pod.Namespace).List(metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	for n, secret := range pod.Spec.ImagePullSecrets {
+		newSecret, err := common.UpdatePullSecret(&secret, secretList, p.Log)
+		if err != nil {
+			return nil, err
+		}
+		pod.Spec.ImagePullSecrets[n] = *newSecret
+	}
 	var out map[string]interface{}
 	objrec, _ := json.Marshal(pod)
 	json.Unmarshal(objrec, &out)
