@@ -19,6 +19,8 @@ import (
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/statefulset"
 	"github.com/sirupsen/logrus"
 	veleroplugin "github.com/vmware-tanzu/velero/pkg/plugin/framework"
+	"github.com/konveyor/openshift-velero-plugin/velero-plugins/scc"
+	"github.com/konveyor/openshift-velero-plugin/velero-plugins/rolebindings"
 )
 
 func main() {
@@ -40,6 +42,8 @@ func main() {
 		RegisterRestoreItemAction("openshift.io/16-cronjob-restore-plugin", newCronJobRestorePlugin).
 		RegisterRestoreItemAction("openshift.io/17-buildconfig-restore-plugin", newBuildConfigRestorePlugin).
 		RegisterRestoreItemAction("openshift.io/18-secret-restore-plugin", newSecretRestorePlugin).
+		RegisterRestoreItemAction("openshift.io/20-SCC-restore-plugin", newSCCRestorePlugin).
+		RegisterRestoreItemAction("openshift.io/21-role-bindings-restore-plugin", newRoleBindingRestorePlugin).
 		Serve()
 }
 
@@ -109,4 +113,12 @@ func newStatefulSetRestorePlugin(logger logrus.FieldLogger) (interface{}, error)
 
 func newSecretRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
 	return &secret.RestorePlugin{Log: logger}, nil
+}
+
+func newSCCRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
+	return &scc.RestorePlugin{Log: logger}, nil
+}
+
+func newRoleBindingRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
+	return &rolebindings.RestorePlugin{Log: logger}, nil
 }
