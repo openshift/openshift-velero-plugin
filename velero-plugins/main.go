@@ -17,6 +17,7 @@ import (
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/service"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/serviceaccount"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/statefulset"
+	apisecurity "github.com/openshift/api/security/v1"
 	"github.com/sirupsen/logrus"
 	veleroplugin "github.com/vmware-tanzu/velero/pkg/plugin/framework"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/scc"
@@ -27,6 +28,7 @@ func main() {
 	veleroplugin.NewServer().
 		RegisterBackupItemAction("openshift.io/01-common-backup-plugin", newCommonBackupPlugin).
 		RegisterRestoreItemAction("openshift.io/01-common-restore-plugin", newCommonRestorePlugin).
+		RegisterBackupItemAction("openshift.io/02-serviceaccount-backup-plugin", newServiceAccountBackupPlugin).
 		RegisterRestoreItemAction("openshift.io/02-serviceaccount-restore-plugin", newServiceAccountRestorePlugin).
 		RegisterRestoreItemAction("openshift.io/05-route-restore-plugin", newRouteRestorePlugin).
 		RegisterRestoreItemAction("openshift.io/06-build-restore-plugin", newBuildRestorePlugin).
@@ -121,4 +123,13 @@ func newSCCRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
 
 func newRoleBindingRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
 	return &rolebindings.RestorePlugin{Log: logger}, nil
+}
+
+func newServiceAccountBackupPlugin(logger logrus.FieldLogger) (interface{}, error) {
+	saBackupPlugin := &serviceaccount.BackupPlugin{Log: logger}
+	saBackupPlugin.UpdatedForBackup = make(map[string]bool)
+	// we need to create a dependency between scc and service accounts. Service accounts are listed in SCC's users list.
+	saBackupPlugin.SCCMap = make(map[string]map[string][]apisecurity.SecurityContextConstraints)
+
+	return saBackupPlugin, nil
 }
