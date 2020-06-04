@@ -117,7 +117,6 @@ func newSecretRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
 	return &secret.RestorePlugin{Log: logger}, nil
 }
 
-
 func newSCCRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
 	return &scc.RestorePlugin{Log: logger}, nil
 }
