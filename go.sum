@@ -61,6 +61,8 @@ github.com/kisielk/gotool v1.0.0/go.mod h1:XhKaO+MFFWcvkIS/tQcRk01m1F5IRFswLeQ+o
 github.com/konsorten/go-windows-terminal-sequences v1.0.1/go.mod h1:T0+1ngSBFLxvqU3pZ+m/2kptfBszLMUkC4ZK/EgS/cQ=
 github.com/konsorten/go-windows-terminal-sequences v1.0.2 h1:DB17ag19krx9CFsz4o3enTrPXyIXCl+2iCXH/aMAp9s=
 github.com/konsorten/go-windows-terminal-sequences v1.0.2/go.mod h1:T0+1ngSBFLxvqU3pZ+m/2kptfBszLMUkC4ZK/EgS/cQ=
+github.com/konveyor/openshift-migration-plugin v0.0.0-20200416231242-e95429acf200 h1:WP46xEbuBm3hM7eTL/CqHOzpTUxypUu1nX/ShMqHLyk=
+github.com/konveyor/openshift-migration-plugin v0.0.0-20200416231242-e95429acf200/go.mod h1:ouavUEHMG0Dq7jFOV9A4LC/aokHQ7Pq+QJZEAwpEJdM=
 github.com/konveyor/velero v0.10.2-0.20200122145352-eafaef2a4fb1 h1:fyZ89A91ZZ+1p21qV25fsSMQQ93Vwu/hQY7ppANOphs=
 github.com/konveyor/velero v0.10.2-0.20200122145352-eafaef2a4fb1/go.mod h1:q/qKZsiXGK8/PvCBB3Doe/CEnsB5p4aAMZA7pVy4148=
 github.com/magiconair/properties v1.8.0/go.mod h1:PppfXfuXeibc/6YijjN8zIbojt8czPbwD3XqdrwzmxQ=
