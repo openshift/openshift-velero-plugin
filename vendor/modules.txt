@@ -54,11 +54,14 @@ github.com/oklog/run
 # github.com/openshift/api v0.0.0-20190813152110-b5570061b31f
 ## explicit
 github.com/openshift/api/apps/v1
+github.com/openshift/api/authorization/v1
 github.com/openshift/api/build/v1
 github.com/openshift/api/image/docker10
 github.com/openshift/api/image/dockerpre012
 github.com/openshift/api/image/v1
+github.com/openshift/api/pkg/serialization
 github.com/openshift/api/route/v1
+github.com/openshift/api/security/v1
 # github.com/openshift/client-go v0.0.0-20190813201236-5a5508328169
 ## explicit
 github.com/openshift/client-go/apps/clientset/versioned/scheme
