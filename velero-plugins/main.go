@@ -9,7 +9,9 @@ import (
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/deployment"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/deploymentconfig"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/job"
+	"github.com/konveyor/openshift-velero-plugin/velero-plugins/persistentvolume"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/pod"
+	"github.com/konveyor/openshift-velero-plugin/velero-plugins/pvc"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/replicaset"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/replicationcontroller"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/route"
@@ -31,6 +33,9 @@ func main() {
 		RegisterRestoreItemAction("openshift.io/01-common-restore-plugin", newCommonRestorePlugin).
 		RegisterBackupItemAction("openshift.io/02-serviceaccount-backup-plugin", newServiceAccountBackupPlugin).
 		RegisterRestoreItemAction("openshift.io/02-serviceaccount-restore-plugin", newServiceAccountRestorePlugin).
+		RegisterBackupItemAction("openshift.io/03-pv-backup-plugin", newPVBackupPlugin).
+		RegisterRestoreItemAction("openshift.io/03-pv-restore-plugin", newPVRestorePlugin).
+		RegisterRestoreItemAction("openshift.io/04-pvc-restore-plugin", newPVCRestorePlugin).
 		RegisterRestoreItemAction("openshift.io/05-route-restore-plugin", newRouteRestorePlugin).
 		RegisterRestoreItemAction("openshift.io/06-build-restore-plugin", newBuildRestorePlugin).
 		RegisterRestoreItemAction("openshift.io/07-pod-restore-plugin", newPodRestorePlugin).
@@ -48,6 +53,7 @@ func main() {
 		RegisterRestoreItemAction("openshift.io/20-SCC-restore-plugin", newSCCRestorePlugin).
 		RegisterRestoreItemAction("openshift.io/21-role-bindings-restore-plugin", newRoleBindingRestorePlugin).
 		RegisterRestoreItemAction("openshift.io/22-cluster-role-bindings-restore-plugin", newClusterRoleBindingRestorePlugin).
+
 		Serve()
 }
 
@@ -118,7 +124,9 @@ func newStatefulSetRestorePlugin(logger logrus.FieldLogger) (interface{}, error)
 func newSecretRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
 	return &secret.RestorePlugin{Log: logger}, nil
 }
-
+func newPVCRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
+	return &pvc.RestorePlugin{Log: logger}, nil
+}
 func newSCCRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
 	return &scc.RestorePlugin{Log: logger}, nil
 }
@@ -139,3 +147,12 @@ func newServiceAccountBackupPlugin(logger logrus.FieldLogger) (interface{}, erro
 
 	return saBackupPlugin, nil
 }
+
+func newPVBackupPlugin(logger logrus.FieldLogger) (interface{}, error) {
+	return &persistentvolume.BackupPlugin{Log: logger}, nil
+}
+
+func newPVRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
+	return &persistentvolume.RestorePlugin{Log: logger}, nil
+}
+
