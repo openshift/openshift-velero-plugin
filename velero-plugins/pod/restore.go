@@ -32,10 +32,6 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	itemMarshal, _ := json.Marshal(input.Item)
 	json.Unmarshal(itemMarshal, &pod)
 	p.Log.Infof("[pod-restore] pod: %s", pod.Name)
-
-	p.Log.Infof("[pod-restore] Migrate copy paste annotation: %s", input.Restore.Annotations[common.MigrateCopyPhaseAnnotation])
-	p.Log.Infof("[pod-restore] Migrate pod stage label: %s", pod.Labels[common.MigratePodStageLabel])
-	p.Log.Infof("[pod-restore] pod spec affinity: %s", pod.Spec.Affinity)
 	
 	if input.Restore.Annotations[common.MigrateCopyPhaseAnnotation] == "stage" {
 		pod.Labels[common.MigratePodStageLabel] = "true"
