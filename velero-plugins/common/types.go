@@ -20,6 +20,7 @@ const RestoreServerVersion string = "openshift.io/restore-server-version"
 const BackupRegistryHostname string = "openshift.io/backup-registry-hostname"
 const RestoreRegistryHostname string = "openshift.io/restore-registry-hostname"
 
+<<<<<<< Updated upstream
 // copy, swing, TODO: others (snapshot, custom, etc.)
 const MigrateTypeAnnotation string = "openshift.io/migrate-type"
 
@@ -35,3 +36,8 @@ const PVCSelectedNodeAnnotation string = "volume.kubernetes.io/selected-node"
 // distinction for B/R and migration
 const MigrationApplicationLabelKey string = "app.kubernetes.io/part-of"
 const MigrationApplicationLabelValue string = "openshift-migration"
+=======
+//stage, final. Only valid for copy type.
+const MigrateCopyPhaseAnnotation string = "openshift.io/migrate-copy-phase"
+const MigratePodStageLabel string = "migration-stage-pod"
+>>>>>>> Stashed changes
