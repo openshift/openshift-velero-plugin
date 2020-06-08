@@ -24,6 +24,7 @@ import (
 	veleroplugin "github.com/vmware-tanzu/velero/pkg/plugin/framework"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/scc"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/rolebindings"
+	"github.com/konveyor/openshift-velero-plugin/velero-plugins/clusterrolebindings"
 )
 
 func main() {
@@ -51,6 +52,7 @@ func main() {
 		RegisterRestoreItemAction("openshift.io/18-secret-restore-plugin", newSecretRestorePlugin).
 		RegisterRestoreItemAction("openshift.io/20-SCC-restore-plugin", newSCCRestorePlugin).
 		RegisterRestoreItemAction("openshift.io/21-role-bindings-restore-plugin", newRoleBindingRestorePlugin).
+		RegisterRestoreItemAction("openshift.io/22-cluster-role-bindings-restore-plugin", newClusterRoleBindingRestorePlugin).
 
 		Serve()
 }
@@ -131,6 +133,10 @@ func newSCCRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
 
 func newRoleBindingRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
 	return &rolebindings.RestorePlugin{Log: logger}, nil
+}
+
+func newClusterRoleBindingRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
+	return &clusterrolebindings.RestorePlugin{Log: logger}, nil
 }
 
 func newServiceAccountBackupPlugin(logger logrus.FieldLogger) (interface{}, error) {
