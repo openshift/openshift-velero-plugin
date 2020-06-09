@@ -8,6 +8,7 @@ import (
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/daemonset"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/deployment"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/deploymentconfig"
+	"github.com/konveyor/openshift-velero-plugin/velero-plugins/imagestream"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/job"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/persistentvolume"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/pod"
@@ -51,7 +52,8 @@ func main() {
 		RegisterRestoreItemAction("openshift.io/18-secret-restore-plugin", newSecretRestorePlugin).
 		RegisterRestoreItemAction("openshift.io/20-SCC-restore-plugin", newSCCRestorePlugin).
 		RegisterRestoreItemAction("openshift.io/21-role-bindings-restore-plugin", newRoleBindingRestorePlugin).
-
+		RegisterBackupItemAction("openshift.io/19-is-backup-plugin", newImageStreamBackupPlugin).
+		RegisterRestoreItemAction("openshift.io/19-is-restore-plugin", newImageStreamRestorePlugin).
 		Serve()
 }
 
@@ -150,3 +152,10 @@ func newPVRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
 	return &persistentvolume.RestorePlugin{Log: logger}, nil
 }
 
+func newImageStreamBackupPlugin(logger logrus.FieldLogger) (interface{}, error) {
+	return &imagestream.BackupPlugin{Log: logger}, nil
+}
+
+func newImageStreamRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
+	return &imagestream.RestorePlugin{Log: logger}, nil
+}

@@ -23,6 +23,8 @@ const RestoreRegistryHostname string = "openshift.io/restore-registry-hostname"
 // copy, swing, TODO: others (snapshot, custom, etc.)
 const MigrateTypeAnnotation string = "openshift.io/migrate-type"
 
+const MigrationRegistry string = "openshift.io/migration-registry"
+
 // target storage class
 const MigrateStorageClassAnnotation string = "openshift.io/target-storage-class"
 
