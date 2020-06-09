@@ -35,3 +35,5 @@ const PVCSelectedNodeAnnotation string = "volume.kubernetes.io/selected-node"
 // distinction for B/R and migration
 const MigrationApplicationLabelKey string = "app.kubernetes.io/part-of"
 const MigrationApplicationLabelValue string = "openshift-migration"
+
+const MigrationRegistry string = "openshift.io/migration-registry"
