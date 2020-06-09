@@ -32,10 +32,15 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	itemMarshal, _ := json.Marshal(input.Item)
 	json.Unmarshal(itemMarshal, &pod)
 	p.Log.Infof("[pod-restore] pod: %s", pod.Name)
-	
-	if (input.Restore.Labels[common.MigrationApplicationLabelKey] == common.MigrationApplicationLabelValue) && (input.Restore.Annotations[common.MigrateCopyPhaseAnnotation] == "stage"){
-		pod.Labels[common.MigratePodStageLabel] = "true"
-		pod.Spec.Affinity = nil
+
+	// ISSUE-61 : removing the node selectors from pods
+	// to avoid pod being `unschedulable` on destination
+	pod.Spec.NodeSelector = nil
+
+	if (input.Restore.Labels[common.MigrationApplicationLabelKey] == common.MigrationApplicationLabelValue) &&
+		(input.Restore.Annotations[common.MigrateCopyPhaseAnnotation] == "stage") {
+			pod.Labels[common.MigratePodStageLabel] = "true"
+			pod.Spec.Affinity = nil
 	} else {
 		ownerRefs, err := common.GetOwnerReferences(input.ItemFromBackup)
 		if err != nil {
