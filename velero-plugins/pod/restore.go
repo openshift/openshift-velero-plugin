@@ -33,7 +33,7 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	json.Unmarshal(itemMarshal, &pod)
 	p.Log.Infof("[pod-restore] pod: %s", pod.Name)
 	
-	if input.Restore.Annotations[common.MigrateCopyPhaseAnnotation] == "stage" {
+	if (input.Restore.Labels[common.MigrationApplicationLabelKey] == common.MigrationApplicationLabelValue) && (input.Restore.Annotations[common.MigrateCopyPhaseAnnotation] == "stage"){
 		pod.Labels[common.MigratePodStageLabel] = "true"
 		pod.Spec.Affinity = nil
 	} else {
@@ -42,7 +42,7 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 			return nil, err
 		}
 		// Check if pod has owner Refs
-		if len(ownerRefs) > 0 {
+		if len(ownerRefs) > 0 && pod.Annotations[common.ResticBackupAnnotation] == "" {
 			p.Log.Infof("[pod-restore] skipping restore of pod %s, has owner references and no restic backup", pod.Name)
 			return velero.NewRestoreItemActionExecuteOutput(input.Item).WithoutRestore(), nil
 		}
