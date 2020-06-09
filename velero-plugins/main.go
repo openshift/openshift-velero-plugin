@@ -57,69 +57,91 @@ func main() {
 		RegisterRestoreItemAction("openshift.io/22-cluster-role-bindings-restore-plugin", newClusterRoleBindingRestorePlugin).
 		Serve()
 }
+
 func newCommonBackupPlugin(logger logrus.FieldLogger) (interface{}, error) {
 	return &common.BackupPlugin{Log: logger}, nil
 }
+
 func newCommonRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
 	return &common.RestorePlugin{Log: logger}, nil
 }
+
 func newBuildRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
 	return &build.RestorePlugin{Log: logger}, nil
 }
+
 func newBuildConfigRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
 	return &buildconfig.RestorePlugin{Log: logger}, nil
 }
+
 func newDaemonSetRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
 	return &daemonset.RestorePlugin{Log: logger}, nil
 }
+
 func newDeploymentRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
 	return &deployment.RestorePlugin{Log: logger}, nil
 }
+
 func newDeploymentConfigRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
 	return &deploymentconfig.RestorePlugin{Log: logger}, nil
 }
+
 func newJobRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
 	return &job.RestorePlugin{Log: logger}, nil
 }
+
 func newCronJobRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
 	return &cronjob.RestorePlugin{Log: logger}, nil
 }
+
 func newPodRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
 	return &pod.RestorePlugin{Log: logger}, nil
 }
+
 func newReplicaSetRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
 	return &replicaset.RestorePlugin{Log: logger}, nil
 }
+
 func newReplicationControllerRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
 	return &replicationcontroller.RestorePlugin{Log: logger}, nil
 }
+
 func newRouteRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
 	return &route.RestorePlugin{Log: logger}, nil
 }
+
 func newServiceRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
 	return &service.RestorePlugin{Log: logger}, nil
 }
+
 func newServiceAccountRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
 	return &serviceaccount.RestorePlugin{Log: logger}, nil
 }
+
 func newStatefulSetRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
 	return &statefulset.RestorePlugin{Log: logger}, nil
 }
+
 func newSecretRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
 	return &secret.RestorePlugin{Log: logger}, nil
 }
+
 func newPVCRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
 	return &pvc.RestorePlugin{Log: logger}, nil
 }
+
 func newSCCRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
 	return &scc.RestorePlugin{Log: logger}, nil
 }
+
 func newRoleBindingRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
 	return &rolebindings.RestorePlugin{Log: logger}, nil
 }
+
 func newClusterRoleBindingRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
 	return &clusterrolebindings.RestorePlugin{Log: logger}, nil
 }
+
 func newServiceAccountBackupPlugin(logger logrus.FieldLogger) (interface{}, error) {
 	saBackupPlugin := &serviceaccount.BackupPlugin{Log: logger}
 	saBackupPlugin.UpdatedForBackup = make(map[string]bool)
@@ -127,12 +149,15 @@ func newServiceAccountBackupPlugin(logger logrus.FieldLogger) (interface{}, erro
 	saBackupPlugin.SCCMap = make(map[string]map[string][]apisecurity.SecurityContextConstraints)
 	return saBackupPlugin, nil
 }
+
 func newPVBackupPlugin(logger logrus.FieldLogger) (interface{}, error) {
 	return &persistentvolume.BackupPlugin{Log: logger}, nil
 }
+
 func newPVRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
 	return &persistentvolume.RestorePlugin{Log: logger}, nil
 }
+
 func newImageStreamTagRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
 	return &imagestreamtag.RestorePlugin{Log: logger}, nil
 }
