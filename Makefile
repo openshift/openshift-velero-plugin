@@ -32,15 +32,14 @@ build: _output/$(BIN)
 _output/$(BIN): $(BIN)/*.go
 	mkdir -p .go/src/$(REPO) .go/pkg .go/.cache .go/std/$(ARCH) _output
 	cp -rp * .go/src/$(REPO)
-	docker run \
+	podman run \
 				 --rm \
-				 -u $$(id -u):$$(id -g) \
-				 -v $$(pwd)/.go/pkg:/go/pkg:z \
-				 -v $$(pwd)/.go/src:/go/src:z \
-				 -v $$(pwd)/.go/std:/go/std:z \
-				 -v $$(pwd)/.go/.cache:/go/.cache:z \
-				 -v $$(pwd)/_output:/go/src/$(REPO)/_output:z \
-				 -v $$(pwd)/.go/std/$(ARCH):/usr/local/go/pkg/linux_$(ARCH)_static:z \
+				 -v $$(pwd)/.go/pkg:/go/pkg:Z \
+				 -v $$(pwd)/.go/src:/go/src:Z \
+				 -v $$(pwd)/.go/std:/go/std:Z \
+				 -v $$(pwd)/.go/.cache:/go/.cache:Z \
+				 -v $$(pwd)/_output:/go/src/$(REPO)/_output:Z \
+				 -v $$(pwd)/.go/std/$(ARCH):/usr/local/go/pkg/linux_$(ARCH)_static:Z \
 				 -e CGO_ENABLED=0 \
 				 -w /go/src/$(REPO) \
 				 $(BUILD_IMAGE) \
