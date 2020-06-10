@@ -5,11 +5,9 @@ go:
 
 sudo: required
 
-services:
-  - docker
-
 before_script:
   - sudo apt-get -qq update
+  - sudo apt-get -qq -y install podman
 
 script:
   - make ci
