@@ -29,13 +29,13 @@ func (p *BackupPlugin) Execute(item runtime.Unstructured, backup *v1.Backup) (ru
 		return nil, nil, err
 	}
 
-	version, err := GetServerVersion()
+	major, minor, err := GetServerVersion()
 	if err != nil {
 		return nil, nil, err
 	}
 
-	annotations[BackupServerVersion] = fmt.Sprintf("%v.%v", version.Major, version.Minor)
-	registryHostname, err := GetRegistryInfo(version.Major, version.Minor, p.Log)
+	annotations[BackupServerVersion] = fmt.Sprintf("%v.%v", major, minor)
+	registryHostname, err := GetRegistryInfo(major, minor, p.Log)
 	if err != nil {
 		return nil, nil, err
 	}
