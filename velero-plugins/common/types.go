@@ -3,7 +3,6 @@ package common
 type routingConfig struct {
 	Subdomain string `json:"subdomain"`
 }
-
 type imagePolicyConfig struct {
 	InternalRegistryHostname string `json:"internalRegistryHostname"`
 }
