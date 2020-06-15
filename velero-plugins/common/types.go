@@ -40,3 +40,6 @@ const MigrateCopyPhaseAnnotation string = "openshift.io/migrate-copy-phase"
 const MigratePodStageLabel string = "migration-stage-pod"
 
 const MigrationRegistry string = "openshift.io/migration-registry"
+
+// Restic annotations
+const ResticBackupAnnotation string = "backup.velero.io/backup-volumes"
