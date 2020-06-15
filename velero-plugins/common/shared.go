@@ -2,7 +2,9 @@ package common
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -12,10 +14,9 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/version"
 )
 
-func GetRegistryInfo(major, minor string, log logrus.FieldLogger) (string, error) {
+func GetRegistryInfo(major, minor int, log logrus.FieldLogger) (string, error) {
 	imageClient, err := clients.ImageClient()
 	if err != nil {
 		return "", err
@@ -31,21 +32,17 @@ func GetRegistryInfo(major, minor string, log logrus.FieldLogger) (string, error
 		}
 	}
 
-	if major != "1" {
+	if major != 1 {
 		return "", fmt.Errorf("server version %v.%v not supported. Must be 1.x", major, minor)
-	}
-	intVersion, err := strconv.Atoi(minor)
-	if err != nil {
-		return "", fmt.Errorf("server minor version %v invalid value: %v", minor, err)
 	}
 
 	cClient, err := clients.CoreClient()
 	if err != nil {
 		return "", err
 	}
-	if intVersion < 7 {
+	if minor < 7 {
 		return "", fmt.Errorf("Kubernetes version 1.%v not supported. Must be 1.7 or greater", minor)
-	} else if intVersion <= 11 {
+	} else if minor <= 11 {
 		registrySvc, err := cClient.Services("default").Get("docker-registry", metav1.GetOptions{})
 		if err != nil {
 			// Return empty registry host but no error; registry not found
@@ -87,18 +84,39 @@ func getMetadataAndAnnotations(item runtime.Unstructured) (metav1.Object, map[st
 	return metadata, annotations, nil
 }
 
-func GetServerVersion() (*version.Info, error) {
+// returns major, minor versions for kube
+func GetServerVersion() (int, int, error) {
 	client, err := clients.DiscoveryClient()
 	if err != nil {
-		return nil, err
+		return 0, 0, err
 	}
 	version, err := client.ServerVersion()
 	if err != nil {
-		return nil, err
-	}
-	if strings.HasSuffix(version.Minor, "+") {
-		version.Minor = strings.TrimSuffix(version.Minor, "+")
+		return 0, 0, err
 	}
 
-	return version, nil
+	// Attempt parsing version.Major/Minor first, fall back to parsing gitVersion
+	major, err1 := strconv.Atoi(version.Major)
+	minor, err2 := strconv.Atoi(strings.Trim(version.Minor, "+"))
+
+	if err1 != nil || err2 != nil {
+		// gitVersion format ("v1.11.0+d4cacc0")
+		r, _ := regexp.Compile(`v[0-9]+\.[0-9]+\.`)
+		valid := r.MatchString(version.GitVersion)
+		if !valid {
+			return 0, 0, errors.New("gitVersion does not match expected format")
+		}
+		majorMinorArr := strings.Split(strings.Split(version.GitVersion, "v")[1], ".")
+
+		major, err = strconv.Atoi(majorMinorArr[0])
+		if err != nil {
+			return 0, 0, err
+		}
+		minor, err = strconv.Atoi(majorMinorArr[1])
+		if err != nil {
+			return 0, 0, err
+		}
+	}
+
+	return major, minor, nil
 }
