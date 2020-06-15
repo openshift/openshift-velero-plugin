@@ -10,6 +10,7 @@ import (
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/deployment"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/deploymentconfig"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/imagestreamtag"
+	"github.com/konveyor/openshift-velero-plugin/velero-plugins/imagetag"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/job"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/persistentvolume"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/pod"
@@ -55,6 +56,7 @@ func main() {
 		RegisterRestoreItemAction("openshift.io/20-SCC-restore-plugin", newSCCRestorePlugin).
 		RegisterRestoreItemAction("openshift.io/21-role-bindings-restore-plugin", newRoleBindingRestorePlugin).
 		RegisterRestoreItemAction("openshift.io/22-cluster-role-bindings-restore-plugin", newClusterRoleBindingRestorePlugin).
+		RegisterRestoreItemAction("openshift.io/23-imagetag-restore-plugin", newImageTagRestorePlugin).
 		Serve()
 }
 
@@ -160,4 +162,8 @@ func newPVRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
 
 func newImageStreamTagRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
 	return &imagestreamtag.RestorePlugin{Log: logger}, nil
+}
+
+func newImageTagRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
+	return &imagetag.RestorePlugin{Log: logger}, nil
 }
