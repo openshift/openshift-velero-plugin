@@ -33,38 +33,48 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	json.Unmarshal(itemMarshal, &pod)
 	p.Log.Infof("[pod-restore] pod: %s", pod.Name)
 
-	ownerRefs, err := common.GetOwnerReferences(input.ItemFromBackup)
-	if err != nil {
-		return nil, err
-	}
-	// Check if pod has owner Refs
-	if len(ownerRefs) > 0 {
-		p.Log.Infof("[pod-restore] skipping restore of pod %s, has owner references and no restic backup", pod.Name)
-		return velero.NewRestoreItemActionExecuteOutput(input.Item).WithoutRestore(), nil
-	}
+	// ISSUE-61 : removing the node selectors from pods
+	// to avoid pod being `unschedulable` on destination
+	pod.Spec.NodeSelector = nil
 
-	backupRegistry, registry, err := common.GetSrcAndDestRegistryInfo(input.Item)
-	if err != nil {
-		return nil, err
-	}
-	common.SwapContainerImageRefs(pod.Spec.Containers, backupRegistry, registry, p.Log, input.Restore.Spec.NamespaceMapping)
-	common.SwapContainerImageRefs(pod.Spec.InitContainers, backupRegistry, registry, p.Log, input.Restore.Spec.NamespaceMapping)
-
-	// update PullSecrets
-	client, err := clients.CoreClient()
-	if err != nil {
-		return nil, err
-	}
-	secretList, err := client.Secrets(pod.Namespace).List(metav1.ListOptions{})
-	if err != nil {
-		return nil, err
-	}
-	for n, secret := range pod.Spec.ImagePullSecrets {
-		newSecret, err := common.UpdatePullSecret(&secret, secretList, p.Log)
+	if (input.Restore.Labels[common.MigrationApplicationLabelKey] == common.MigrationApplicationLabelValue) &&
+		(input.Restore.Annotations[common.MigrateCopyPhaseAnnotation] == "stage") {
+			pod.Labels[common.MigratePodStageLabel] = "true"
+			pod.Spec.Affinity = nil
+	} else {
+		ownerRefs, err := common.GetOwnerReferences(input.ItemFromBackup)
 		if err != nil {
 			return nil, err
 		}
-		pod.Spec.ImagePullSecrets[n] = *newSecret
+		// Check if pod has owner Refs
+		if len(ownerRefs) > 0 && pod.Annotations[common.ResticBackupAnnotation] == "" {
+			p.Log.Infof("[pod-restore] skipping restore of pod %s, has owner references and no restic backup", pod.Name)
+			return velero.NewRestoreItemActionExecuteOutput(input.Item).WithoutRestore(), nil
+		}
+
+		backupRegistry, registry, err := common.GetSrcAndDestRegistryInfo(input.Item)
+		if err != nil {
+			return nil, err
+		}
+		common.SwapContainerImageRefs(pod.Spec.Containers, backupRegistry, registry, p.Log, input.Restore.Spec.NamespaceMapping)
+		common.SwapContainerImageRefs(pod.Spec.InitContainers, backupRegistry, registry, p.Log, input.Restore.Spec.NamespaceMapping)
+
+		// update PullSecrets
+		client, err := clients.CoreClient()
+		if err != nil {
+			return nil, err
+		}
+		secretList, err := client.Secrets(pod.Namespace).List(metav1.ListOptions{})
+		if err != nil {
+			return nil, err
+		}
+		for n, secret := range pod.Spec.ImagePullSecrets {
+			newSecret, err := common.UpdatePullSecret(&secret, secretList, p.Log)
+			if err != nil {
+				return nil, err
+			}
+			pod.Spec.ImagePullSecrets[n] = *newSecret
+		}
 	}
 	var out map[string]interface{}
 	objrec, _ := json.Marshal(pod)
