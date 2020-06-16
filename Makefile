@@ -21,6 +21,7 @@ BUILD_IMAGE ?= openshift/origin-release:golang-1.13
 IMAGE ?= docker.io/konveyor/openshift-velero-plugin
 
 ARCH ?= amd64
+BUILDTAGS ?= "containers_image_ostree_stub exclude_graphdriver_devicemapper exclude_graphdriver_btrfs containers_image_openpgp exclude_graphdriver_overlay"
 
 all: $(addprefix build-, $(BINS))
 
@@ -34,23 +35,21 @@ _output/$(BIN): $(BIN)/*.go
 	cp -rp * .go/src/$(REPO)
 	docker run \
 				 --rm \
-				 -u $$(id -u):$$(id -g) \
 				 -v $$(pwd)/.go/pkg:/go/pkg:z \
 				 -v $$(pwd)/.go/src:/go/src:z \
 				 -v $$(pwd)/.go/std:/go/std:z \
 				 -v $$(pwd)/.go/.cache:/go/.cache:z \
 				 -v $$(pwd)/_output:/go/src/$(REPO)/_output:z \
 				 -v $$(pwd)/.go/std/$(ARCH):/usr/local/go/pkg/linux_$(ARCH)_static:z \
-				 -e CGO_ENABLED=0 \
 				 -w /go/src/$(REPO) \
 				 $(BUILD_IMAGE) \
-				 go build -installsuffix "static"  -i -v -o _output/$(BIN) ./$(BIN)
+				 go build -installsuffix "static" -tags $(BUILDTAGS) -i -v -o _output/$(BIN) ./$(BIN)
 
 container:
 	docker build -t $(IMAGE) .
 
 test:
-	go test -installsuffix "static"  ./velero-plugins/...
+	go test -installsuffix "static" -tags $(BUILDTAGS) ./velero-plugins/...
 
 ci: all test
 
