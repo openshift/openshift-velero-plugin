@@ -9,6 +9,7 @@ import (
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/daemonset"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/deployment"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/deploymentconfig"
+	"github.com/konveyor/openshift-velero-plugin/velero-plugins/imagestream"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/imagestreamtag"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/imagetag"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/job"
@@ -53,6 +54,8 @@ func main() {
 		RegisterRestoreItemAction("openshift.io/16-cronjob-restore-plugin", newCronJobRestorePlugin).
 		RegisterRestoreItemAction("openshift.io/17-buildconfig-restore-plugin", newBuildConfigRestorePlugin).
 		RegisterRestoreItemAction("openshift.io/18-secret-restore-plugin", newSecretRestorePlugin).
+		RegisterBackupItemAction("openshift.io/19-is-backup-plugin", newImageStreamBackupPlugin).
+		RegisterRestoreItemAction("openshift.io/19-is-restore-plugin", newImageStreamRestorePlugin).
 		RegisterRestoreItemAction("openshift.io/20-SCC-restore-plugin", newSCCRestorePlugin).
 		RegisterRestoreItemAction("openshift.io/21-role-bindings-restore-plugin", newRoleBindingRestorePlugin).
 		RegisterRestoreItemAction("openshift.io/22-cluster-role-bindings-restore-plugin", newClusterRoleBindingRestorePlugin).
@@ -158,6 +161,14 @@ func newPVBackupPlugin(logger logrus.FieldLogger) (interface{}, error) {
 
 func newPVRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
 	return &persistentvolume.RestorePlugin{Log: logger}, nil
+}
+
+func newImageStreamBackupPlugin(logger logrus.FieldLogger) (interface{}, error) {
+	return &imagestream.BackupPlugin{Log: logger}, nil
+}
+
+func newImageStreamRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
+	return &imagestream.RestorePlugin{Log: logger}, nil
 }
 
 func newImageStreamTagRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
