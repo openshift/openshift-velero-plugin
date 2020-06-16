@@ -25,6 +25,7 @@ func (p *RestorePlugin) AppliesTo() (velero.ResourceSelector, error) {
 func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*velero.RestoreItemActionExecuteOutput, error) {
 
 	if input.Restore.Labels[common.MigrationApplicationLabelKey] != common.MigrationApplicationLabelValue{
+		p.Log.Info("[pvc-restore] Returning pvc object as is since this is not a migration activity")
 		return velero.NewRestoreItemActionExecuteOutput(input.Item), nil
 	}
 
