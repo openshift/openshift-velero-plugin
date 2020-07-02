@@ -106,20 +106,20 @@ func getRoute(namespace string, location string) (string, error) {
 
 	config, err := rest.InClusterConfig()
 	if err != nil {
-		return "No route found", err
+		return "Error in cluster config", err
 	}
 	client, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		return "No route found", err
+		return "Error in getting client", err
 	}
 	cMap := client.CoreV1().ConfigMaps(namespace)
 	mapClient, err := cMap.Get("example", metav1.GetOptions{})
 	if err != nil {
-		return "No route found", err
+		return "Error in getting config map", err
 	}
 	osClient, err := routev1client.NewForConfig(config)
 	if err != nil {
-		return "No route found", err
+		return "Error in getting client for route", err
 	}
 	routeClient := osClient.Routes(namespace)
 	route, err := routeClient.Get(mapClient.Data[location], metav1.GetOptions{})
@@ -161,6 +161,5 @@ func getBackup(name string, namespace string) (string, error) {
 		}
 	}
 	return "default", nil
-
 }
 
