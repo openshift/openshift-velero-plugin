@@ -34,6 +34,84 @@ func (p *BackupPlugin) Execute(item runtime.Unstructured, backup *v1.Backup) (ru
 
 	if backup.Labels[common.MigrationApplicationLabelKey] != common.MigrationApplicationLabelValue{
 		p.Log.Info("[is-backup] skipping imagestream plugin since backup is not part of CAM")
+		im := imagev1API.ImageStream{}
+		itemMarshal, _ := json.Marshal(item)
+		json.Unmarshal(itemMarshal, &im)
+		annotations := im.Annotations
+		if annotations == nil {
+			annotations = make(map[string]string)
+		}
+		internalRegistry := annotations[common.BackupRegistryHostname]
+		backupRegistry, err := getRoute(backup.Namespace, backup.Spec.StorageLocation)
+		if err != nil {
+			p.Log.Info(fmt.Sprintf("[is-backup] Error in getting route: %s", err))
+			return nil, nil, err
+		}
+		localImageCopied := false
+		localImageCopiedByTag := false
+		p.Log.Info(fmt.Sprintf("[is-backup] internal registry: %#v", internalRegistry))
+		for tagIndex, tag := range im.Status.Tags {
+			p.Log.Info(fmt.Sprintf("[is-backup] Backing up tag: %#v", tag.Tag))
+			specTag := findSpecTag(im.Spec.Tags, tag.Tag)
+			copyToTag := true
+			if specTag != nil && specTag.From != nil {
+				// we have a tag.
+				p.Log.Info(fmt.Sprintf("[is-backup] image tagged: %s, %s", specTag.From.Kind, specTag.From.Name))
+				if !(specTag.From.Kind == "ImageStreamImage" && (specTag.From.Namespace == "" || specTag.From.Namespace == im.Namespace)) {
+					p.Log.Info(fmt.Sprintf("[is-backup] using tag for current namespace ImageStreamImage"))
+					copyToTag = false
+				}
+			}
+			// Iterate over items in reverse order so most recently tagged is copied last
+			for i := len(tag.Items) - 1; i >= 0; i-- {
+				dockerImageReference := tag.Items[i].DockerImageReference
+				if len(internalRegistry) > 0 && strings.HasPrefix(dockerImageReference, internalRegistry) {
+					localImageCopied = true
+					destTag := ""
+					if copyToTag {
+						localImageCopiedByTag = true
+						destTag = ":" + tag.Tag
+					}
+					srcPath := fmt.Sprintf("docker://%s", dockerImageReference)
+					destPath := fmt.Sprintf("docker://%s/%s/%s", backupRegistry, im.Namespace, im.Name)
+					p.Log.Info(fmt.Sprintf("[is-backup] copying from: %s", srcPath))
+					p.Log.Info(fmt.Sprintf("[is-backup] copying to: %s", destPath))
+					p.Log.Info(fmt.Sprintf("[is-backup] copying from: %s", destTag))
+
+					imgManifest, err := copyImageBackup(p.Log, srcPath, destPath)
+					if err != nil {
+						p.Log.Info(fmt.Sprintf("[is-backup] Error copying image: %v", err))
+						return nil, nil, err
+					}
+					newDigest, err := manifest.Digest(imgManifest)
+					if err != nil {
+						p.Log.Info(fmt.Sprintf("[is-backup] Error computing image digest for manifest: %v", err))
+						return nil, nil, err
+					}
+					p.Log.Info(fmt.Sprintf("[is-backup] src image digest: %s", tag.Items[i].Image))
+					if string(newDigest) != tag.Items[i].Image {
+						p.Log.Info(fmt.Sprintf("[is-backup] migration registry image digest: %s", newDigest))
+						im.Status.Tags[tagIndex].Items[i].Image = string(newDigest)
+						digestSplit := strings.Split(dockerImageReference, "@")
+						// update sha in dockerImageRef found
+						if len(digestSplit) == 2 {
+							im.Status.Tags[tagIndex].Items[i].DockerImageReference = digestSplit[0] +
+								"@" + string(newDigest)
+						}
+					}
+					p.Log.Info(fmt.Sprintf("[is-backup] manifest of copied image: %s", imgManifest))
+				}
+			}
+		}
+		p.Log.Info(fmt.Sprintf("copied at least one local image: %t", localImageCopied))
+		p.Log.Info(fmt.Sprintf("copied at least one local image by tag: %t", localImageCopiedByTag))
+
+		im.Annotations = annotations
+
+		var out map[string]interface{}
+		objrec, _ := json.Marshal(im)
+		json.Unmarshal(objrec, &out)
+		item.SetUnstructuredContent(out)
 		return item, nil, nil
 	} else {
 		p.Log.Info("[is-backup] Entering Imagestream backup plugin")
@@ -83,7 +161,7 @@ func (p *BackupPlugin) Execute(item runtime.Unstructured, backup *v1.Backup) (ru
 					p.Log.Info(fmt.Sprintf("[is-backup] copying from: %s", srcPath))
 					p.Log.Info(fmt.Sprintf("[is-backup] copying to: %s", destPath))
 
-					imgManifest, err := copyImageBackup(srcPath, destPath)
+					imgManifest, err := copyImageBackup(p.Log, srcPath, destPath)
 					if err != nil {
 						p.Log.Info(fmt.Sprintf("[is-backup] Error copying image: %v", err))
 						return nil, nil, err
@@ -131,7 +209,7 @@ func findStatusTag(tags []imagev1API.NamedTagEventList, name string) *imagev1API
 	return nil
 }
 
-func copyImageBackup(src, dest string) ([]byte, error) {
+func copyImageBackup(log logrus.FieldLogger, src, dest string) ([]byte, error) {
 	sourceCtx, err := internalRegistrySystemContext()
 	if err != nil {
 		return []byte{}, err
@@ -140,6 +218,6 @@ func copyImageBackup(src, dest string) ([]byte, error) {
 	if err != nil {
 		return []byte{}, err
 	}
-	return copyImage(src, dest, sourceCtx, destinationCtx)
+	return copyImage(log, src, dest, sourceCtx, destinationCtx)
 }
 

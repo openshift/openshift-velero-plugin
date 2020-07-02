@@ -27,8 +27,87 @@ func (p *RestorePlugin) AppliesTo() (velero.ResourceSelector, error) {
 // Execute copies local registry images from migration registry into target cluster local registry
 func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*velero.RestoreItemActionExecuteOutput, error) {
 	if input.Restore.Labels[common.MigrationApplicationLabelKey] != common.MigrationApplicationLabelValue{
-		p.Log.Info("[is-restore] skipping imagestream plugin since restore is not part of CAM")
-		return velero.NewRestoreItemActionExecuteOutput(input.Item), nil
+		p.Log.Info("[is-restore] Entering ImageStream restore plugin for B/R")
+		imageStream := imagev1API.ImageStream{}
+		itemMarshal, _ := json.Marshal(input.Item)
+		json.Unmarshal(itemMarshal, &imageStream)
+		p.Log.Info(fmt.Sprintf("[is-restore] image: %#v", imageStream.Name))
+		annotations := imageStream.Annotations
+		if annotations == nil {
+			annotations = make(map[string]string)
+		}
+		p.Log.Info(fmt.Sprintf("[is-restore] restore object: %#v", input.Restore.Spec.BackupName))
+		imageStreamUnmodified := imagev1API.ImageStream{}
+		itemMarshal, _ = json.Marshal(input.ItemFromBackup)
+		json.Unmarshal(itemMarshal, &imageStreamUnmodified)
+		backupInternalRegistry, internalRegistry, err := common.GetSrcAndDestRegistryInfo(input.Item)
+		if err != nil {
+			return nil, err
+		}
+		backupLocation, err := getBackup(input.Restore.Spec.BackupName, input.Restore.Namespace)
+		if err != nil {
+			return nil, err
+		}
+		backupRegistry, err := getRoute(input.Restore.Namespace, backupLocation)
+		if err != nil {
+			return nil, err
+		}
+		p.Log.Info(fmt.Sprintf("[is-restore] backup internal registry: %#v", backupInternalRegistry))
+		p.Log.Info(fmt.Sprintf("[is-restore] restore internal registry: %#v", internalRegistry))
+
+		for _, tag := range imageStreamUnmodified.Status.Tags {
+			p.Log.Info(fmt.Sprintf("[is-restore] Restoring tag: %#v", tag.Tag))
+			specTag := findSpecTag(imageStreamUnmodified.Spec.Tags, tag.Tag)
+			copyToTag := true
+			if specTag != nil && specTag.From != nil {
+				// we have a tag.
+				p.Log.Info(fmt.Sprintf("[is-restore] image tagged: %s, %s", specTag.From.Kind, specTag.From.Name))
+				// Use the tag if it references an ImageStreamImage in the current namespace
+				if !(specTag.From.Kind == "ImageStreamImage" && (specTag.From.Namespace == "" || specTag.From.Namespace == imageStreamUnmodified.Namespace)) {
+					p.Log.Info(fmt.Sprintf("[is-restore] using tag for current namespace ImageStreamImage"))
+					copyToTag = false
+				}
+			}
+			// Iterate over items in reverse order so most recently tagged is copied last
+			for i := len(tag.Items) - 1; i >= 0; i-- {
+				dockerImageReference := tag.Items[i].DockerImageReference
+				if len(backupInternalRegistry) > 0 && strings.HasPrefix(dockerImageReference, backupInternalRegistry) {
+					if len(internalRegistry) == 0 {
+						return nil, errors.New("restore cluster registry not found but backup has internal images")
+					}
+					destTag := ""
+					if copyToTag {
+						destTag = ":" + tag.Tag
+					}
+
+					destNamespace := imageStreamUnmodified.Namespace
+
+					// if destination namespace is mapped to new one, swap it
+					namespaceMapping := input.Restore.Spec.NamespaceMapping
+					if namespaceMapping[destNamespace] != "" {
+						destNamespace = namespaceMapping[imageStreamUnmodified.Namespace]
+					}
+
+					srcPath := fmt.Sprintf("docker://%s/%s/%s", backupRegistry,imageStreamUnmodified.Namespace, imageStreamUnmodified.Name)
+					destPath := fmt.Sprintf("docker://%s/%s/%s%s", internalRegistry, destNamespace, imageStreamUnmodified.Name, destTag)
+
+					p.Log.Info(fmt.Sprintf("[is-restore] copying from: %s", srcPath))
+					p.Log.Info(fmt.Sprintf("[is-restore] copying to: %s", destPath))
+					manifest, err := copyImageRestore(p.Log, srcPath, "docker://registry-route-oadp-operator.apps.cluster-jgabani0518.jgabani0518.mg.dog8code.com/nginx-example/cakephp-ex")
+					if err != nil {
+						p.Log.Info(fmt.Sprintf("[is-restore] Error copying image: %v", err))
+						return nil, err
+					}
+					p.Log.Info(fmt.Sprintf("[is-restore] manifest of copied image: %s", manifest))
+				}
+			}
+		}
+		var out map[string]interface{}
+		objrec, _ := json.Marshal(imageStream)
+		json.Unmarshal(objrec, &out)
+		input.Item.SetUnstructuredContent(out)
+
+		return velero.NewRestoreItemActionExecuteOutput(input.Item).WithoutRestore(), nil
 	} else {
 		p.Log.Info("[is-restore] Entering ImageStream restore plugin")
 		imageStream := imagev1API.ImageStream{}
@@ -93,7 +172,7 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 
 					p.Log.Info(fmt.Sprintf("[is-restore] copying from: %s", srcPath))
 					p.Log.Info(fmt.Sprintf("[is-restore] copying to: %s", destPath))
-					manifest, err := copyImageRestore(srcPath, destPath)
+					manifest, err := copyImageRestore(p.Log, srcPath, destPath)
 					if err != nil {
 						p.Log.Info(fmt.Sprintf("[is-restore] Error copying image: %v", err))
 						return nil, err
@@ -112,7 +191,7 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 
 }
 
-func copyImageRestore(src, dest string) ([]byte, error) {
+func copyImageRestore(log logrus.FieldLogger, src, dest string) ([]byte, error) {
 	sourceCtx, err := migrationRegistrySystemContext()
 	if err != nil {
 		return []byte{}, err
@@ -121,5 +200,5 @@ func copyImageRestore(src, dest string) ([]byte, error) {
 	if err != nil {
 		return []byte{}, err
 	}
-	return copyImage(src, dest, sourceCtx, destinationCtx)
+	return copyImage(log, src, dest, sourceCtx, destinationCtx)
 }
