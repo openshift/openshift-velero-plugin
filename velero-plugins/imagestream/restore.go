@@ -48,7 +48,7 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 		if err != nil {
 			return nil, err
 		}
-		backupRegistry, err := getRoute(input.Restore.Namespace, backupLocation)
+		backupRegistry, err := getRoute(input.Restore.Namespace, backupLocation, common.ConfigMap)
 		if err != nil {
 			return nil, err
 		}

@@ -42,7 +42,7 @@ func (p *BackupPlugin) Execute(item runtime.Unstructured, backup *v1.Backup) (ru
 			annotations = make(map[string]string)
 		}
 		internalRegistry := annotations[common.BackupRegistryHostname]
-		backupRegistry, err := getRoute(backup.Namespace, backup.Spec.StorageLocation)
+		backupRegistry, err := getRoute(backup.Namespace, backup.Spec.StorageLocation, common.ConfigMap)
 		if err != nil {
 			p.Log.Info(fmt.Sprintf("[is-backup] Error in getting route: %s", err))
 			return nil, nil, err

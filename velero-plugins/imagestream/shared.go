@@ -102,7 +102,7 @@ func findSpecTag(tags []imagev1API.TagReference, name string) *imagev1API.TagRef
 	return nil
 }
 
-func getRoute(namespace string, location string) (string, error) {
+func getRoute(namespace string, location string, configMap string) (string, error) {
 
 	config, err := rest.InClusterConfig()
 	if err != nil {
@@ -113,7 +113,7 @@ func getRoute(namespace string, location string) (string, error) {
 		return "Error in getting client", err
 	}
 	cMap := client.CoreV1().ConfigMaps(namespace)
-	mapClient, err := cMap.Get("example", metav1.GetOptions{})
+	mapClient, err := cMap.Get(configMap, metav1.GetOptions{})
 	if err != nil {
 		return "Error in getting config map", err
 	}
