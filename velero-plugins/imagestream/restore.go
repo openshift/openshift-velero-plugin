@@ -87,13 +87,13 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 					if namespaceMapping[destNamespace] != "" {
 						destNamespace = namespaceMapping[imageStreamUnmodified.Namespace]
 					}
-
-					srcPath := fmt.Sprintf("docker://%s/%s/%s", backupRegistry,imageStreamUnmodified.Namespace, imageStreamUnmodified.Name)
+					p.Log.Info(fmt.Sprintf("[image-id]: %s", tag.Items[i].Image))
+					srcPath := fmt.Sprintf("docker://%s/%s/%s@%s", backupRegistry,imageStreamUnmodified.Namespace, imageStreamUnmodified.Name,tag.Items[i].Image)
 					destPath := fmt.Sprintf("docker://%s/%s/%s%s", internalRegistry, destNamespace, imageStreamUnmodified.Name, destTag)
 
 					p.Log.Info(fmt.Sprintf("[is-restore] copying from: %s", srcPath))
 					p.Log.Info(fmt.Sprintf("[is-restore] copying to: %s", destPath))
-					manifest, err := copyImageRestore(p.Log, srcPath, "docker://registry-route-oadp-operator.apps.cluster-jgabani0518.jgabani0518.mg.dog8code.com/nginx-example/cakephp-ex")
+					manifest, err := copyImageRestore(p.Log, srcPath, destPath)
 					if err != nil {
 						p.Log.Info(fmt.Sprintf("[is-restore] Error copying image: %v", err))
 						return nil, err
@@ -200,5 +200,6 @@ func copyImageRestore(log logrus.FieldLogger, src, dest string) ([]byte, error) 
 	if err != nil {
 		return []byte{}, err
 	}
+	log.Info(fmt.Sprintf("[is-restor]: %s"))
 	return copyImage(log, src, dest, sourceCtx, destinationCtx)
 }
