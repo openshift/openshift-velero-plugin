@@ -39,6 +39,20 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 		return nil, err
 	}
 	annotations[RestoreRegistryHostname] = registryHostname
+
+	if input.Restore.Labels[MigrationApplicationLabelKey] != MigrationApplicationLabelValue {
+		backupLocation, err := getBackupStorageLocationForBackup(input.Restore.Spec.BackupName, input.Restore.Namespace)
+		if err != nil {
+			return nil, err
+		}
+		tempRegistry, err := getRoute(input.Restore.Namespace, backupLocation, RegistryConfigMap)
+		if err != nil {
+			return nil, err
+		}
+		annotations[MigrationRegistry] = tempRegistry
+	} else {
+		annotations[MigrationRegistry] = input.Restore.Annotations[MigrationRegistry]
+	}
 	metadata.SetAnnotations(annotations)
 
 	return velero.NewRestoreItemActionExecuteOutput(input.Item), nil

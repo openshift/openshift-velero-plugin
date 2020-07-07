@@ -4,22 +4,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
-	"time"
 	"github.com/containers/image/v5/copy"
 	"github.com/containers/image/v5/signature"
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
 	imagev1API "github.com/openshift/api/image/v1"
-	routev1client "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
 	"github.com/sirupsen/logrus"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	velero "github.com/vmware-tanzu/velero/pkg/apis/velero/v1"
-	"github.com/openshift/client-go/route/clientset/versioned/scheme"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/runtime/serializer"
+	"strings"
+	"time"
 )
 
 func copyImage(log logrus.FieldLogger,src, dest string, sourceCtx, destinationCtx *types.SystemContext) ([]byte, error) {
@@ -101,65 +94,3 @@ func findSpecTag(tags []imagev1API.TagReference, name string) *imagev1API.TagRef
 	}
 	return nil
 }
-
-func getRoute(namespace string, location string, configMap string) (string, error) {
-
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		return "Error in cluster config", err
-	}
-	client, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return "Error in getting client", err
-	}
-	cMap := client.CoreV1().ConfigMaps(namespace)
-	mapClient, err := cMap.Get(configMap, metav1.GetOptions{})
-	if err != nil {
-		return "Error in getting config map", err
-	}
-	osClient, err := routev1client.NewForConfig(config)
-	if err != nil {
-		return "Error in getting client for route", err
-	}
-	routeClient := osClient.Routes(namespace)
-	route, err := routeClient.Get(mapClient.Data[location], metav1.GetOptions{})
-	if err != nil {
-		return "No route found", err
-	}
-	return route.Spec.Host, nil
-}
-
-func getBackup(name string, namespace string) (string, error) {
-	config, err := rest.InClusterConfig()
-	crdConfig := *config
-	crdConfig.ContentConfig.GroupVersion = &schema.GroupVersion{Group: "velero.io", Version: "v1"}
-	crdConfig.APIPath = "/apis"
-	crdConfig.NegotiatedSerializer = serializer.NewCodecFactory(scheme.Scheme)
-	crdConfig.UserAgent = rest.DefaultKubernetesUserAgent()
-	result := velero.BackupList{}
-
-	if err != nil {
-		panic(err)
-	}
-	client, err := rest.UnversionedRESTClientFor(&crdConfig)
-	if err != nil {
-		return "", err
-	}
-
-	err = client.
-		Get().
-		Namespace(namespace).
-		Resource("backups").
-		Do().
-		Into(&result)
-	if err != nil {
-		return "", err
-	}
-	for _, element := range result.Items{
-		if element.Name == name{
-			return element.Spec.StorageLocation, nil
-		}
-	}
-	return "default", nil
-}
-

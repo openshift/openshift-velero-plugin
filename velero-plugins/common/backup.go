@@ -40,7 +40,17 @@ func (p *BackupPlugin) Execute(item runtime.Unstructured, backup *v1.Backup) (ru
 		return nil, nil, err
 	}
 	annotations[BackupRegistryHostname] = registryHostname
-	metadata.SetAnnotations(annotations)
 
+	if backup.Labels[MigrationApplicationLabelKey] != MigrationApplicationLabelValue {
+		backupRegistryRoute, err := getRoute(backup.Namespace, backup.Spec.StorageLocation, RegistryConfigMap)
+		if err != nil {
+			p.Log.Info(fmt.Sprintf("[is-backup] Error in getting route: %s", err))
+			return nil, nil, err
+		}
+		annotations[MigrationRegistry] = backupRegistryRoute
+	} else {
+		annotations[MigrationRegistry] = backup.Annotations[MigrationRegistry]
+	}
+	metadata.SetAnnotations(annotations)
 	return item, nil, nil
 }

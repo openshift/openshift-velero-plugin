@@ -45,4 +45,4 @@ const MigrationRegistry string = "openshift.io/migration-registry"
 const ResticBackupAnnotation string = "backup.velero.io/backup-volumes"
 
 // Configmap Name
-const ConfigMap string = "registry-config"
+const RegistryConfigMap string = "registry-config"

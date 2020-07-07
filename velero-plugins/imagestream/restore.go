@@ -26,22 +26,7 @@ func (p *RestorePlugin) AppliesTo() (velero.ResourceSelector, error) {
 
 // Execute copies local registry images from migration registry into target cluster local registry
 func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*velero.RestoreItemActionExecuteOutput, error) {
-	migrationRegistry := ""
-	if input.Restore.Labels[common.MigrationApplicationLabelKey] != common.MigrationApplicationLabelValue {
-		p.Log.Info("[is-restore] Entering ImageStream restore plugin for B/R")
-		backupLocation, err := getBackup(input.Restore.Spec.BackupName, input.Restore.Namespace)
-		if err != nil {
-			return nil, err
-		}
-		tempRegistry, err := getRoute(input.Restore.Namespace, backupLocation, common.ConfigMap)
-		if err != nil {
-			return nil, err
-		}
-		migrationRegistry = tempRegistry
-	} else {
-		p.Log.Info("[is-restore] Entering ImageStream restore plugin")
-		migrationRegistry = input.Restore.Annotations[common.MigrationRegistry]
-	}
+
 	p.Log.Info("[is-restore] Entering ImageStream restore plugin")
 	imageStream := imagev1API.ImageStream{}
 	itemMarshal, _ := json.Marshal(input.Item)
@@ -60,6 +45,7 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	if err != nil {
 		return nil, err
 	}
+	migrationRegistry := annotations[common.MigrationRegistry]
 	if len(migrationRegistry) == 0 {
 		return nil, errors.New("migration registry not found for annotation \"openshift.io/migration\"")
 	}
