@@ -110,6 +110,7 @@ func GetServerVersion() (*version.Info, error) {
 	return version, nil
 }
 
+// Takes Namesapce where the operator resides, name of the BackupStorageLocation and name of configMap as input and returns the Route of backup registry.
 func getRoute(namespace string, location string, configMap string) (string, error) {
 
 	config, err := rest.InClusterConfig()
@@ -137,6 +138,7 @@ func getRoute(namespace string, location string, configMap string) (string, erro
 	return route.Spec.Host, nil
 }
 
+// Takes Backup Name an Namespace where the operator resides and returns the name of the BackupStorageLocation
 func getBackupStorageLocationForBackup(name string, namespace string) (string, error) {
 	config, err := rest.InClusterConfig()
 	crdConfig := *config
