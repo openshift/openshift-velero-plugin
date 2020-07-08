@@ -29,6 +29,7 @@ func TestRestorePlugin_Execute(t *testing.T) {
 		statefulset v1Apps.StatefulSet
 		registryInit    string
 		registryCont	string
+		temp             string
 	}{
 		"Swapping": {
 			statefulset: v1Apps.StatefulSet{
@@ -53,6 +54,7 @@ func TestRestorePlugin_Execute(t *testing.T) {
 			},
 			registryInit: "statefulsetRestore/test",
 			registryCont: "statefulsetRestore/test",
+			temp: "",
 		},
 		"NoSwapping": {
 			statefulset: v1Apps.StatefulSet{
@@ -151,6 +153,7 @@ func TestRestorePlugin_Execute(t *testing.T) {
 			},
 			registryCont: "statefulsetRestore/newNameSpace/test",
 			registryInit: "statefulsetRestore/newNameSpace/test",
+			temp: "enabled",
 		},
 
 		"NamespaceOpenShiftSwapping": {
@@ -176,6 +179,7 @@ func TestRestorePlugin_Execute(t *testing.T) {
 			},
 			registryCont: "statefulsetRestore/openshift/test",
 			registryInit: "statefulsetRestore/openshift/test",
+			temp: "",
 		},
 
 	}
@@ -192,7 +196,7 @@ func TestRestorePlugin_Execute(t *testing.T) {
 				Restore: &vm.Restore{
 					Spec: vm.RestoreSpec{
 						NamespaceMapping: map[string]string{
-							"enabled": "newNameSpace",
+							tc.temp: "newNameSpace",
 						},
 					},
 				},
