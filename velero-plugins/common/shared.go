@@ -111,7 +111,7 @@ func GetServerVersion() (*version.Info, error) {
 }
 
 // Takes Namesapce where the operator resides, name of the BackupStorageLocation and name of configMap as input and returns the Route of backup registry.
-func getRoute(namespace string, location string, configMap string) (string, error) {
+func getOADPRegistryRoute(namespace string, location string, configMap string) (string, error) {
 
 	config, err := rest.InClusterConfig()
 	if err != nil {
