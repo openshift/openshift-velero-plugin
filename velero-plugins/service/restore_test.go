@@ -22,19 +22,19 @@ func TestRestorePluginAppliesTo(t *testing.T) {
 func TestRestorePlugin_Execute(t *testing.T) {
 	restorePlugin := &RestorePlugin{Log: test.NewLogger()}
 
-	testcase := map[string]struct{
+	testcase := map[string]struct {
 		service corev1API.Service
-		want []string
+		want    []string
 	}{
-		"WithoutLoadBalancer": {service: corev1API.Service{ Spec: corev1API.ServiceSpec{
-			Type: "WithoutLoadBalancer",
+		"WithoutLoadBalancer": {service: corev1API.Service{Spec: corev1API.ServiceSpec{
+			Type:        "WithoutLoadBalancer",
 			ExternalIPs: []string{"test"},
 		},
 		}, want: []string{"test"},
 		},
 
-		"WithLoadBalancer": {service: corev1API.Service{ Spec: corev1API.ServiceSpec{
-			Type: corev1API.ServiceTypeLoadBalancer,
+		"WithLoadBalancer": {service: corev1API.Service{Spec: corev1API.ServiceSpec{
+			Type:        corev1API.ServiceTypeLoadBalancer,
 			ExternalIPs: []string{"test"},
 		},
 		}, want: nil,
@@ -44,14 +44,14 @@ func TestRestorePlugin_Execute(t *testing.T) {
 	for i, tc := range testcase {
 		t.Run(string(i), func(t *testing.T) {
 			var out map[string]interface{}
-			item:= unstructured.Unstructured{}
+			item := unstructured.Unstructured{}
 			serviceRec, _ := json.Marshal(tc.service)
 			json.Unmarshal(serviceRec, &out)
 			item.SetUnstructuredContent(out)
 
-			input := velero.RestoreItemActionExecuteInput{ Item: &item,
+			input := velero.RestoreItemActionExecuteInput{Item: &item,
 			}
-			output,_ := restorePlugin.Execute(&input)
+			output, _ := restorePlugin.Execute(&input)
 
 			service := corev1API.Service{}
 			itemMarshal, _ := json.Marshal(output.UpdatedItem)

@@ -22,70 +22,53 @@ func TestRestorePluginAppliesTo(t *testing.T) {
 func TestRestorePlugin_Execute(t *testing.T) {
 	restorePlugin := &RestorePlugin{Log: test.NewLogger()}
 
-	testcase := map[string]struct{
+	testcase := map[string]struct {
 		route routev1API.Route
-		want string
+		want  string
 	}{
-		"empty": {route: routev1API.Route{}, want: ""},
+		"empty": {route: routev1API.Route{Spec:
+		routev1API.RouteSpec{Host: ""},
+		}, want: ""},
 		"true": {route: routev1API.Route{ObjectMeta: metav1.ObjectMeta{
 			Annotations: map[string]string{
 				"openshift.io/host.generated": "true",
 			},
 		},
-		}, want: "true"},
+			Spec:
+			routev1API.RouteSpec{Host: "test"},
+		}, want: ""},
 		"static": {route: routev1API.Route{ObjectMeta: metav1.ObjectMeta{
 			Annotations: map[string]string{
 				"openshift.io/host.generated": "static",
 			},
 		},
+			Spec:
+			routev1API.RouteSpec{Host: "static"},
 		}, want: "static"},
-
 	}
 
 	for i, tc := range testcase {
 		t.Run(string(i), func(t *testing.T) {
 			var out map[string]interface{}
-			item:= unstructured.Unstructured{}
+			item := unstructured.Unstructured{}
 			routeRec, _ := json.Marshal(tc.route)
 			json.Unmarshal(routeRec, &out)
 			item.SetUnstructuredContent(out)
 
-			input := velero.RestoreItemActionExecuteInput{ Item: &item,
+			input := velero.RestoreItemActionExecuteInput{Item: &item,
 			}
 
-			output,_ := restorePlugin.Execute(&input)
+			output, _ := restorePlugin.Execute(&input)
 
 			route := routev1API.Route{}
 			itemMarshal, _ := json.Marshal(output.UpdatedItem)
 			json.Unmarshal(itemMarshal, &route)
 
-			if tc.want != route.Annotations["openshift.io/host.generated"] {
-				t.Fatalf("expected: %v, got: %v", tc.want, route.Annotations["openshift.io/host.generated"])
+			if tc.want != route.Spec.Host {
+				t.Log(route.Spec.Host)
+				t.Fatalf("expected: %v, got: %v", tc.want, route.Spec.Host)
 			}
 		})
 	}
-
-	//temp := routev1API.Route{ObjectMeta: metav1.ObjectMeta {
-	//	Annotations: map[string]string{
-	//		"openshift.io/host.generated": "true",
-	//	},
-	//}}
-
-	//var out map[string]interface{}
-	//item:= unstructured.Unstructured{}
-	//routeRec, _ := json.Marshal(temp) // Marshal it to JSON
-	//json.Unmarshal(routeRec, &out) // Unmarshal into the proper format
-	//item.SetUnstructuredContent(out) // Set unstructured object
-	//
-	//input := velero.RestoreItemActionExecuteInput{ Item: &item,
-	//}
-	//
-	//output,_ := restorePlugin.Execute(&input)
-	//
-	//route := routev1API.Route{}
-	//itemMarshal, _ := json.Marshal(output.UpdatedItem)
-	//json.Unmarshal(itemMarshal, &route)
-	//
-	//assert.NotEmpty(t, route.Annotations["openshift.io/host.generated"])
 
 }
