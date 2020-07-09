@@ -167,7 +167,7 @@ func getBackupStorageLocationForBackup(name string, namespace string) (string, e
 	}
 
 	for _, element := range result.Items{
-		if element.Name == name{
+		if element.Name == name {
 			return element.Spec.StorageLocation, nil
 		}
 	}
