@@ -10,10 +10,8 @@ import (
 	"net/url"
 	"os"
 	"strconv"
-	"strings"
 
 	"github.com/containers/image/v5/docker/reference"
-	"github.com/containers/image/v5/internal/iolimits"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/containers/image/v5/types"
@@ -24,9 +22,8 @@ import (
 )
 
 type dockerImageSource struct {
-	logicalRef  dockerReference // The reference the user requested.
-	physicalRef dockerReference // The actual reference we are accessing (possibly a mirror)
-	c           *dockerClient
+	ref dockerReference
+	c   *dockerClient
 	// State
 	cachedManifest         []byte // nil if not loaded yet
 	cachedManifestMIMEType string // Only valid if cachedManifest != nil
@@ -50,90 +47,55 @@ func newImageSource(ctx context.Context, sys *types.SystemContext, ref dockerRef
 		}
 	}
 
+	primaryDomain := reference.Domain(ref.ref)
 	// Check all endpoints for the manifest availability. If we find one that does
 	// contain the image, it will be used for all future pull actions.  Always try the
 	// non-mirror original location last; this both transparently handles the case
 	// of no mirrors configured, and ensures we return the error encountered when
 	// acessing the upstream location if all endpoints fail.
+	manifestLoadErr := errors.New("Internal error: newImageSource returned without trying any endpoint")
 	pullSources, err := registry.PullSourcesFromReference(ref.ref)
 	if err != nil {
 		return nil, err
 	}
-	type attempt struct {
-		ref reference.Named
-		err error
-	}
-	attempts := []attempt{}
 	for _, pullSource := range pullSources {
-		logrus.Debugf("Trying to access %q", pullSource.Reference)
-		s, err := newImageSourceAttempt(ctx, sys, ref, pullSource)
-		if err == nil {
-			return s, nil
+		logrus.Debugf("Trying to pull %q", pullSource.Reference)
+		dockerRef, err := newReference(pullSource.Reference)
+		if err != nil {
+			return nil, err
 		}
-		logrus.Debugf("Accessing %q failed: %v", pullSource.Reference, err)
-		attempts = append(attempts, attempt{
-			ref: pullSource.Reference,
-			err: err,
-		})
-	}
-	switch len(attempts) {
-	case 0:
-		return nil, errors.New("Internal error: newImageSource returned without trying any endpoint")
-	case 1:
-		return nil, attempts[0].err // If no mirrors are used, perfectly preserve the error type and add no noise.
-	default:
-		// Don’t just build a string, try to preserve the typed error.
-		primary := &attempts[len(attempts)-1]
-		extras := []string{}
-		for i := 0; i < len(attempts)-1; i++ {
-			// This is difficult to fit into a single-line string, when the error can contain arbitrary strings including any metacharacters we decide to use.
-			// The paired [] at least have some chance of being unambiguous.
-			extras = append(extras, fmt.Sprintf("[%s: %v]", attempts[i].ref.String(), attempts[i].err))
+
+		endpointSys := sys
+		// sys.DockerAuthConfig does not explicitly specify a registry; we must not blindly send the credentials intended for the primary endpoint to mirrors.
+		if endpointSys != nil && endpointSys.DockerAuthConfig != nil && reference.Domain(dockerRef.ref) != primaryDomain {
+			copy := *endpointSys
+			copy.DockerAuthConfig = nil
+			endpointSys = &copy
 		}
-		return nil, errors.Wrapf(primary.err, "(Mirrors also failed: %s): %s", strings.Join(extras, "\n"), primary.ref.String())
-	}
-}
 
-// newImageSourceAttempt is an internal helper for newImageSource. Everyone else must call newImageSource.
-// Given a logicalReference and a pullSource, return a dockerImageSource if it is reachable.
-// The caller must call .Close() on the returned ImageSource.
-func newImageSourceAttempt(ctx context.Context, sys *types.SystemContext, logicalRef dockerReference, pullSource sysregistriesv2.PullSource) (*dockerImageSource, error) {
-	physicalRef, err := newReference(pullSource.Reference)
-	if err != nil {
-		return nil, err
-	}
+		client, err := newDockerClientFromRef(endpointSys, dockerRef, false, "pull")
+		if err != nil {
+			return nil, err
+		}
+		client.tlsClientConfig.InsecureSkipVerify = pullSource.Endpoint.Insecure
 
-	endpointSys := sys
-	// sys.DockerAuthConfig does not explicitly specify a registry; we must not blindly send the credentials intended for the primary endpoint to mirrors.
-	if endpointSys != nil && endpointSys.DockerAuthConfig != nil && reference.Domain(physicalRef.ref) != reference.Domain(logicalRef.ref) {
-		copy := *endpointSys
-		copy.DockerAuthConfig = nil
-		copy.DockerBearerRegistryToken = ""
-		endpointSys = &copy
-	}
+		testImageSource := &dockerImageSource{
+			ref: dockerRef,
+			c:   client,
+		}
 
-	client, err := newDockerClientFromRef(endpointSys, physicalRef, false, "pull")
-	if err != nil {
-		return nil, err
+		manifestLoadErr = testImageSource.ensureManifestIsLoaded(ctx)
+		if manifestLoadErr == nil {
+			return testImageSource, nil
+		}
 	}
-	client.tlsClientConfig.InsecureSkipVerify = pullSource.Endpoint.Insecure
-
-	s := &dockerImageSource{
-		logicalRef:  logicalRef,
-		physicalRef: physicalRef,
-		c:           client,
-	}
-
-	if err := s.ensureManifestIsLoaded(ctx); err != nil {
-		return nil, err
-	}
-	return s, nil
+	return nil, manifestLoadErr
 }
 
 // Reference returns the reference used to set up this source, _as specified by the user_
 // (not as the image itself, or its underlying storage, claims).  This can be used e.g. to determine which public keys are trusted for this image.
 func (s *dockerImageSource) Reference() types.ImageReference {
-	return s.logicalRef
+	return s.ref
 }
 
 // Close removes resources associated with an initialized ImageSource, if any.
@@ -182,7 +144,7 @@ func (s *dockerImageSource) GetManifest(ctx context.Context, instanceDigest *dig
 }
 
 func (s *dockerImageSource) fetchManifest(ctx context.Context, tagOrDigest string) ([]byte, string, error) {
-	path := fmt.Sprintf(manifestPath, reference.Path(s.physicalRef.ref), tagOrDigest)
+	path := fmt.Sprintf(manifestPath, reference.Path(s.ref.ref), tagOrDigest)
 	headers := map[string][]string{
 		"Accept": manifest.DefaultRequestedManifestMIMETypes,
 	}
@@ -192,10 +154,9 @@ func (s *dockerImageSource) fetchManifest(ctx context.Context, tagOrDigest strin
 	}
 	defer res.Body.Close()
 	if res.StatusCode != http.StatusOK {
-		return nil, "", errors.Wrapf(client.HandleErrorResponse(res), "Error reading manifest %s in %s", tagOrDigest, s.physicalRef.ref.Name())
+		return nil, "", errors.Wrapf(client.HandleErrorResponse(res), "Error reading manifest %s in %s", tagOrDigest, s.ref.ref.Name())
 	}
-
-	manblob, err := iolimits.ReadAtMost(res.Body, iolimits.MaxManifestBodySize)
+	manblob, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		return nil, "", err
 	}
@@ -214,7 +175,7 @@ func (s *dockerImageSource) ensureManifestIsLoaded(ctx context.Context) error {
 		return nil
 	}
 
-	reference, err := s.physicalRef.tagOrDigest()
+	reference, err := s.ref.tagOrDigest()
 	if err != nil {
 		return err
 	}
@@ -272,7 +233,7 @@ func (s *dockerImageSource) GetBlob(ctx context.Context, info types.BlobInfo, ca
 		return s.getExternalBlob(ctx, info.URLs)
 	}
 
-	path := fmt.Sprintf(blobsPath, reference.Path(s.physicalRef.ref), info.Digest.String())
+	path := fmt.Sprintf(blobsPath, reference.Path(s.ref.ref), info.Digest.String())
 	logrus.Debugf("Downloading %s", path)
 	res, err := s.c.makeRequest(ctx, "GET", path, nil, nil, v2Auth, nil)
 	if err != nil {
@@ -281,7 +242,7 @@ func (s *dockerImageSource) GetBlob(ctx context.Context, info types.BlobInfo, ca
 	if err := httpResponseToError(res, "Error fetching blob"); err != nil {
 		return nil, 0, err
 	}
-	cache.RecordKnownLocation(s.physicalRef.Transport(), bicTransportScope(s.physicalRef), info.Digest, newBICLocationReference(s.physicalRef))
+	cache.RecordKnownLocation(s.ref.Transport(), bicTransportScope(s.ref), info.Digest, newBICLocationReference(s.ref))
 	return res.Body, getBlobSize(res), nil
 }
 
@@ -309,7 +270,7 @@ func (s *dockerImageSource) manifestDigest(ctx context.Context, instanceDigest *
 	if instanceDigest != nil {
 		return *instanceDigest, nil
 	}
-	if digested, ok := s.physicalRef.ref.(reference.Digested); ok {
+	if digested, ok := s.ref.ref.(reference.Digested); ok {
 		d := digested.Digest()
 		if d.Algorithm() == digest.Canonical {
 			return d, nil
@@ -381,7 +342,7 @@ func (s *dockerImageSource) getOneSignature(ctx context.Context, url *url.URL) (
 		} else if res.StatusCode != http.StatusOK {
 			return nil, false, errors.Errorf("Error reading signature from %s: status %d (%s)", url.String(), res.StatusCode, http.StatusText(res.StatusCode))
 		}
-		sig, err := iolimits.ReadAtMost(res.Body, iolimits.MaxSignatureBodySize)
+		sig, err := ioutil.ReadAll(res.Body)
 		if err != nil {
 			return nil, false, err
 		}
@@ -399,7 +360,7 @@ func (s *dockerImageSource) getSignaturesFromAPIExtension(ctx context.Context, i
 		return nil, err
 	}
 
-	parsedBody, err := s.c.getExtensionsSignatures(ctx, s.physicalRef, manifestDigest)
+	parsedBody, err := s.c.getExtensionsSignatures(ctx, s.ref, manifestDigest)
 	if err != nil {
 		return nil, err
 	}
@@ -440,7 +401,7 @@ func deleteImage(ctx context.Context, sys *types.SystemContext, ref dockerRefere
 		return err
 	}
 	defer get.Body.Close()
-	manifestBody, err := iolimits.ReadAtMost(get.Body, iolimits.MaxManifestBodySize)
+	manifestBody, err := ioutil.ReadAll(get.Body)
 	if err != nil {
 		return err
 	}
@@ -463,7 +424,7 @@ func deleteImage(ctx context.Context, sys *types.SystemContext, ref dockerRefere
 	}
 	defer delete.Body.Close()
 
-	body, err := iolimits.ReadAtMost(delete.Body, iolimits.MaxErrorBodySize)
+	body, err := ioutil.ReadAll(delete.Body)
 	if err != nil {
 		return err
 	}

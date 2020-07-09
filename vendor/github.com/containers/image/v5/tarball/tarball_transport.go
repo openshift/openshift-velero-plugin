@@ -48,21 +48,12 @@ func (t *tarballTransport) ParseReference(reference string) (types.ImageReferenc
 		}
 		f.Close()
 	}
-	return NewReference(filenames, stdin)
-}
-
-// NewReference creates a new "tarball:" reference for the listed fileNames.
-// If any of the fileNames is "-", the contents of stdin are used instead.
-func NewReference(fileNames []string, stdin []byte) (types.ImageReference, error) {
-	for _, path := range fileNames {
-		if strings.Contains(path, separator) {
-			return nil, fmt.Errorf("Invalid path %q: paths including the separator %q are not supported", path, separator)
-		}
-	}
-	return &tarballReference{
-		filenames: fileNames,
+	ref := &tarballReference{
+		transport: t,
+		filenames: filenames,
 		stdin:     stdin,
-	}, nil
+	}
+	return ref, nil
 }
 
 func (t *tarballTransport) ValidatePolicyConfigurationScope(scope string) error {

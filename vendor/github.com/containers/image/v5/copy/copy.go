@@ -8,13 +8,13 @@ import (
 	"io/ioutil"
 	"os"
 	"reflect"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/image"
-	"github.com/containers/image/v5/internal/pkg/platform"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/pkg/blobinfocache"
 	"github.com/containers/image/v5/pkg/compression"
@@ -27,8 +27,8 @@ import (
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/vbauerster/mpb/v5"
-	"github.com/vbauerster/mpb/v5/decor"
+	"github.com/vbauerster/mpb/v4"
+	"github.com/vbauerster/mpb/v4/decor"
 	"golang.org/x/crypto/ssh/terminal"
 	"golang.org/x/sync/semaphore"
 )
@@ -356,11 +356,11 @@ func (c *copier) copyMultipleImages(ctx context.Context, policyContext *signatur
 	if err != nil {
 		return nil, "", errors.Wrapf(err, "Error reading manifest list")
 	}
-	originalList, err := manifest.ListFromBlob(manifestList, manifestType)
+	list, err := manifest.ListFromBlob(manifestList, manifestType)
 	if err != nil {
 		return nil, "", errors.Wrapf(err, "Error parsing manifest list %q", string(manifestList))
 	}
-	updatedList := originalList.Clone()
+	originalList := list.Clone()
 
 	// Read and/or clear the set of signatures for this list.
 	var sigs [][]byte
@@ -380,7 +380,6 @@ func (c *copier) copyMultipleImages(ctx context.Context, policyContext *signatur
 			return nil, "", errors.Wrap(err, "Can not copy signatures")
 		}
 	}
-	canModifyManifestList := (len(sigs) == 0)
 
 	// Determine if we'll need to convert the manifest list to a different format.
 	forceListMIMEType := options.ForceManifestMIMEType
@@ -390,18 +389,19 @@ func (c *copier) copyMultipleImages(ctx context.Context, policyContext *signatur
 	case imgspecv1.MediaTypeImageManifest:
 		forceListMIMEType = imgspecv1.MediaTypeImageIndex
 	}
-	selectedListType, otherManifestMIMETypeCandidates, err := c.determineListConversion(manifestType, c.dest.SupportedManifestMIMETypes(), forceListMIMEType)
+	selectedListType, err := c.determineListConversion(manifestType, c.dest.SupportedManifestMIMETypes(), forceListMIMEType)
 	if err != nil {
 		return nil, "", errors.Wrapf(err, "Error determining manifest list type to write to destination")
 	}
-	if selectedListType != originalList.MIMEType() {
+	if selectedListType != list.MIMEType() {
+		canModifyManifestList := (len(sigs) == 0)
 		if !canModifyManifestList {
 			return nil, "", errors.Errorf("Error: manifest list must be converted to type %q to be written to destination, but that would invalidate signatures", selectedListType)
 		}
 	}
 
 	// Copy each image, or just the ones we want to copy, in turn.
-	instanceDigests := updatedList.Instances()
+	instanceDigests := list.Instances()
 	imagesToCopy := len(instanceDigests)
 	if options.ImageListSelection == CopySpecificImages {
 		imagesToCopy = len(options.Instances)
@@ -419,7 +419,7 @@ func (c *copier) copyMultipleImages(ctx context.Context, policyContext *signatur
 				}
 			}
 			if skip {
-				update, err := updatedList.Instance(instanceDigest)
+				update, err := list.Instance(instanceDigest)
 				if err != nil {
 					return nil, "", err
 				}
@@ -447,61 +447,37 @@ func (c *copier) copyMultipleImages(ctx context.Context, policyContext *signatur
 	}
 
 	// Now reset the digest/size/types of the manifests in the list to account for any conversions that we made.
-	if err = updatedList.UpdateInstances(updates); err != nil {
+	if err = list.UpdateInstances(updates); err != nil {
 		return nil, "", errors.Wrapf(err, "Error updating manifest list")
 	}
 
-	// Iterate through supported list types, preferred format first.
-	c.Printf("Writing manifest list to image destination\n")
-	var errs []string
-	for _, thisListType := range append([]string{selectedListType}, otherManifestMIMETypeCandidates...) {
-		attemptedList := updatedList
-
-		logrus.Debugf("Trying to use manifest list type %s…", thisListType)
-
-		// Perform the list conversion, if we need one.
-		if thisListType != updatedList.MIMEType() {
-			attemptedList, err = updatedList.ConvertToMIMEType(thisListType)
-			if err != nil {
-				return nil, "", errors.Wrapf(err, "Error converting manifest list to list with MIME type %q", thisListType)
-			}
-		}
-
-		// Check if the updates or a type conversion meaningfully changed the list of images
-		// by serializing them both so that we can compare them.
-		attemptedManifestList, err := attemptedList.Serialize()
-		if err != nil {
-			return nil, "", errors.Wrapf(err, "Error encoding updated manifest list (%q: %#v)", updatedList.MIMEType(), updatedList.Instances())
-		}
-		originalManifestList, err := originalList.Serialize()
-		if err != nil {
-			return nil, "", errors.Wrapf(err, "Error encoding original manifest list for comparison (%q: %#v)", originalList.MIMEType(), originalList.Instances())
-		}
-
-		// If we can't just use the original value, but we have to change it, flag an error.
-		if !bytes.Equal(attemptedManifestList, originalManifestList) {
-			if !canModifyManifestList {
-				return nil, "", errors.Errorf("Error: manifest list must be converted to type %q to be written to destination, but that would invalidate signatures", thisListType)
-			}
-			logrus.Debugf("Manifest list has been updated")
-		} else {
-			// We can just use the original value, so use it instead of the one we just rebuilt, so that we don't change the digest.
-			attemptedManifestList = manifestList
-		}
-
-		// Save the manifest list.
-		err = c.dest.PutManifest(ctx, attemptedManifestList, nil)
-		if err != nil {
-			logrus.Debugf("Upload of manifest list type %s failed: %v", thisListType, err)
-			errs = append(errs, fmt.Sprintf("%s(%v)", thisListType, err))
-			continue
-		}
-		errs = nil
-		manifestList = attemptedManifestList
-		break
+	// Check if the updates meaningfully changed the list of images.
+	listIsModified := false
+	if !reflect.DeepEqual(list.Instances(), originalList.Instances()) {
+		listIsModified = true
 	}
-	if errs != nil {
-		return nil, "", fmt.Errorf("Uploading manifest list failed, attempted the following formats: %s", strings.Join(errs, ", "))
+
+	// Perform the list conversion.
+	if selectedListType != list.MIMEType() {
+		list, err = list.ConvertToMIMEType(selectedListType)
+		if err != nil {
+			return nil, "", errors.Wrapf(err, "Error converting manifest list to list with MIME type %q", selectedListType)
+		}
+	}
+
+	// If we can't use the original value, but we have to change it, flag an error.
+	if listIsModified {
+		manifestList, err = list.Serialize()
+		if err != nil {
+			return nil, "", errors.Wrapf(err, "Error encoding updated manifest list (%q: %#v)", list.MIMEType(), list.Instances())
+		}
+		logrus.Debugf("Manifest list has been updated")
+	}
+
+	// Save the manifest list.
+	c.Printf("Writing manifest list to image destination\n")
+	if err = c.dest.PutManifest(ctx, manifestList, nil); err != nil {
+		return nil, "", errors.Wrapf(err, "Error writing manifest list %q", string(manifestList))
 	}
 
 	// Sign the manifest list.
@@ -544,6 +520,15 @@ func (c *copier) copyOneImage(ctx context.Context, policyContext *signature.Poli
 	src, err := image.FromUnparsedImage(ctx, options.SourceCtx, unparsedImage)
 	if err != nil {
 		return nil, "", "", errors.Wrapf(err, "Error initializing image from source %s", transports.ImageName(c.rawSource.Reference()))
+	}
+
+	// TODO: Remove src.SupportsEncryption call and interface once copyUpdatedConfigAndManifest does not depend on source Image manifest type
+	// Currently, the way copyUpdatedConfigAndManifest updates the manifest is to apply updates to the source manifest and call PutManifest
+	// of the modified source manifest. The implication is that schemas like docker2 cannot be encrypted even though the destination
+	// supports encryption because docker2 struct does not have annotations, which are required.
+	// Reference to issue: https://github.com/containers/image/issues/746
+	if options.OciEncryptLayers != nil && !src.SupportsEncryption(ctx) {
+		return nil, "", "", errors.Errorf("Encryption request but not supported by source transport %s", src.Reference().Transport().Name())
 	}
 
 	// If the destination is a digested reference, make a note of that, determine what digest value we're
@@ -718,26 +703,21 @@ func checkImageDestinationForCurrentRuntime(ctx context.Context, sys *types.Syst
 		if err != nil {
 			return errors.Wrapf(err, "Error parsing image configuration")
 		}
-		wantedPlatforms, err := platform.WantedPlatforms(sys)
-		if err != nil {
-			return errors.Wrapf(err, "error getting current platform information %#v", sys)
+
+		wantedOS := runtime.GOOS
+		if sys != nil && sys.OSChoice != "" {
+			wantedOS = sys.OSChoice
+		}
+		if wantedOS != c.OS {
+			return fmt.Errorf("Image operating system mismatch: image uses %q, expecting %q", c.OS, wantedOS)
 		}
 
-		options := newOrderedSet()
-		match := false
-		for _, wantedPlatform := range wantedPlatforms {
-			// Waiting for https://github.com/opencontainers/image-spec/pull/777 :
-			// This currently can’t use image.MatchesPlatform because we don’t know what to use
-			// for image.Variant.
-			if wantedPlatform.OS == c.OS && wantedPlatform.Architecture == c.Architecture {
-				match = true
-				break
-			}
-			options.append(fmt.Sprintf("%s+%s", wantedPlatform.OS, wantedPlatform.Architecture))
+		wantedArch := runtime.GOARCH
+		if sys != nil && sys.ArchitectureChoice != "" {
+			wantedArch = sys.ArchitectureChoice
 		}
-		if !match {
-			logrus.Infof("Image operating system mismatch: image uses OS %q+architecture %q, expecting one of %q",
-				c.OS, c.Architecture, strings.Join(options.list, ", "))
+		if wantedArch != c.Architecture {
+			return fmt.Errorf("Image architecture mismatch: image uses %q, expecting %q", c.Architecture, wantedArch)
 		}
 	}
 	return nil
@@ -798,6 +778,7 @@ func (ic *imageCopier) copyLayers(ctx context.Context) error {
 
 	// copyGroup is used to determine if all layers are copied
 	copyGroup := sync.WaitGroup{}
+	copyGroup.Add(numLayers)
 
 	// copySemaphore is used to limit the number of parallel downloads to
 	// avoid malicious images causing troubles and to be nice to servers.
@@ -847,28 +828,21 @@ func (ic *imageCopier) copyLayers(ctx context.Context) error {
 		}
 	}
 
-	if err := func() error { // A scope for defer
+	func() { // A scope for defer
 		progressPool, progressCleanup := ic.c.newProgressPool(ctx)
-		defer func() {
-			// Wait for all layers to be copied. progressCleanup() must not be called while any of the copyLayerHelpers interact with the progressPool.
-			copyGroup.Wait()
-			progressCleanup()
-		}()
+		defer progressCleanup()
 
 		for i, srcLayer := range srcInfos {
 			err = copySemaphore.Acquire(ctx, 1)
 			if err != nil {
-				return errors.Wrapf(err, "Can't acquire semaphore")
+				logrus.Debug("Can't acquire semaphoer", err)
 			}
-			copyGroup.Add(1)
 			go copyLayerHelper(i, srcLayer, encLayerBitmap[i], progressPool)
 		}
 
-		// A call to copyGroup.Wait() is done at this point by the defer above.
-		return nil
-	}(); err != nil {
-		return err
-	}
+		// Wait for all layers to be copied
+		copyGroup.Wait()
+	}()
 
 	destInfos := make([]types.BlobInfo, numLayers)
 	diffIDs := make([]digest.Digest, numLayers)
@@ -982,7 +956,7 @@ func (c *copier) createProgressBar(pool *mpb.Progress, info types.BlobInfo, kind
 	var bar *mpb.Bar
 	if info.Size > 0 {
 		bar = pool.AddBar(info.Size,
-			mpb.BarFillerClearOnComplete(),
+			mpb.BarClearOnComplete(),
 			mpb.PrependDecorators(
 				decor.OnComplete(decor.Name(prefix), onComplete),
 			),
@@ -993,7 +967,7 @@ func (c *copier) createProgressBar(pool *mpb.Progress, info types.BlobInfo, kind
 	} else {
 		bar = pool.AddSpinner(info.Size,
 			mpb.SpinnerOnLeft,
-			mpb.BarFillerClearOnComplete(),
+			mpb.BarClearOnComplete(),
 			mpb.SpinnerStyle([]string{".", "..", "...", "....", ""}),
 			mpb.PrependDecorators(
 				decor.OnComplete(decor.Name(prefix), onComplete),
@@ -1027,7 +1001,7 @@ func (c *copier) copyConfig(ctx context.Context, src types.Image) error {
 			return destInfo, nil
 		}()
 		if err != nil {
-			return err
+			return nil
 		}
 		if destInfo.Digest != srcInfo.Digest {
 			return errors.Errorf("Internal error: copying uncompressed config blob %s changed digest to %s", srcInfo.Digest, destInfo.Digest)

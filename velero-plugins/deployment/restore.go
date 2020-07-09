@@ -6,8 +6,10 @@ import (
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/common"
 	"github.com/sirupsen/logrus"
 	"github.com/vmware-tanzu/velero/pkg/plugin/velero"
+	//velerov1 "github.com/vmware-tanzu/velero/pkg/apis/velero/v1" 
 	appsv1API "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	//"fmt"
 )
 
 // RestorePlugin is a restore item action plugin for Velero
@@ -35,6 +37,8 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	if err != nil {
 		return nil, err
 	}
+
+
 	common.SwapContainerImageRefs(deployment.Spec.Template.Spec.Containers, backupRegistry, registry, p.Log, input.Restore.Spec.NamespaceMapping)
 	common.SwapContainerImageRefs(deployment.Spec.Template.Spec.InitContainers, backupRegistry, registry, p.Log, input.Restore.Spec.NamespaceMapping)
 

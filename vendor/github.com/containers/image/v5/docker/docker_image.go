@@ -37,7 +37,7 @@ func newImage(ctx context.Context, sys *types.SystemContext, ref dockerReference
 
 // SourceRefFullName returns a fully expanded name for the repository this image is in.
 func (i *Image) SourceRefFullName() string {
-	return i.src.logicalRef.ref.Name()
+	return i.src.ref.ref.Name()
 }
 
 // GetRepositoryTags list all tags available in the repository. The tag
@@ -45,7 +45,7 @@ func (i *Image) SourceRefFullName() string {
 // backward-compatible shim method which calls the module-level
 // GetRepositoryTags)
 func (i *Image) GetRepositoryTags(ctx context.Context) ([]string, error) {
-	return GetRepositoryTags(ctx, i.src.c.sys, i.src.logicalRef)
+	return GetRepositoryTags(ctx, i.src.c.sys, i.src.ref)
 }
 
 // GetRepositoryTags list all tags available in the repository. The tag
