@@ -7,6 +7,7 @@ package gpgme
 // #include <gpgme.h>
 // #include "go_gpgme.h"
 import "C"
+
 import (
 	"fmt"
 	"io"
@@ -47,8 +48,9 @@ const (
 	ProtocolAssuan   Protocol = C.GPGME_PROTOCOL_ASSUAN
 	ProtocolG13      Protocol = C.GPGME_PROTOCOL_G13
 	ProtocolUIServer Protocol = C.GPGME_PROTOCOL_UISERVER
-	ProtocolDefault  Protocol = C.GPGME_PROTOCOL_DEFAULT
-	ProtocolUnknown  Protocol = C.GPGME_PROTOCOL_UNKNOWN
+	// ProtocolSpawn    Protocol = C.GPGME_PROTOCOL_SPAWN // Unavailable in 1.4.3
+	ProtocolDefault Protocol = C.GPGME_PROTOCOL_DEFAULT
+	ProtocolUnknown Protocol = C.GPGME_PROTOCOL_UNKNOWN
 )
 
 type PinEntryMode int
@@ -68,6 +70,7 @@ const (
 	EncryptNoEncryptTo EncryptFlag = C.GPGME_ENCRYPT_NO_ENCRYPT_TO
 	EncryptPrepare     EncryptFlag = C.GPGME_ENCRYPT_PREPARE
 	EncryptExceptSign  EncryptFlag = C.GPGME_ENCRYPT_EXPECT_SIGN
+	// EncryptNoCompress  EncryptFlag = C.GPGME_ENCRYPT_NO_COMPRESS // Unavailable in 1.4.3
 )
 
 type HashAlgo int
@@ -81,6 +84,7 @@ const (
 	KeyListModeExtern       KeyListMode = C.GPGME_KEYLIST_MODE_EXTERN
 	KeyListModeSigs         KeyListMode = C.GPGME_KEYLIST_MODE_SIGS
 	KeyListModeSigNotations KeyListMode = C.GPGME_KEYLIST_MODE_SIG_NOTATIONS
+	// KeyListModeWithSecret   KeyListMode = C.GPGME_KEYLIST_MODE_WITH_SECRET // Unavailable in 1.4.3
 	KeyListModeEphemeral    KeyListMode = C.GPGME_KEYLIST_MODE_EPHEMERAL
 	KeyListModeModeValidate KeyListMode = C.GPGME_KEYLIST_MODE_VALIDATE
 )
@@ -164,60 +168,39 @@ func EngineCheckVersion(p Protocol) error {
 }
 
 type EngineInfo struct {
-	next            *EngineInfo
-	protocol        Protocol
-	fileName        string
-	homeDir         string
-	version         string
-	requiredVersion string
-}
-
-func copyEngineInfo(info C.gpgme_engine_info_t) *EngineInfo {
-	res := &EngineInfo{
-		next:            nil,
-		protocol:        Protocol(info.protocol),
-		fileName:        C.GoString(info.file_name),
-		homeDir:         C.GoString(info.home_dir),
-		version:         C.GoString(info.version),
-		requiredVersion: C.GoString(info.req_version),
-	}
-	if info.next != nil {
-		res.next = copyEngineInfo(info.next)
-	}
-	return res
+	info C.gpgme_engine_info_t
 }
 
 func (e *EngineInfo) Next() *EngineInfo {
-	return e.next
+	if e.info.next == nil {
+		return nil
+	}
+	return &EngineInfo{info: e.info.next}
 }
 
 func (e *EngineInfo) Protocol() Protocol {
-	return e.protocol
+	return Protocol(e.info.protocol)
 }
 
 func (e *EngineInfo) FileName() string {
-	return e.fileName
+	return C.GoString(e.info.file_name)
 }
 
 func (e *EngineInfo) Version() string {
-	return e.version
+	return C.GoString(e.info.version)
 }
 
 func (e *EngineInfo) RequiredVersion() string {
-	return e.requiredVersion
+	return C.GoString(e.info.req_version)
 }
 
 func (e *EngineInfo) HomeDir() string {
-	return e.homeDir
+	return C.GoString(e.info.home_dir)
 }
 
 func GetEngineInfo() (*EngineInfo, error) {
-	var cInfo C.gpgme_engine_info_t
-	err := handleError(C.gpgme_get_engine_info(&cInfo))
-	if err != nil {
-		return nil, err
-	}
-	return copyEngineInfo(cInfo), nil // It is up to the caller not to invalidate cInfo concurrently until this is done.
+	info := &EngineInfo{}
+	return info, handleError(C.gpgme_get_engine_info(&info.info))
 }
 
 func SetEngineInfo(proto Protocol, fileName, homeDir string) error {
@@ -278,9 +261,9 @@ type Context struct {
 	KeyError error
 
 	callback Callback
-	cbc      uintptr // WARNING: Call runtime.KeepAlive(c) after ANY use of c.cbc in C (typically via c.ctx)
+	cbc      uintptr
 
-	ctx C.gpgme_ctx_t // WARNING: Call runtime.KeepAlive(c) after ANY passing of c.ctx to C
+	ctx C.gpgme_ctx_t
 }
 
 func New() (*Context, error) {
@@ -298,68 +281,49 @@ func (c *Context) Release() {
 		callbackDelete(c.cbc)
 	}
 	C.gpgme_release(c.ctx)
-	runtime.KeepAlive(c)
 	c.ctx = nil
 }
 
 func (c *Context) SetArmor(yes bool) {
 	C.gpgme_set_armor(c.ctx, cbool(yes))
-	runtime.KeepAlive(c)
 }
 
 func (c *Context) Armor() bool {
-	res := C.gpgme_get_armor(c.ctx) != 0
-	runtime.KeepAlive(c)
-	return res
+	return C.gpgme_get_armor(c.ctx) != 0
 }
 
 func (c *Context) SetTextMode(yes bool) {
 	C.gpgme_set_textmode(c.ctx, cbool(yes))
-	runtime.KeepAlive(c)
 }
 
 func (c *Context) TextMode() bool {
-	res := C.gpgme_get_textmode(c.ctx) != 0
-	runtime.KeepAlive(c)
-	return res
+	return C.gpgme_get_textmode(c.ctx) != 0
 }
 
 func (c *Context) SetProtocol(p Protocol) error {
-	err := handleError(C.gpgme_set_protocol(c.ctx, C.gpgme_protocol_t(p)))
-	runtime.KeepAlive(c)
-	return err
+	return handleError(C.gpgme_set_protocol(c.ctx, C.gpgme_protocol_t(p)))
 }
 
 func (c *Context) Protocol() Protocol {
-	res := Protocol(C.gpgme_get_protocol(c.ctx))
-	runtime.KeepAlive(c)
-	return res
+	return Protocol(C.gpgme_get_protocol(c.ctx))
 }
 
 func (c *Context) SetKeyListMode(m KeyListMode) error {
-	err := handleError(C.gpgme_set_keylist_mode(c.ctx, C.gpgme_keylist_mode_t(m)))
-	runtime.KeepAlive(c)
-	return err
+	return handleError(C.gpgme_set_keylist_mode(c.ctx, C.gpgme_keylist_mode_t(m)))
 }
 
 func (c *Context) KeyListMode() KeyListMode {
-	res := KeyListMode(C.gpgme_get_keylist_mode(c.ctx))
-	runtime.KeepAlive(c)
-	return res
+	return KeyListMode(C.gpgme_get_keylist_mode(c.ctx))
 }
 
 // Unavailable in 1.3.2:
 // func (c *Context) SetPinEntryMode(m PinEntryMode) error {
-// 	err := handleError(C.gpgme_set_pinentry_mode(c.ctx, C.gpgme_pinentry_mode_t(m)))
-// 	runtime.KeepAlive(c)
-// 	return err
+// 	return handleError(C.gpgme_set_pinentry_mode(c.ctx, C.gpgme_pinentry_mode_t(m)))
 // }
 
 // Unavailable in 1.3.2:
 // func (c *Context) PinEntryMode() PinEntryMode {
-// 	res := PinEntryMode(C.gpgme_get_pinentry_mode(c.ctx))
-// 	runtime.KeepAlive(c)
-// 	return res
+// 	return PinEntryMode(C.gpgme_get_pinentry_mode(c.ctx))
 // }
 
 func (c *Context) SetCallback(callback Callback) error {
@@ -376,17 +340,11 @@ func (c *Context) SetCallback(callback Callback) error {
 		c.cbc = 0
 		_, err = C.gogpgme_set_passphrase_cb(c.ctx, nil, 0)
 	}
-	runtime.KeepAlive(c)
 	return err
 }
 
 func (c *Context) EngineInfo() *EngineInfo {
-	cInfo := C.gpgme_ctx_get_engine_info(c.ctx)
-	runtime.KeepAlive(c)
-	// NOTE: c must be live as long as we are accessing cInfo.
-	res := copyEngineInfo(cInfo)
-	runtime.KeepAlive(c) // for accesses to cInfo
-	return res
+	return &EngineInfo{info: C.gpgme_ctx_get_engine_info(c.ctx)}
 }
 
 func (c *Context) SetEngineInfo(proto Protocol, fileName, homeDir string) error {
@@ -399,23 +357,19 @@ func (c *Context) SetEngineInfo(proto Protocol, fileName, homeDir string) error 
 		chome = C.CString(homeDir)
 		defer C.free(unsafe.Pointer(chome))
 	}
-	err := handleError(C.gpgme_ctx_set_engine_info(c.ctx, C.gpgme_protocol_t(proto), cfn, chome))
-	runtime.KeepAlive(c)
-	return err
+	return handleError(C.gpgme_ctx_set_engine_info(c.ctx, C.gpgme_protocol_t(proto), cfn, chome))
 }
 
 func (c *Context) KeyListStart(pattern string, secretOnly bool) error {
 	cpattern := C.CString(pattern)
 	defer C.free(unsafe.Pointer(cpattern))
-	err := handleError(C.gpgme_op_keylist_start(c.ctx, cpattern, cbool(secretOnly)))
-	runtime.KeepAlive(c)
-	return err
+	err := C.gpgme_op_keylist_start(c.ctx, cpattern, cbool(secretOnly))
+	return handleError(err)
 }
 
 func (c *Context) KeyListNext() bool {
 	c.Key = newKey()
 	err := handleError(C.gpgme_op_keylist_next(c.ctx, &c.Key.k))
-	runtime.KeepAlive(c) // implies runtime.KeepAlive(c.Key)
 	if err != nil {
 		if e, ok := err.(Error); ok && e.Code() == ErrorEOF {
 			c.KeyError = nil
@@ -429,9 +383,7 @@ func (c *Context) KeyListNext() bool {
 }
 
 func (c *Context) KeyListEnd() error {
-	err := handleError(C.gpgme_op_keylist_end(c.ctx))
-	runtime.KeepAlive(c)
-	return err
+	return handleError(C.gpgme_op_keylist_end(c.ctx))
 }
 
 func (c *Context) GetKey(fingerprint string, secret bool) (*Key, error) {
@@ -439,11 +391,7 @@ func (c *Context) GetKey(fingerprint string, secret bool) (*Key, error) {
 	cfpr := C.CString(fingerprint)
 	defer C.free(unsafe.Pointer(cfpr))
 	err := handleError(C.gpgme_get_key(c.ctx, cfpr, &key.k, cbool(secret)))
-	runtime.KeepAlive(c)
-	runtime.KeepAlive(key)
-	keyKIsNil := key.k == nil
-	runtime.KeepAlive(key)
-	if e, ok := err.(Error); keyKIsNil && ok && e.Code() == ErrorEOF {
+	if e, ok := err.(Error); key.k == nil && ok && e.Code() == ErrorEOF {
 		return nil, fmt.Errorf("key %q not found", fingerprint)
 	}
 	if err != nil {
@@ -453,19 +401,11 @@ func (c *Context) GetKey(fingerprint string, secret bool) (*Key, error) {
 }
 
 func (c *Context) Decrypt(ciphertext, plaintext *Data) error {
-	err := handleError(C.gpgme_op_decrypt(c.ctx, ciphertext.dh, plaintext.dh))
-	runtime.KeepAlive(c)
-	runtime.KeepAlive(ciphertext)
-	runtime.KeepAlive(plaintext)
-	return err
+	return handleError(C.gpgme_op_decrypt(c.ctx, ciphertext.dh, plaintext.dh))
 }
 
 func (c *Context) DecryptVerify(ciphertext, plaintext *Data) error {
-	err := handleError(C.gpgme_op_decrypt_verify(c.ctx, ciphertext.dh, plaintext.dh))
-	runtime.KeepAlive(c)
-	runtime.KeepAlive(ciphertext)
-	runtime.KeepAlive(plaintext)
-	return err
+	return handleError(C.gpgme_op_decrypt_verify(c.ctx, ciphertext.dh, plaintext.dh))
 }
 
 type Signature struct {
@@ -492,20 +432,10 @@ func (c *Context) Verify(sig, signedText, plain *Data) (string, []Signature, err
 		plainPtr = plain.dh
 	}
 	err := handleError(C.gpgme_op_verify(c.ctx, sig.dh, signedTextPtr, plainPtr))
-	runtime.KeepAlive(c)
-	runtime.KeepAlive(sig)
-	if signedText != nil {
-		runtime.KeepAlive(signedText)
-	}
-	if plain != nil {
-		runtime.KeepAlive(plain)
-	}
 	if err != nil {
 		return "", nil, err
 	}
 	res := C.gpgme_op_verify_result(c.ctx)
-	runtime.KeepAlive(c)
-	// NOTE: c must be live as long as we are accessing res.
 	sigs := []Signature{}
 	for s := res.signatures; s != nil; s = s.next {
 		sig := Signature{
@@ -525,9 +455,7 @@ func (c *Context) Verify(sig, signedText, plain *Data) (string, []Signature, err
 		}
 		sigs = append(sigs, sig)
 	}
-	fileName := C.GoString(res.file_name)
-	runtime.KeepAlive(c) // for all accesses to res above
-	return fileName, sigs, nil
+	return C.GoString(res.file_name), sigs, nil
 }
 
 func (c *Context) Encrypt(recipients []*Key, flags EncryptFlag, plaintext, ciphertext *Data) error {
@@ -539,116 +467,18 @@ func (c *Context) Encrypt(recipients []*Key, flags EncryptFlag, plaintext, ciphe
 		*ptr = recipients[i].k
 	}
 	err := C.gpgme_op_encrypt(c.ctx, (*C.gpgme_key_t)(recp), C.gpgme_encrypt_flags_t(flags), plaintext.dh, ciphertext.dh)
-	runtime.KeepAlive(c)
-	runtime.KeepAlive(recipients)
-	runtime.KeepAlive(plaintext)
-	runtime.KeepAlive(ciphertext)
 	return handleError(err)
 }
 
 func (c *Context) Sign(signers []*Key, plain, sig *Data, mode SigMode) error {
 	C.gpgme_signers_clear(c.ctx)
-	runtime.KeepAlive(c)
 	for _, k := range signers {
-		err := handleError(C.gpgme_signers_add(c.ctx, k.k))
-		runtime.KeepAlive(c)
-		runtime.KeepAlive(k)
-		if err != nil {
+		if err := handleError(C.gpgme_signers_add(c.ctx, k.k)); err != nil {
 			C.gpgme_signers_clear(c.ctx)
-			runtime.KeepAlive(c)
 			return err
 		}
 	}
-	err := handleError(C.gpgme_op_sign(c.ctx, plain.dh, sig.dh, C.gpgme_sig_mode_t(mode)))
-	runtime.KeepAlive(c)
-	runtime.KeepAlive(plain)
-	runtime.KeepAlive(sig)
-	return err
-}
-
-type AssuanDataCallback func(data []byte) error
-type AssuanInquireCallback func(name, args string) error
-type AssuanStatusCallback func(status, args string) error
-
-// AssuanSend sends a raw Assuan command to gpg-agent
-func (c *Context) AssuanSend(
-	cmd string,
-	data AssuanDataCallback,
-	inquiry AssuanInquireCallback,
-	status AssuanStatusCallback,
-) error {
-	var operr C.gpgme_error_t
-
-	dataPtr := callbackAdd(&data)
-	inquiryPtr := callbackAdd(&inquiry)
-	statusPtr := callbackAdd(&status)
-	cmdCStr := C.CString(cmd)
-	defer C.free(unsafe.Pointer(cmdCStr))
-	err := C.gogpgme_op_assuan_transact_ext(
-		c.ctx,
-		cmdCStr,
-		C.uintptr_t(dataPtr),
-		C.uintptr_t(inquiryPtr),
-		C.uintptr_t(statusPtr),
-		&operr,
-	)
-	runtime.KeepAlive(c)
-
-	if handleError(operr) != nil {
-		return handleError(operr)
-	}
-	return handleError(err)
-}
-
-//export gogpgme_assuan_data_callback
-func gogpgme_assuan_data_callback(handle unsafe.Pointer, data unsafe.Pointer, datalen C.size_t) C.gpgme_error_t {
-	c := callbackLookup(uintptr(handle)).(*AssuanDataCallback)
-	if *c == nil {
-		return 0
-	}
-	(*c)(C.GoBytes(data, C.int(datalen)))
-	return 0
-}
-
-//export gogpgme_assuan_inquiry_callback
-func gogpgme_assuan_inquiry_callback(handle unsafe.Pointer, cName *C.char, cArgs *C.char) C.gpgme_error_t {
-	name := C.GoString(cName)
-	args := C.GoString(cArgs)
-	c := callbackLookup(uintptr(handle)).(*AssuanInquireCallback)
-	if *c == nil {
-		return 0
-	}
-	(*c)(name, args)
-	return 0
-}
-
-//export gogpgme_assuan_status_callback
-func gogpgme_assuan_status_callback(handle unsafe.Pointer, cStatus *C.char, cArgs *C.char) C.gpgme_error_t {
-	status := C.GoString(cStatus)
-	args := C.GoString(cArgs)
-	c := callbackLookup(uintptr(handle)).(*AssuanStatusCallback)
-	if *c == nil {
-		return 0
-	}
-	(*c)(status, args)
-	return 0
-}
-
-// ExportModeFlags defines how keys are exported from Export
-type ExportModeFlags uint
-
-const (
-	ExportModeExtern  ExportModeFlags = C.GPGME_EXPORT_MODE_EXTERN
-	ExportModeMinimal ExportModeFlags = C.GPGME_EXPORT_MODE_MINIMAL
-)
-
-func (c *Context) Export(pattern string, mode ExportModeFlags, data *Data) error {
-	pat := C.CString(pattern)
-	defer C.free(unsafe.Pointer(pat))
-	err := handleError(C.gpgme_op_export(c.ctx, pat, C.gpgme_export_mode_t(mode), data.dh))
-	runtime.KeepAlive(c)
-	runtime.KeepAlive(data)
-	return err
+	return handleError(C.gpgme_op_sign(c.ctx, plain.dh, sig.dh, C.gpgme_sig_mode_t(mode)))
 }
 
 // ImportStatusFlags describes the type of ImportStatus.Status. The C API in gpgme.h simply uses "unsigned".
@@ -687,14 +517,10 @@ type ImportResult struct {
 
 func (c *Context) Import(keyData *Data) (*ImportResult, error) {
 	err := handleError(C.gpgme_op_import(c.ctx, keyData.dh))
-	runtime.KeepAlive(c)
-	runtime.KeepAlive(keyData)
 	if err != nil {
 		return nil, err
 	}
 	res := C.gpgme_op_import_result(c.ctx)
-	runtime.KeepAlive(c)
-	// NOTE: c must be live as long as we are accessing res.
 	imports := []ImportStatus{}
 	for s := res.imports; s != nil; s = s.next {
 		imports = append(imports, ImportStatus{
@@ -703,7 +529,7 @@ func (c *Context) Import(keyData *Data) (*ImportResult, error) {
 			Status:      ImportStatusFlags(s.status),
 		})
 	}
-	importResult := &ImportResult{
+	return &ImportResult{
 		Considered:      int(res.considered),
 		NoUserID:        int(res.no_user_id),
 		Imported:        int(res.imported),
@@ -718,13 +544,11 @@ func (c *Context) Import(keyData *Data) (*ImportResult, error) {
 		SecretUnchanged: int(res.secret_unchanged),
 		NotImported:     int(res.not_imported),
 		Imports:         imports,
-	}
-	runtime.KeepAlive(c) // for all accesses to res above
-	return importResult, nil
+	}, nil
 }
 
 type Key struct {
-	k C.gpgme_key_t // WARNING: Call Runtime.KeepAlive(k) after ANY passing of k.k to C
+	k C.gpgme_key_t
 }
 
 func newKey() *Key {
@@ -735,122 +559,85 @@ func newKey() *Key {
 
 func (k *Key) Release() {
 	C.gpgme_key_release(k.k)
-	runtime.KeepAlive(k)
 	k.k = nil
 }
 
 func (k *Key) Revoked() bool {
-	res := C.key_revoked(k.k) != 0
-	runtime.KeepAlive(k)
-	return res
+	return C.key_revoked(k.k) != 0
 }
 
 func (k *Key) Expired() bool {
-	res := C.key_expired(k.k) != 0
-	runtime.KeepAlive(k)
-	return res
+	return C.key_expired(k.k) != 0
 }
 
 func (k *Key) Disabled() bool {
-	res := C.key_disabled(k.k) != 0
-	runtime.KeepAlive(k)
-	return res
+	return C.key_disabled(k.k) != 0
 }
 
 func (k *Key) Invalid() bool {
-	res := C.key_invalid(k.k) != 0
-	runtime.KeepAlive(k)
-	return res
+	return C.key_invalid(k.k) != 0
 }
 
 func (k *Key) CanEncrypt() bool {
-	res := C.key_can_encrypt(k.k) != 0
-	runtime.KeepAlive(k)
-	return res
+	return C.key_can_encrypt(k.k) != 0
 }
 
 func (k *Key) CanSign() bool {
-	res := C.key_can_sign(k.k) != 0
-	runtime.KeepAlive(k)
-	return res
+	return C.key_can_sign(k.k) != 0
 }
 
 func (k *Key) CanCertify() bool {
-	res := C.key_can_certify(k.k) != 0
-	runtime.KeepAlive(k)
-	return res
+	return C.key_can_certify(k.k) != 0
 }
 
 func (k *Key) Secret() bool {
-	res := C.key_secret(k.k) != 0
-	runtime.KeepAlive(k)
-	return res
+	return C.key_secret(k.k) != 0
 }
 
 func (k *Key) CanAuthenticate() bool {
-	res := C.key_can_authenticate(k.k) != 0
-	runtime.KeepAlive(k)
-	return res
+	return C.key_can_authenticate(k.k) != 0
 }
 
 func (k *Key) IsQualified() bool {
-	res := C.key_is_qualified(k.k) != 0
-	runtime.KeepAlive(k)
-	return res
+	return C.key_is_qualified(k.k) != 0
 }
 
 func (k *Key) Protocol() Protocol {
-	res := Protocol(k.k.protocol)
-	runtime.KeepAlive(k)
-	return res
+	return Protocol(k.k.protocol)
 }
 
 func (k *Key) IssuerSerial() string {
-	res := C.GoString(k.k.issuer_serial)
-	runtime.KeepAlive(k)
-	return res
+	return C.GoString(k.k.issuer_serial)
 }
 
 func (k *Key) IssuerName() string {
-	res := C.GoString(k.k.issuer_name)
-	runtime.KeepAlive(k)
-	return res
+	return C.GoString(k.k.issuer_name)
 }
 
 func (k *Key) ChainID() string {
-	res := C.GoString(k.k.chain_id)
-	runtime.KeepAlive(k)
-	return res
+	return C.GoString(k.k.chain_id)
 }
 
 func (k *Key) OwnerTrust() Validity {
-	res := Validity(k.k.owner_trust)
-	runtime.KeepAlive(k)
-	return res
+	return Validity(k.k.owner_trust)
 }
 
 func (k *Key) SubKeys() *SubKey {
-	subKeys := k.k.subkeys
-	runtime.KeepAlive(k)
-	if subKeys == nil {
+	if k.k.subkeys == nil {
 		return nil
 	}
-	return &SubKey{k: subKeys, parent: k} // The parent: k reference ensures subKeys remains valid
+	return &SubKey{k: k.k.subkeys, parent: k}
 }
 
 func (k *Key) UserIDs() *UserID {
-	uids := k.k.uids
-	runtime.KeepAlive(k)
-	if uids == nil {
+	if k.k.uids == nil {
 		return nil
 	}
-	return &UserID{u: uids, parent: k} // The parent: k reference ensures uids remains valid
+	return &UserID{u: k.k.uids, parent: k}
 }
 
 func (k *Key) KeyListMode() KeyListMode {
-	res := KeyListMode(k.k.keylist_mode)
-	runtime.KeepAlive(k)
-	return res
+	return KeyListMode(k.k.keylist_mode)
 }
 
 type SubKey struct {
@@ -949,4 +736,13 @@ func (u *UserID) Comment() string {
 
 func (u *UserID) Email() string {
 	return C.GoString(u.u.email)
+}
+
+// This is somewhat of a horrible hack. We need to unset GPG_AGENT_INFO so that gpgme does not pass --use-agent to GPG.
+// os.Unsetenv should be enough, but that only calls the underlying C library (which gpgme uses) if cgo is involved
+// - and cgo can't be used in tests. So, provide this helper for test initialization.
+func unsetenvGPGAgentInfo() {
+	v := C.CString("GPG_AGENT_INFO")
+	defer C.free(unsafe.Pointer(v))
+	C.unsetenv(v)
 }

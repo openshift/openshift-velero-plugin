@@ -22,6 +22,7 @@ type ConfigUpdater interface {
 }
 
 type tarballReference struct {
+	transport   types.ImageTransport
 	config      imgspecv1.Image
 	annotations map[string]string
 	filenames   []string
@@ -42,7 +43,7 @@ func (r *tarballReference) ConfigUpdate(config imgspecv1.Image, annotations map[
 }
 
 func (r *tarballReference) Transport() types.ImageTransport {
-	return Transport
+	return r.transport
 }
 
 func (r *tarballReference) StringWithinTransport() string {

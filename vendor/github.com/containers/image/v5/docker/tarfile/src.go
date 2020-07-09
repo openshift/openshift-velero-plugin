@@ -11,7 +11,6 @@ import (
 	"path"
 	"sync"
 
-	"github.com/containers/image/v5/internal/iolimits"
 	"github.com/containers/image/v5/internal/tmpdir"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/pkg/compression"
@@ -204,13 +203,13 @@ func findTarComponent(inputFile io.Reader, path string) (*tar.Reader, *tar.Heade
 }
 
 // readTarComponent returns full contents of componentPath.
-func (s *Source) readTarComponent(path string, limit int) ([]byte, error) {
+func (s *Source) readTarComponent(path string) ([]byte, error) {
 	file, err := s.openTarComponent(path)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Error loading tar component %s", path)
 	}
 	defer file.Close()
-	bytes, err := iolimits.ReadAtMost(file, limit)
+	bytes, err := ioutil.ReadAll(file)
 	if err != nil {
 		return nil, err
 	}
@@ -241,16 +240,13 @@ func (s *Source) ensureCachedDataIsPresentPrivate() error {
 	}
 
 	// Read and parse config.
-	configBytes, err := s.readTarComponent(tarManifest[0].Config, iolimits.MaxConfigBodySize)
+	configBytes, err := s.readTarComponent(tarManifest[0].Config)
 	if err != nil {
 		return err
 	}
 	var parsedConfig manifest.Schema2Image // There's a lot of info there, but we only really care about layer DiffIDs.
 	if err := json.Unmarshal(configBytes, &parsedConfig); err != nil {
 		return errors.Wrapf(err, "Error decoding tar config %s", tarManifest[0].Config)
-	}
-	if parsedConfig.RootFS == nil {
-		return errors.Errorf("Invalid image config (rootFS is not set): %s", tarManifest[0].Config)
 	}
 
 	knownLayers, err := s.prepareLayerData(&tarManifest[0], &parsedConfig)
@@ -270,7 +266,7 @@ func (s *Source) ensureCachedDataIsPresentPrivate() error {
 // loadTarManifest loads and decodes the manifest.json.
 func (s *Source) loadTarManifest() ([]ManifestItem, error) {
 	// FIXME? Do we need to deal with the legacy format?
-	bytes, err := s.readTarComponent(manifestFileName, iolimits.MaxTarFileManifestSize)
+	bytes, err := s.readTarComponent(manifestFileName)
 	if err != nil {
 		return nil, err
 	}
