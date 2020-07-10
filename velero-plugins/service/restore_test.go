@@ -49,8 +49,7 @@ func TestRestorePlugin_Execute(t *testing.T) {
 			json.Unmarshal(serviceRec, &out)
 			item.SetUnstructuredContent(out)
 
-			input := velero.RestoreItemActionExecuteInput{Item: &item,
-			}
+			input := velero.RestoreItemActionExecuteInput{Item: &item}
 			output, _ := restorePlugin.Execute(&input)
 
 			service := corev1API.Service{}
