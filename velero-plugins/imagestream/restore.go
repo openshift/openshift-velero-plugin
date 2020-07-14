@@ -115,6 +115,5 @@ func copyImageRestore(log logrus.FieldLogger, src, dest string) ([]byte, error) 
 	if err != nil {
 		return []byte{}, err
 	}
-	log.Info(fmt.Sprintf("[is-restor]: %s"))
 	return copyImage(log, src, dest, sourceCtx, destinationCtx)
 }
