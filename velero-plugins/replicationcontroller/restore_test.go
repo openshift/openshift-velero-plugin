@@ -75,7 +75,7 @@ func TestRestorePlugin_Execute(t *testing.T) {
 						common.RestoreRegistryHostname: "rcRestore",
 					},
 					OwnerReferences: []metav1.OwnerReference{
-						{Kind: "NoDeploymentConfig"},
+						{},
 					},
 				},
 			},

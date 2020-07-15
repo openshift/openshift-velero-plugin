@@ -22,23 +22,23 @@ func TestRestorePluginAppliesTo(t *testing.T) {
 func TestRestorePlugin_Execute(t *testing.T) {
 	restorePlugin := &RestorePlugin{Log: test.NewLogger()}
 
-	testcase := map[string]struct{
+	testcase := map[string]struct {
 		serviceAccount corev1API.ServiceAccount
-		wantS int
-		wantI int
+		wantS          int
+		wantI          int
 	}{
 
 		"NoMatches": {
-		serviceAccount: corev1API.ServiceAccount{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "oadp-operator"},
-			Secrets: []corev1API.ObjectReference{{
-				Name: "oadp-operator-token-vld4b"}},
-			ImagePullSecrets: []corev1API.LocalObjectReference{{
-				Name: "oadp-operator-token-v1d4b"}},
-		},
-		wantS: 1,
-		wantI: 1,
+			serviceAccount: corev1API.ServiceAccount{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "oadp-operator"},
+				Secrets: []corev1API.ObjectReference{{
+					Name: "oadp-operator-token-vld4b"}},
+				ImagePullSecrets: []corev1API.LocalObjectReference{{
+					Name: "oadp-operator-token-v1d4b"}},
+			},
+			wantS: 1,
+			wantI: 1,
 		},
 
 		"WithMatches": {
@@ -61,7 +61,7 @@ func TestRestorePlugin_Execute(t *testing.T) {
 				Secrets: []corev1API.ObjectReference{{
 					Name: "oadp-operator-dockercfg-"},
 					{
-					Name: "oadp-operator-token",
+						Name: "oadp-operator-token",
 					},
 				},
 				ImagePullSecrets: []corev1API.LocalObjectReference{{
@@ -78,31 +78,29 @@ func TestRestorePlugin_Execute(t *testing.T) {
 				Secrets: []corev1API.ObjectReference{{
 					Name: "oadp-operator-dockercfg-"},
 					{
-					Name: "oadp-operator-token",
+						Name: "oadp-operator-token",
 					},
 				},
 				ImagePullSecrets: []corev1API.LocalObjectReference{{
-					Name: "oadp-operator-dockercfg-"},{
+					Name: "oadp-operator-dockercfg-"}, {
 					Name: "oadp-operator",
 				}},
 			},
 			wantS: 1,
 			wantI: 1,
 		},
-
 	}
 
 	for i, tc := range testcase {
 		t.Run(string(i), func(t *testing.T) {
 			var out map[string]interface{}
-			item:= unstructured.Unstructured{}
+			item := unstructured.Unstructured{}
 			serviceRec, _ := json.Marshal(tc.serviceAccount)
 			json.Unmarshal(serviceRec, &out)
 			item.SetUnstructuredContent(out)
 
-			input := velero.RestoreItemActionExecuteInput{ Item: &item,
-			}
-			output,_ := restorePlugin.Execute(&input)
+			input := velero.RestoreItemActionExecuteInput{Item: &item}
+			output, _ := restorePlugin.Execute(&input)
 
 			serviceAccount := corev1API.ServiceAccount{}
 			itemMarshal, _ := json.Marshal(output.UpdatedItem)

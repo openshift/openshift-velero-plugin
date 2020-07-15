@@ -29,6 +29,7 @@ func TestRestorePlugin_Execute(t *testing.T) {
 		"empty": {route: routev1API.Route{Spec:
 		routev1API.RouteSpec{Host: ""},
 		}, want: ""},
+
 		"true": {route: routev1API.Route{ObjectMeta: metav1.ObjectMeta{
 			Annotations: map[string]string{
 				"openshift.io/host.generated": "true",
@@ -37,14 +38,15 @@ func TestRestorePlugin_Execute(t *testing.T) {
 			Spec:
 			routev1API.RouteSpec{Host: "test"},
 		}, want: ""},
+
 		"static": {route: routev1API.Route{ObjectMeta: metav1.ObjectMeta{
 			Annotations: map[string]string{
-				"openshift.io/host.generated": "static",
+				"openshift.io/host.generated": "",
 			},
 		},
 			Spec:
-			routev1API.RouteSpec{Host: "static"},
-		}, want: "static"},
+			routev1API.RouteSpec{Host: "temp"},
+		}, want: "temp"},
 	}
 
 	for i, tc := range testcase {

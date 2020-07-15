@@ -10,7 +10,6 @@ import (
 	"github.com/vmware-tanzu/velero/pkg/plugin/velero"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"reflect"
-	"strings"
 	"testing"
 )
 
@@ -30,22 +29,22 @@ func TestRestorePlugin_Execute(t *testing.T) {
 		namespace string
 	}{
 		"WithNameSpace": {
-			scc:       apisecurity.SecurityContextConstraints{
+			scc: apisecurity.SecurityContextConstraints{
 				Users: []string{"role:serviceaccount:namespace:serviceaccountname"}},
-			want: []string{"role:serviceaccount:namespace:testNameSpace"},
+			want: []string{"role:serviceaccount:testNameSpace:serviceaccountname"},
 		},
 		"WithNoNameSpace": {
-			scc:       apisecurity.SecurityContextConstraints{
-				Users: []string{"role:serviceaccount:namespace:"}},
-			want: []string{"role:serviceaccount:namespace:"},
+			scc: apisecurity.SecurityContextConstraints{
+				Users: []string{"role:serviceaccount:disablenamespace:"}},
+			want: []string{"role:serviceaccount:disablenamespace:"},
 		},
 		"WithIncorrectServiceAccount": {
-			scc:       apisecurity.SecurityContextConstraints{
+			scc: apisecurity.SecurityContextConstraints{
 				Users: []string{"role:service:namespace:test"}},
-			want: []string{"role:serviceaccount:namespace:test"},
+			want: []string{"role:service:namespace:test"},
 		},
 		"WithIncorrectUser": {
-			scc:       apisecurity.SecurityContextConstraints{
+			scc: apisecurity.SecurityContextConstraints{
 				Users: []string{"role:serviceaccount"}},
 			want: []string{"role:serviceaccount"},
 		},
@@ -64,6 +63,7 @@ func TestRestorePlugin_Execute(t *testing.T) {
 					Spec: vm.RestoreSpec{
 						NamespaceMapping: map[string]string{
 							"namespace": "testNameSpace",
+							"disablenamespace": "",
 						},
 					},
 				},
@@ -74,13 +74,10 @@ func TestRestorePlugin_Execute(t *testing.T) {
 			itemMarshal, _ := json.Marshal(output.UpdatedItem)
 			json.Unmarshal(itemMarshal, &scc)
 
-			for _, user := range scc.Users {
-				splitUsername := strings.Split(user, ":")
-
-				if reflect.DeepEqual(tc.want, splitUsername) {
-					t.Fatalf("Expected: %v, Got: %v", tc.want, splitUsername)
-				}
+			if !reflect.DeepEqual(tc.want, scc.Users) {
+				t.Fatalf("Expected: %v, Got: %v", tc.want, scc.Users)
 			}
+
 		})
 	}
 }
