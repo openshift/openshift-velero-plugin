@@ -28,14 +28,14 @@ func TestRestorePlugin_Execute(t *testing.T) {
 	}{
 		"WithoutLoadBalancer": {service: corev1API.Service{Spec: corev1API.ServiceSpec{
 			Type:        "WithoutLoadBalancer",
-			ExternalIPs: []string{"test"},
+			ExternalIPs: []string{"31.234.23.456"},
 		},
-		}, want: []string{"test"},
+		}, want: []string{"31.234.23.456"},
 		},
 
 		"WithLoadBalancer": {service: corev1API.Service{Spec: corev1API.ServiceSpec{
 			Type:        corev1API.ServiceTypeLoadBalancer,
-			ExternalIPs: []string{"test"},
+			ExternalIPs: []string{"31.234.23.456"},
 		},
 		}, want: nil,
 		},
