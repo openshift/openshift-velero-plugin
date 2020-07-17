@@ -3,7 +3,7 @@
 ## Introduction
 
 The OpenShift Velero Plugin helps backup and restore projects on an OpenShift cluster. 
-The plugin executes additional logic (such as adding annotations) during the backup/restore process on top of what Velero executes (without the plugin). Each OpenShift or Kubernetes resource has its own backup/restore plugin.
+The plugin executes additional logic (such as adding annotations and swapping namespaces) during the backup/restore process on top of what Velero executes (without the plugin). Each OpenShift or Kubernetes resource has its own backup/restore plugin.
 
 ## Prerequisites 
 
@@ -18,7 +18,7 @@ Velero currently supports the following kinds of plugins:
 
 ## Resources Included in Plugin 
 
-- Build, Build Config, Cluster Role Binding, Cron Job, Daemonset, Deployment, Deployment Config, Imagestream, Imagestreamtag, Imagetag, Persistent Volume, Persistent Volume Claim, Pod, Replica Set, Replication Controller, Role Binding, Route, SCC, Service, Service Account, and Stateful Set
+- Build, Build Config, Cluster Role Binding, Cron Job, Daemonset, Deployment, Deployment Config, Image Stream, Image Stream Tag, Image Tag, Persistent Volume, Persistent Volume Claim, Pod, Replica Set, Replication Controller, Role Binding, Route, SCC, Service, Service Account, and Stateful Set
 
 ## Enabling and Disabling the Plugin for Individual Resources
 
@@ -150,65 +150,106 @@ There are several Velero commands that help get the logs or status of the backup
 ## Overview of Each Plugin
 
 ### Build
+#### Restore Plugin 
 
 ### Build Config
+#### Restore Plugin 
 
 ### Cluster Role Binding 
+#### Restore Plugin 
 - If restore namespace mapping is enabled, then the namespaces in RoleRef.Namespace, usernames, groupnames, and subjects are swapped accordingly
 
 ### Cron Job
+#### Restore Plugin 
 - Updates internal image references from backup registry to restore registry pathnames
 
 ### Daemonset
+#### Restore Plugin 
 - Updates internal image references from backup registry to restore registry pathnames
 
 ### Deployment
+#### Restore Plugin 
 - Updates internal image references from backup registry to restore registry pathnames
 
 ### Deployment Config
+#### Restore Plugin 
 - Updates internal image references from backup registry to restore registry pathnames
 - If the trigger namespace is mapped to a new one, then swap the trigger namespace accordingly
 
-### Imagestream
+### Image Stream
+#### Backup Plugin 
+- 
 
-### Imagestreamtag
+#### Restore Plugin 
 
-### Imagetag
+
+### Image Stream Tag
+#### Restore Plugin 
+
+### Image Tag
+#### Restore Plugin 
+- Set SkipRestore to true, so that Image Tags are not restored
 
 ### Persistent Volume
+#### Restore Plugin 
 - Don't modify the PV if the migration application label key does not map to corresponding value
 - If the migrate type annotation is set to "copy":
-	- Change the storage class name to migration storage class annotation
-	- If the Beta Storage Class Annotation is not empty, then also set it to the migration storage class annotation
+	- Change the storage class name to Migration Storage Class annotation
+	- If the Beta Storage Class annotation is not empty, then also set it to the Migration Storage Class annotation
 
 ### Persistent Volume Claim
-- Don't modify the PV if the migration application label key does not map to corresponding value
+#### Restore Plugin 
+- Don't modify the PVC if the migration application label key does not map to corresponding value
 - If the migrate type annotation is set to "copy":
 	- Remove the label selectors from the PVC (to prevent the PV dynamic provisioner from getting stuck)
-	- Change the storage class name to migration storage class annotation
-	- If the Beta Storage Class Annotation is not empty, then also set it to the migration storage class annotation
-	- If the MigrateAccessModesAnnotation is not empty, then add it to the Access Mode spec
+	- Change the storage class name to Migration Storage Class annotation
+	- If the Beta Storage Class annotation is not empty, then also set it to the Migration Storage Class annotation
+	- If the Migrate Access Modes annotation is not empty, then add it to the Access Mode spec
+- Delete the PVC Selected Node annotation
 
 ### Pod
+#### Restore Plugin 
+- Remove the node selectors from Pod (to avoid Pod being 'unschedulable' on destination)
+- If the migration application label key maps to coresponding value and the Migrate Copy Phase annotation is "stage":
+	- Set the Migrate Copy Phase annotation to "true"
+	- Set the Affinity spec to nil
+- If not:
+	- If Pod has no owner references, then don't restore it
+	- Update internal image references from backup registry to restore registry pathnames
+ 	- Update pull secrets
 
 ### Replica Set
+#### Restore Plugin 
+- Updates internal image references from backup registry to restore registry pathnames
+- If the Replica Set is owned by Deployment, set SkipRestore to true, so that the resource is not restored by Replica Set
 
 ### Replication Controller
+#### Restore Plugin 
+- Updates internal image references from backup registry to restore registry pathnames
+- If the Replication Controller is owned by Deployment Config, set SkipRestore to true, so that the resource is not restored by Replication Controller
 
 ### Role Binding
+#### Restore Plugin 
 - If restore namespace mapping is enabled, then the namespaces in RoleRef.Namespace, usernames, groupnames, and subjects are swapped accordingly
 
 ### Route
+#### Restore Plugin 
 - If the host generated annotation is set to true, then strip the source cluster host from the Route
 
 ### SCC
+#### Restore Plugin 
+- If restore namespace mapping is enabled, then swap namespaces in the Service account usernames 
 
 ### Service
+#### Restore Plugin 
 - If the Service is a LoadBalancer, then clear the external IPs
 
 ### Service Account
+#### Backup Plugin 
 
+#### Restore Plugin 
 
 ### Stateful Set
+#### Restore Plugin 
 - Updates internal image references from backup registry to restore registry pathnames
 
