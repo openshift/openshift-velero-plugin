@@ -32,9 +32,11 @@ func copyImage(log logrus.FieldLogger,src, dest string, sourceCtx, destinationCt
 	// Let's retry the image copy up to 10 times
 	// Each retry will wait 5 seconds longer
 	// Let's log a warning if we encounter `blob unknown to registry`
-	retryWait := 5
-	log.Info(fmt.Sprintf("copying image: %s; will attempt up to 5 times...", src))
-	for i := 0; i < 5; i++ {
+	retryWait := 0
+	log.Info(fmt.Sprintf("copying image: %s; will attempt up to 7 times...", src))
+	for i := 0; i < 7; i++ {
+		time.Sleep(time.Duration(retryWait) * time.Second)
+		retryWait += 5
 		manifest, err := copy.Image(context.Background(), policyContext, destRef, srcRef, &copy.Options{
 			SourceCtx:      sourceCtx,
 			DestinationCtx: destinationCtx,
@@ -45,9 +47,7 @@ func copyImage(log logrus.FieldLogger,src, dest string, sourceCtx, destinationCt
 		if strings.Contains(err.Error(), "blob unknown to registry") {
 			log.Warn(fmt.Sprintf("encountered `blob unknown to registry error` for image %s", src))
 		}
-		log.Info(fmt.Sprintf("attempt #%v failed, waiting %vs and then retrying", i, retryWait))
-		time.Sleep(time.Duration(retryWait) * time.Second)
-		retryWait += 5
+		log.Info(fmt.Sprintf("attempt #%v failed, waiting %vs and then retrying", i+1, retryWait))
 	}
 	return []byte{}, err
 }
