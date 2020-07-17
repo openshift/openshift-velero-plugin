@@ -146,3 +146,69 @@ There are several Velero commands that help get the logs or status of the backup
     time="2020-07-13T16:34:05Z" level=info msg="[common-restore] Entering common restore plugin" cmd=/plugins/velero-plugins logSource="/go/src/github.com/konveyor/openshift-velero-plugin/velero-plugins/common/restore.go:22" pluginName=velero-plugins restore=oadp-operator/patroni-test
     ...
     ```
+
+## Overview of Each Plugin
+
+### Build
+
+### Build Config
+
+### Cluster Role Binding 
+- If restore namespace mapping is enabled, then the namespaces in RoleRef.Namespace, usernames, groupnames, and subjects are swapped accordingly
+
+### Cron Job
+- Updates internal image references from backup registry to restore registry pathnames
+
+### Daemonset
+- Updates internal image references from backup registry to restore registry pathnames
+
+### Deployment
+- Updates internal image references from backup registry to restore registry pathnames
+
+### Deployment Config
+- Updates internal image references from backup registry to restore registry pathnames
+- If the trigger namespace is mapped to a new one, then swap the trigger namespace accordingly
+
+### Imagestream
+
+### Imagestreamtag
+
+### Imagetag
+
+### Persistent Volume
+- Don't modify the PV if the migration application label key does not map to corresponding value
+- If the migrate type annotation is set to "copy":
+	- Change the storage class name to migration storage class annotation
+	- If the Beta Storage Class Annotation is not empty, then also set it to the migration storage class annotation
+
+### Persistent Volume Claim
+- Don't modify the PV if the migration application label key does not map to corresponding value
+- If the migrate type annotation is set to "copy":
+	- Remove the label selectors from the PVC (to prevent the PV dynamic provisioner from getting stuck)
+	- Change the storage class name to migration storage class annotation
+	- If the Beta Storage Class Annotation is not empty, then also set it to the migration storage class annotation
+	- If the MigrateAccessModesAnnotation is not empty, then add it to the Access Mode spec
+
+### Pod
+
+### Replica Set
+
+### Replication Controller
+
+### Role Binding
+- If restore namespace mapping is enabled, then the namespaces in RoleRef.Namespace, usernames, groupnames, and subjects are swapped accordingly
+
+### Route
+- If the host generated annotation is set to true, then strip the source cluster host from the Route
+
+### SCC
+
+### Service
+- If the Service is a LoadBalancer, then clear the external IPs
+
+### Service Account
+
+
+### Stateful Set
+- Updates internal image references from backup registry to restore registry pathnames
+
