@@ -2,11 +2,12 @@
 
 ## Introduction
 
-The plugin helps perform Backup and restore of projects on openshift cluster.
+The OpenShift Velero Plugin helps backup and restore projects on an OpenShift cluster. 
+The plugin executes additional logic (such as adding annotations) during the backup/restore process on top of what Velero executes (without the plugin). Each OpenShift or Kubernetes resource has its own backup/restore plugin.
 
-## Prerequiste
+## Prerequisites 
 
-[Oadp-operator](https://github.com/konveyor/oadp-operator) needs to be installed on cluster.
+The [OADP Operator](https://github.com/konveyor/oadp-operator) needs to be installed on the OpenShift cluster.
 
 ## Kinds of Plugins
 
@@ -15,16 +16,15 @@ Velero currently supports the following kinds of plugins:
 - **Backup Item Action** - performs arbitrary logic on individual items prior to storing them in the backup file.
 - **Restore Item Action** - performs arbitrary logic on individual items prior to restoring them in the Kubernetes cluster.
 
+## Resources Included in Plugin 
 
-## Resources Included in B/R
+- Build, Build Config, Cluster Role Binding, Cron Job, Daemonset, Deployment, Deployment Config, Imagestream, Imagestreamtag, Imagetag, Persistent Volume, Persistent Volume Claim, Pod, Replica Set, Replication Controller, Role Binding, Route, SCC, Service, Service Account, and Stateful Set
 
-- Build, Build Config, Cluster Role Bindings, Cron Job, Daemonset, Deployment, Deployment Config, Imagestream, Imagestreamtags, Imagetags, Persistent Volumes, Persistent Volume Claims, Pod, Replica Sets, Replication Controller, Role Bindings, Route, SCC, Service, Service Account, and Stateful Set
+## Enabling and Disabling the Plugin for Individual Resources
 
-## Enable/Disable Backup/Restore for individual resource
-
-[Main.go](/velero-plugins/main.go#35) includes code that registers individual plugins for each resource. To disable plugin code comment respective line.
+The [main.go](/velero-plugins/main.go#35) file includes code that registers individual plugins for each OpenShift resource. To disable the plugin code for a particular resource, comment out the respective line.
  
-## Building the plugins
+## Building the Plugins
 
 To build the plugins, run
 
@@ -45,41 +45,41 @@ different name, run
 $ make container IMAGE=your-repo/your-name:here
 ```
 
-## Deploying the plugins
+## Deploying the Plugins
 
-To deploy your plugin image to an Velero server:
+To deploy your plugin image to a Velero server:
 
 1. Make sure your image is pushed to a registry that is accessible to your cluster's nodes.
 2. Run `velero plugin add <image>`, e.g. `velero plugin add quay.io/ocpmigrate/velero-plugin`
 
-Note: If velero installed with oadp-operator, this configuration would already be present in the setup. Kindly edit the configurations accordingly, [here](https://github.com/konveyor/oadp-operator#configure-velero-plugins) is some help.
+Note: If Velero installed with the OADP Operator, this configuration would already be present in the setup. Kindly edit the configurations accordingly: [here](https://github.com/konveyor/oadp-operator#configure-velero-plugins) is some help.
 
-## Backup/Restore applications using this plugin
+## Backup/Restore Applications Using the Plugin
 
-[Velero-example]() contains some examples of B/R of basic examples using velero.
+The [velero-example](https://github.com/konveyor/velero-examples) repository contains some basic examples of backup/restore using Velero.
 
-Note: At this point velero is already installed with oadp-operator so skip velero installation steps
+Note: At this point, Velero is already installed with the OADP Operator so skip the Velero installation steps.
 
-## How the plugin works
+## How the Plugin Works
 
-This plugin includes two workflows CAM and Backup/Restore.
+This plugin includes two workflows: CAM and Backup/Restore.
 
-1. Backup/Restore: If there are no relative annotations, then by default the plugin executes Backup/Restore workflow.
+1. Backup/Restore: If there are no relative annotations, then by default the plugin executes the Backup/Restore workflow.
 
-2. CAM: To use CAM workflow, the following annotation and label have to be present in `backup.yml` and `restore.yml`
+2. CAM: To use CAM workflow, the following annotation and label have to be present in `backup.yml` and `restore.yml`:
     ```  
      annotations:
            openshift.io/migration-registry: <migration-registry>
      labels:
-       app.kubernetes.io/part-of: openshift-migration
+           app.kubernetes.io/part-of: openshift-migration
    ```
-   Note: Any other or no value for label `app.kubernetes.io/part-of:` means executing Backup/Restore workflow.
+   Note: Any other or no value for the label `app.kubernetes.io/part-of:` means executing the Backup/Restore workflow.
 
-## Debug logs
+## Debug Logs
 
-There are several velero commands that help get the logs of backup/restore or status of backup/restore.
+There are several Velero commands that help get the logs or status of the backup/restore process.
 
-1. `velero get backup` returns all the backups present in velero
+1. `velero get backup` returns all the backups present in Velero:
 
     ```cassandraql
     $ velero get backup
@@ -92,7 +92,7 @@ There are several velero commands that help get the logs of backup/restore or st
     
     ```
 
-2. `velero backup logs <backup-name>` returns logs for respective backup
+2. `velero backup logs <backup-name>` returns logs for the respective backup:
     ```
    $ velero backup logs nginx-stateless
    time="2020-07-14T20:42:34Z" level=info msg="Setting up backup temp file" backup=oadp-operator/nginx-stateless logSource="pkg/controller/backup_controller.go:494"
@@ -116,14 +116,14 @@ There are several velero commands that help get the logs of backup/restore or st
    time="2020-07-14T20:43:06Z" level=info msg="[common-backup] Entering common backup plugin" backup=oadp-operator/nginx-stateless cmd=/plugins/velero-plugins logSource="/go/src/github.com/konveyor/openshift-velero-plugin/velero-plugins/common/backup.go:25" pluginName=velero-plugins
    ...
    ```
-3. `velero get restore` returns all the restores present in velero
+3. `velero get restore` returns all the restores present in Velero:
     
     ```
    $ velero get restore
      NAME           BACKUP         STATUS      WARNINGS   ERRORS   CREATED                         SELECTOR
      patroni-test   patroni-test   Completed   8          0        2020-07-13 12:34:04 -0400 EDT   <none>   ```
    
-4. `velero restore logs <restore-name>` returns logs for respective restore
+4. `velero restore logs <restore-name>` returns logs for the respective restore:
 
     ```cassandraql
     $ velero restore logs patroni-test
