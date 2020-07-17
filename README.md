@@ -149,11 +149,24 @@ There are several Velero commands that help get the logs or status of the backup
 
 ## Overview of Each Plugin
 
+### Common 
+These backup and restore plugins are for resources that do not need custom logic in either the backup or restore process. For example, Deployment uses the common backup plugin. 
+  
+#### Backup Plugin
+- Set the BackupServerVersion annotation to correct server version
+- Set the BackupRegistryHostname annotation to the corect hostname 
+
+#### Restore Plugin
+- Set the RestoreServerVersion annotation to correct server version
+- Set the RestoreRegistryHostname annotation to the corect hostname 
+
 ### Build
 #### Restore Plugin 
+- Skips restore of Build to allow Build Config to recreate it
 
 ### Build Config
 #### Restore Plugin 
+- Update Secrets and Docker references according to the namespace mapping 
 
 ### Cluster Role Binding 
 #### Restore Plugin 
