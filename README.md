@@ -198,6 +198,8 @@ These backup and restore plugins are for resources that do not need custom logic
 
 ### Image Stream Tag
 #### Restore Plugin 
+- Searche for the tag corresponding to a particular imagestream to check if an image is present in the new namespace 
+- If the tag is not present, look it up in the old, backup namespace and use that tag to pull the particular image required
 
 ### Image Tag
 #### Restore Plugin 
