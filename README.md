@@ -191,10 +191,10 @@ These backup and restore plugins are for resources that do not need custom logic
 
 ### Image Stream
 #### Backup Plugin 
-- 
+- Fetches all the images referenced by namespace from internal image registry of openshift, `image-registry.openshift-image-registry.svc:5000/`,  and push the same to to defined docker registry, `oadp-default-aws-registry-route-oadp-operator.apps.<route>`.
 
 #### Restore Plugin 
-
+- Fetches all the images that were pushed into registry initialized at backup time and pushes the same to internal opendhift image registry.
 
 ### Image Stream Tag
 #### Restore Plugin 
