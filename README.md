@@ -166,6 +166,13 @@ time="2020-07-29T16:19:08Z" level=info msg="[common-backup] Entering common back
 - Set the RestoreRegistryHostname annotation to the corect hostname
 - Set the MigrationRegistry annotation based on CAM or B/R workflow 
 
+```time="2020-07-29T18:51:02Z" level=info msg="[common-restore] Entering common restore plugin" cmd=/plugins/velero-plugins logSource="/go/src/github.com/konveyor/openshift-velero-plugin/velero-plugins/common/restore.go:22" pluginName=velero-plugins restore=oadp-operator/patroni
+time="2020-07-29T18:51:02Z" level=info msg="[common-restore] common restore plugin for pvc-2fbae99b-29d0-4853-a0e0-ee077ab60c18" cmd=/plugins/velero-plugins logSource="/go/src/github.com/konveyor/openshift-velero-plugin/velero-plugins/common/restore.go:29" pluginName=velero-plugins restore=oadp-operator/patroni
+time="2020-07-29T18:51:03Z" level=info msg="[common-restore] Entering common restore plugin" cmd=/plugins/velero-plugins logSource="/go/src/github.com/konveyor/openshift-velero-plugin/velero-plugins/common/restore.go:22" pluginName=velero-plugins restore=oadp-operator/patroni
+time="2020-07-29T18:51:03Z" level=info msg="[common-restore] common restore plugin for pvc-64b3fc01-8d09-4f62-9612-f5d9b6ee80ff" cmd=/plugins/velero-plugins logSource="/go/src/github.com/konveyor/openshift-velero-plugin/velero-plugins/common/restore.go:29" pluginName=velero-plugins restore=oadp-operator/patroni
+time="2020-07-29T18:51:03Z" level=info msg="[common-restore] Entering common restore plugin" cmd=/plugins/velero-plugins logSource="/go/src/github.com/konveyor/openshift-velero-plugin/velero-plugins/common/restore.go:22" pluginName=velero-plugins restore=oadp-operator/patroni
+```
+
 ### Build
 #### Restore Plugin 
 - Skips restore of Build to allow Build Config to recreate it
@@ -216,6 +223,16 @@ time="2020-07-29T16:19:20Z" level=info msg="[is-backup] manifest of copied image
 - For all the tags check imagestream has any associated imagestreamtags, if so then, use the tag if it references an ImageStreamImage in the current namespace.
 - For all the Items in al the tags, fetch `dockerImageReference`, constructs source and destination path from `migrationRegistry` and `internalRegistry`. Fetches all the images that were pushed into registry initialized at backup time and pushes the same to internal openshift image registry.
 
+```time="2020-07-29T18:51:17Z" level=info msg="[is-restore] Entering ImageStream restore plugin" cmd=/plugins/velero-plugins logSource="/go/src/github.com/konveyor/openshift-velero-plugin/velero-plugins/imagestream/restore.go:30" pluginName=velero-plugins restore=oadp-operator/patroni
+time="2020-07-29T18:51:17Z" level=info msg="[is-restore] image: \"cakephp-ex\"" cmd=/plugins/velero-plugins logSource="/go/src/github.com/konveyor/openshift-velero-plugin/velero-plugins/imagestream/restore.go:34" pluginName=velero-plugins restore=oadp-operator/patroni
+time="2020-07-29T18:51:17Z" level=info msg="[is-restore] backup internal registry: \"image-registry.openshift-image-registry.svc:5000\"" cmd=/plugins/velero-plugins logSource="/go/src/github.com/konveyor/openshift-velero-plugin/velero-plugins/imagestream/restore.go:52" pluginName=velero-plugins restore=oadp-operator/patroni
+time="2020-07-29T18:51:17Z" level=info msg="[is-restore] restore internal registry: \"image-registry.openshift-image-registry.svc:5000\"" cmd=/plugins/velero-plugins logSource="/go/src/github.com/konveyor/openshift-velero-plugin/velero-plugins/imagestream/restore.go:53" pluginName=velero-plugins restore=oadp-operator/patroni
+time="2020-07-29T18:51:17Z" level=info msg="[is-restore] Restoring tag: \"latest\"" cmd=/plugins/velero-plugins logSource="/go/src/github.com/konveyor/openshift-velero-plugin/velero-plugins/imagestream/restore.go:56" pluginName=velero-plugins restore=oadp-operator/patroni
+time="2020-07-29T18:51:17Z" level=info msg="[is-restore] copying from: docker://oadp-default-aws-registry-route-oadp-operator.apps.cluster-jgabani0518.jgabani0518.mg.dog8code.com/patroni/cakephp-ex@sha256:5469df614f9531e3834dea41d09360349030a3b4e58cf6a81f767878865fd91b" cmd=/plugins/velero-plugins logSource="/go/src/github.com/konveyor/openshift-velero-plugin/velero-plugins/imagestream/restore.go:91" pluginName=velero-plugins restore=oadp-operator/patroni
+time="2020-07-29T18:51:17Z" level=info msg="[is-restore] copying to: docker://image-registry.openshift-image-registry.svc:5000/patroni/cakephp-ex:latest" cmd=/plugins/velero-plugins logSource="/go/src/github.com/konveyor/openshift-velero-plugin/velero-plugins/imagestream/restore.go:92" pluginName=velero-plugins restore=oadp-operator/patroni
+time="2020-07-29T18:51:18Z" level=info msg="[is-restore] manifest of copied image: {\"schemaVersion\":2,\"mediaType\":\"application/vnd.docker.distribution.manifest.v2+json\",\"config\":{\"mediaType\":\"application/vnd.docker.container.image.v1+json\",\"size\":13237,\"digest\":\"sha256:67a334d247ca444d8924b11b229e2b625b31e749852d0b4090745847961a2dc6\"},\"layers\":[{\"mediaType\":\"application/vnd.docker.image.rootfs.diff.tar\",\"size\":76275160,\"digest\":\"sha256:a3ac36470b00df382448e79f7a749aa6833e4ac9cc90e3391f778820db9fa407\"},{\"mediaType\":\"application/vnd.docker.image.rootfs.diff.tar\",\"size\":1598,\"digest\":\"sha256:82a8f4ea76cb6f833c5f179b3e6eda9f2267ed8ac7d1bf652f88ac3e9cc453d1\"},{\"mediaType\":\"application/vnd.docker.image.rootfs.diff.tar\",\"size\":7214297,\"digest\":\"sha256:a0672674b2e3d7610a4b45a54747607b7fc9b87940a478e913c04c46bc889ba1\"},{\"mediaType\":\"application/vnd.docker.image.rootfs.diff.tar\",\"size\":87860405,\"digest\":\"sha256:6dda4188fba3c3ff2c487dde3823bb1ad79af356362c1513e0ef139bade8896d\"},{\"mediaType\":\"application/vnd.docker.image.rootfs.diff.tar\",\"size\":47584092,\"digest\":\"sha256:3c6372d310adcb9560e25b325a604de73c72204bfd6e72bf7929193636fc4138\"},{\"mediaType\":\"application/vnd.docker.image.rootfs.diff.tar.gzip\",\"size\":13963676,\"digest\":\"sha256:f6fd97e4baabbfbe0e7cf564e4259f8695df847a833e332c6c510bfb158f5026\"}]}" cmd=/plugins/velero-plugins logSource="/go/src/github.com/konveyor/openshift-velero-plugin/velero-plugins/imagestream/restore.go:98" pluginName=velero-plugins restore=oadp-operator/patroni
+```
+
 ### Image Stream Tag
 #### Restore Plugin 
 - Search for the tag corresponding to a particular imagestream to check if an image is present in the new namespace 
@@ -242,6 +259,11 @@ time="2020-07-29T17:02:44Z" level=info msg="[pv-backup] Returning pv object as i
 - If the migrate type annotation is set to "copy":
 	- Change the storage class name to Migration Storage Class annotation
 	- If the Beta Storage Class annotation is not empty, then also set it to the Migration Storage Class annotation
+```time="2020-07-29T18:51:02Z" level=info msg="[pv-restore] Returning pv object as is since this is not a migration activity" cmd=/plugins/velero-plugins logSource="/go/src/github.com/konveyor/openshift-velero-plugin/velero-plugins/persistentvolume/restore.go:28" pluginName=velero-plugins restore=oadp-operator/patroni
+time="2020-07-29T18:51:03Z" level=info msg="[pv-restore] Returning pv object as is since this is not a migration activity" cmd=/plugins/velero-plugins logSource="/go/src/github.com/konveyor/openshift-velero-plugin/velero-plugins/persistentvolume/restore.go:28" pluginName=velero-plugins restore=oadp-operator/patroni
+time="2020-07-29T18:51:03Z" level=info msg="[pv-restore] Returning pv object as is since this is not a migration activity" cmd=/plugins/velero-plugins logSource="/go/src/github.com/konveyor/openshift-velero-plugin/velero-plugins/persistentvolume/restore.go:28" pluginName=velero-plugins restore=oadp-operator/patroni
+time="2020-07-29T18:51:04Z" level=info msg="[pv-restore] Returning pv object as is since this is not a migration activity" cmd=/plugins/velero-plugins logSource="/go/src/github.com/konveyor/openshift-velero-plugin/velero-plugins/persistentvolume/restore.go:28" pluginName=velero-plugins restore=oadp-operator/patroni
+```
 
 ### Persistent Volume Claim
 #### Restore Plugin 
@@ -252,6 +274,12 @@ time="2020-07-29T17:02:44Z" level=info msg="[pv-backup] Returning pv object as i
 	- If the Beta Storage Class annotation is not empty, then also set it to the Migration Storage Class annotation
 	- If the Migrate Access Modes annotation is not empty, then add it to the Access Mode spec
 - Delete the PVC Selected Node annotation
+
+```time="2020-07-29T18:51:04Z" level=info msg="[pvc-restore] Returning pvc object as is since this is not a migration activity" cmd=/plugins/velero-plugins logSource="/go/src/github.com/konveyor/openshift-velero-plugin/velero-plugins/pvc/restore.go:28" pluginName=velero-plugins restore=oadp-operator/patroni
+time="2020-07-29T18:51:04Z" level=info msg="[pvc-restore] Returning pvc object as is since this is not a migration activity" cmd=/plugins/velero-plugins logSource="/go/src/github.com/konveyor/openshift-velero-plugin/velero-plugins/pvc/restore.go:28" pluginName=velero-plugins restore=oadp-operator/patroni
+time="2020-07-29T18:51:04Z" level=info msg="[pvc-restore] Returning pvc object as is since this is not a migration activity" cmd=/plugins/velero-plugins logSource="/go/src/github.com/konveyor/openshift-velero-plugin/velero-plugins/pvc/restore.go:28" pluginName=velero-plugins restore=oadp-operator/patroni
+time="2020-07-29T18:51:04Z" level=info msg="[pvc-restore] Returning pvc object as is since this is not a migration activity" cmd=/plugins/velero-plugins logSource="/go/src/github.com/konveyor/openshift-velero-plugin/velero-plugins/pvc/restore.go:28" pluginName=velero-plugins restore=oadp-operator/patroni
+```
 
 ### Pod
 #### Restore Plugin 
