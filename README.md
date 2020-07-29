@@ -154,11 +154,13 @@ These backup and restore plugins are for resources that do not need custom logic
   
 #### Backup Plugin
 - Set the BackupServerVersion annotation to correct server version
-- Set the BackupRegistryHostname annotation to the corect hostname 
+- Set the BackupRegistryHostname annotation to the corect hostname
+- Set the MigrationRegistry annotation based on CAM or B/R workflow 
 
 #### Restore Plugin
 - Set the RestoreServerVersion annotation to correct server version
-- Set the RestoreRegistryHostname annotation to the corect hostname 
+- Set the RestoreRegistryHostname annotation to the corect hostname
+- Set the MigrationRegistry annotation based on CAM or B/R workflow 
 
 ### Build
 #### Restore Plugin 
@@ -191,14 +193,18 @@ These backup and restore plugins are for resources that do not need custom logic
 
 ### Image Stream
 #### Backup Plugin 
-- Fetches all the images referenced by namespace from internal image registry of openshift, `image-registry.openshift-image-registry.svc:5000/`,  and push the same to to defined docker registry, `oadp-default-aws-registry-route-oadp-operator.apps.<route>`.
+- Retrive internal registry and migration registry from annotaions.
+- For all the tags check imagestream has any associated imagestreamtags so that we know we need to restore the tags as well.
+- For all the Items in al the tags, fetch `dockerImageReference`, constructs source and destination path from `dockerImageReference` and `migrationRegistry`. Fetches all the images referenced by namespace from internal image registry of openshift, `image-registry.openshift-image-registry.svc:5000/`,  and push the same to to defined docker registry, `oadp-default-aws-registry-route-oadp-operator.apps.<route>`.
 
 #### Restore Plugin 
-- Fetches all the images that were pushed into registry initialized at backup time and pushes the same to internal opendhift image registry.
+- Retrive `backupInternalRegistry`, `internalRegistry`, and `migrationRegistry`.
+- For all the tags check imagestream has any associated imagestreamtags, if so then, use the tag if it references an ImageStreamImage in the current namespace.
+- For all the Items in al the tags, fetch `dockerImageReference`, constructs source and destination path from `migrationRegistry` and `internalRegistry`. Fetches all the images that were pushed into registry initialized at backup time and pushes the same to internal openshift image registry.
 
 ### Image Stream Tag
 #### Restore Plugin 
-- Searche for the tag corresponding to a particular imagestream to check if an image is present in the new namespace 
+- Search for the tag corresponding to a particular imagestream to check if an image is present in the new namespace 
 - If the tag is not present, look it up in the old, backup namespace and use that tag to pull the particular image required
 
 ### Image Tag
@@ -206,6 +212,11 @@ These backup and restore plugins are for resources that do not need custom logic
 - Set SkipRestore to true, so that Image Tags are not restored
 
 ### Persistent Volume
+#### Backup Plugin
+- Don't modify the PV if the migration application label key does not map to corresponding value
+- If migrate type aanotations is set to "move":
+    - Set reclaim policy to "retain" to properly move pv
+    
 #### Restore Plugin 
 - Don't modify the PV if the migration application label key does not map to corresponding value
 - If the migrate type annotation is set to "copy":
