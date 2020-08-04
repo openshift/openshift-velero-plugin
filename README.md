@@ -320,8 +320,10 @@ time="2020-07-29T18:51:04Z" level=info msg="[pvc-restore] Returning pvc object a
 
 ### Service Account
 #### Backup Plugin 
+- If there are any `SCC` references associated with service account, then include those `SCC` in backup as well. 
 
 #### Restore Plugin 
+- Copy all `Secrets` and `ImagePullSecrets` associated with a `ServiceAccount` except dockercfg secrets
 
 ### Stateful Set
 #### Restore Plugin 
