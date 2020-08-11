@@ -79,6 +79,24 @@ type PodVolumeRestoreStatus struct {
 	// about the restore operation.
 	// +optional
 	Progress PodVolumeOperationProgress `json:"progress,omitempty"`
+
+	// Errors is a count of all error messages that were generated
+	// during execution of the pod volume restore. The actual
+	// errors are in the restic log
+	// +optional
+	Errors int `json:"errors,omitempty"`
+
+	// VerifyErrors is a count of all verification-related error
+	// messages that were generated during execution of the pod
+	// volume restore. The actual errors are in the restic log
+	// +optional
+	VerifyErrors int `json:"verifyErrors,omitempty"`
+
+	// ResticPod is the name of the restic pod which processed the
+	// restore. Any errors referenced in Errors or VerifyErrors
+	// will be logged in this pod's log.
+	// +optional
+	ResticPod string `json:"resticPod,omitempty"`
 }
 
 // +genclient
