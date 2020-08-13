@@ -16,7 +16,10 @@ limitations under the License.
 
 package v1
 
-import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+import (
+	corev1api "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
 
 // RestoreSpec defines the specification for a Velero restore.
 type RestoreSpec struct {
@@ -137,6 +140,21 @@ type RestoreStatus struct {
 	// FailureReason is an error that caused the entire restore to fail.
 	// +optional
 	FailureReason string `json:"failureReason,omitempty"`
+
+	// PodVolumeRestoreErrors is a slice of all PodVolumeRestores
+	// with errors (errors encountered by restic when restoring a pod)
+	// (if applicable)
+	// +optional
+	// +nullable
+	PodVolumeRestoreErrors []corev1api.ObjectReference `json:"podVolumeRestoreErrors,omitempty"`
+
+	// PodVolumeRestoreVerifyErrors is a slice of all
+	// PodVolumeRestore errors from restore verification (errors
+	// encountered by restic when verifying a pod restore)
+	// (if applicable)
+	// +optional
+	// +nullable
+	PodVolumeRestoreVerifyErrors []corev1api.ObjectReference `json:"podVolumeRestoreVerifyErrors,omitempty"`
 }
 
 // +genclient
