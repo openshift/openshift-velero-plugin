@@ -28,16 +28,16 @@ const MigrateStorageClassAnnotation string = "openshift.io/target-storage-class"
 //target access mode
 const MigrateAccessModeAnnotation string = "openshift.io/target-access-mode"
 
+// Stage pod (sleep) image
+const StagePodImageAnnotation = "migration.openshift.io/stage-pod-image"
+const IncludedInStageBackupLabel = "migration-included-stage-backup"
+
 // kubernetes PVC annotations
 const PVCSelectedNodeAnnotation string = "volume.kubernetes.io/selected-node"
 
 // distinction for B/R and migration
 const MigrationApplicationLabelKey string = "app.kubernetes.io/part-of"
 const MigrationApplicationLabelValue string = "openshift-migration"
-
-//stage, final. Only valid for copy type.
-const MigrateCopyPhaseAnnotation string = "openshift.io/migrate-copy-phase"
-const MigratePodStageLabel string = "migration-stage-pod"
 
 const MigrationRegistry string = "openshift.io/migration-registry"
 
