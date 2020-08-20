@@ -37,43 +37,46 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	// to avoid pod being `unschedulable` on destination
 	pod.Spec.NodeSelector = nil
 
-	if (input.Restore.Labels[common.MigrationApplicationLabelKey] == common.MigrationApplicationLabelValue) &&
-		(input.Restore.Annotations[common.MigrateCopyPhaseAnnotation] == "stage") {
-			pod.Labels[common.MigratePodStageLabel] = "true"
-			pod.Spec.Affinity = nil
-	} else {
-		ownerRefs, err := common.GetOwnerReferences(input.ItemFromBackup)
-		if err != nil {
-			return nil, err
-		}
-		// Check if pod has owner Refs
-		if len(ownerRefs) > 0 && pod.Annotations[common.ResticBackupAnnotation] == "" {
-			p.Log.Infof("[pod-restore] skipping restore of pod %s, has owner references and no restic backup", pod.Name)
-			return velero.NewRestoreItemActionExecuteOutput(input.Item).WithoutRestore(), nil
-		}
+	ownerRefs, err := common.GetOwnerReferences(input.ItemFromBackup)
+	if err != nil {
+		return nil, err
+	}
+	// Check if pod has owner Refs
+	if len(ownerRefs) > 0 && pod.Annotations[common.ResticBackupAnnotation] == "" {
+		p.Log.Infof("[pod-restore] skipping restore of pod %s, has owner references and no restic backup", pod.Name)
+		return velero.NewRestoreItemActionExecuteOutput(input.Item).WithoutRestore(), nil
+	}
 
-		backupRegistry, registry, err := common.GetSrcAndDestRegistryInfo(input.Item)
-		if err != nil {
-			return nil, err
-		}
-		common.SwapContainerImageRefs(pod.Spec.Containers, backupRegistry, registry, p.Log, input.Restore.Spec.NamespaceMapping)
-		common.SwapContainerImageRefs(pod.Spec.InitContainers, backupRegistry, registry, p.Log, input.Restore.Spec.NamespaceMapping)
+	backupRegistry, registry, err := common.GetSrcAndDestRegistryInfo(input.Item)
+	if err != nil {
+		return nil, err
+	}
+	common.SwapContainerImageRefs(pod.Spec.Containers, backupRegistry, registry, p.Log, input.Restore.Spec.NamespaceMapping)
+	common.SwapContainerImageRefs(pod.Spec.InitContainers, backupRegistry, registry, p.Log, input.Restore.Spec.NamespaceMapping)
 
-		// update PullSecrets
-		client, err := clients.CoreClient()
+	// update PullSecrets
+	client, err := clients.CoreClient()
+	if err != nil {
+		return nil, err
+	}
+	secretList, err := client.Secrets(pod.Namespace).List(metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	for n, secret := range pod.Spec.ImagePullSecrets {
+		newSecret, err := common.UpdatePullSecret(&secret, secretList, p.Log)
 		if err != nil {
 			return nil, err
 		}
-		secretList, err := client.Secrets(pod.Namespace).List(metav1.ListOptions{})
-		if err != nil {
-			return nil, err
-		}
-		for n, secret := range pod.Spec.ImagePullSecrets {
-			newSecret, err := common.UpdatePullSecret(&secret, secretList, p.Log)
-			if err != nil {
-				return nil, err
-			}
-			pod.Spec.ImagePullSecrets[n] = *newSecret
+		pod.Spec.ImagePullSecrets[n] = *newSecret
+	}
+	// if this is a stage pod and there's a stage pod image found
+	destStagePodImage := input.Restore.Annotations[common.StagePodImageAnnotation]
+	if len(pod.Labels[common.IncludedInStageBackupLabel]) > 0 && len(destStagePodImage) > 0 {
+		p.Log.Infof("[pod-restore] swapping stage pod images for pod %s", pod.Name)
+		for n, container := range pod.Spec.Containers {
+			p.Log.Infof("[pod-restore] swapping stage pod image from %s to %s", container.Image, destStagePodImage)
+			pod.Spec.Containers[n].Image = destStagePodImage
 		}
 	}
 	var out map[string]interface{}
