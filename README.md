@@ -7,7 +7,7 @@ The plugin executes additional logic (such as adding annotations and swapping na
 
 ## Prerequisites 
 
-The [OADP Operator](https://github.com/konveyor/oadp-operator) needs to be installed on the OpenShift cluster.
+Velero needs to be installed on the cluster. There are two operators we explicitly support with this plugin; The [OADP Operator](https://github.com/konveyor/oadp-operator) and the [CAM Operator](https://github.com/konveyor/mig-operator).
 
 ## Kinds of Plugins
 
