@@ -154,7 +154,7 @@ These backup and restore plugins are for resources that do not need custom logic
   
 #### Backup Plugin
 - Set the BackupServerVersion annotation to correct server version
-- Set the BackupRegistryHostname annotation to the corect hostname
+- Set the BackupRegistryHostname annotation to the correct hostname
 - Set the MigrationRegistry annotation based on CAM or B/R workflow 
 ```time="2020-07-29T16:19:08Z" level=info msg="[common-backup] Entering common backup plugin" backup=oadp-operator/nginx-stateless cmd=/plugins/velero-plugins logSource="/go/src/github.com/konveyor/openshift-velero-plugin/velero-plugins/common/backup.go:25" pluginName=velero-plugins
 time="2020-07-29T16:19:08Z" level=info msg="[common-backup] Entering common backup plugin" backup=oadp-operator/nginx-stateless cmd=/plugins/velero-plugins logSource="/go/src/github.com/konveyor/openshift-velero-plugin/velero-plugins/common/backup.go:25" pluginName=velero-plugins
@@ -163,7 +163,7 @@ time="2020-07-29T16:19:08Z" level=info msg="[common-backup] Entering common back
 ```
 #### Restore Plugin
 - Set the RestoreServerVersion annotation to correct server version
-- Set the RestoreRegistryHostname annotation to the corect hostname
+- Set the RestoreRegistryHostname annotation to the correct hostname
 - Set the MigrationRegistry annotation based on CAM or B/R workflow 
 
 ```time="2020-07-29T18:51:02Z" level=info msg="[common-restore] Entering common restore plugin" cmd=/plugins/velero-plugins logSource="/go/src/github.com/konveyor/openshift-velero-plugin/velero-plugins/common/restore.go:22" pluginName=velero-plugins restore=oadp-operator/patroni
