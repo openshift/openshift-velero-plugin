@@ -33,12 +33,16 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	json.Unmarshal(itemMarshal, &pod)
 	p.Log.Infof("[pod-restore] pod: %s", pod.Name)
 
+	// ISSUE-61 : removing the node selectors from pods
+	// to avoid pod being `unschedulable` on destination
+	pod.Spec.NodeSelector = nil
+
 	ownerRefs, err := common.GetOwnerReferences(input.ItemFromBackup)
 	if err != nil {
 		return nil, err
 	}
 	// Check if pod has owner Refs
-	if len(ownerRefs) > 0 {
+	if len(ownerRefs) > 0 && pod.Annotations[common.ResticBackupAnnotation] == "" {
 		p.Log.Infof("[pod-restore] skipping restore of pod %s, has owner references and no restic backup", pod.Name)
 		return velero.NewRestoreItemActionExecuteOutput(input.Item).WithoutRestore(), nil
 	}
@@ -65,6 +69,15 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 			return nil, err
 		}
 		pod.Spec.ImagePullSecrets[n] = *newSecret
+	}
+	// if this is a stage pod and there's a stage pod image found
+	destStagePodImage := input.Restore.Annotations[common.StagePodImageAnnotation]
+	if len(pod.Labels[common.IncludedInStageBackupLabel]) > 0 && len(destStagePodImage) > 0 {
+		p.Log.Infof("[pod-restore] swapping stage pod images for pod %s", pod.Name)
+		for n, container := range pod.Spec.Containers {
+			p.Log.Infof("[pod-restore] swapping stage pod image from %s to %s", container.Image, destStagePodImage)
+			pod.Spec.Containers[n].Image = destStagePodImage
+		}
 	}
 	var out map[string]interface{}
 	objrec, _ := json.Marshal(pod)

@@ -3,20 +3,29 @@ package main
 import (
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/build"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/buildconfig"
+	"github.com/konveyor/openshift-velero-plugin/velero-plugins/clusterrolebindings"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/common"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/cronjob"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/daemonset"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/deployment"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/deploymentconfig"
+	"github.com/konveyor/openshift-velero-plugin/velero-plugins/imagestream"
+	"github.com/konveyor/openshift-velero-plugin/velero-plugins/imagestreamtag"
+	"github.com/konveyor/openshift-velero-plugin/velero-plugins/imagetag"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/job"
+	"github.com/konveyor/openshift-velero-plugin/velero-plugins/persistentvolume"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/pod"
+	"github.com/konveyor/openshift-velero-plugin/velero-plugins/pvc"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/replicaset"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/replicationcontroller"
+	"github.com/konveyor/openshift-velero-plugin/velero-plugins/rolebindings"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/route"
+	"github.com/konveyor/openshift-velero-plugin/velero-plugins/scc"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/secret"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/service"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/serviceaccount"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/statefulset"
+	apisecurity "github.com/openshift/api/security/v1"
 	"github.com/sirupsen/logrus"
 	veleroplugin "github.com/vmware-tanzu/velero/pkg/plugin/framework"
 )
@@ -25,7 +34,12 @@ func main() {
 	veleroplugin.NewServer().
 		RegisterBackupItemAction("openshift.io/01-common-backup-plugin", newCommonBackupPlugin).
 		RegisterRestoreItemAction("openshift.io/01-common-restore-plugin", newCommonRestorePlugin).
+		RegisterBackupItemAction("openshift.io/02-serviceaccount-backup-plugin", newServiceAccountBackupPlugin).
 		RegisterRestoreItemAction("openshift.io/02-serviceaccount-restore-plugin", newServiceAccountRestorePlugin).
+		RegisterBackupItemAction("openshift.io/03-pv-backup-plugin", newPVBackupPlugin).
+		RegisterRestoreItemAction("openshift.io/03-pv-restore-plugin", newPVRestorePlugin).
+		RegisterRestoreItemAction("openshift.io/04-pvc-restore-plugin", newPVCRestorePlugin).
+		RegisterRestoreItemAction("openshift.io/04-imagestreamtag-restore-plugin", newImageStreamTagRestorePlugin).
 		RegisterRestoreItemAction("openshift.io/05-route-restore-plugin", newRouteRestorePlugin).
 		RegisterRestoreItemAction("openshift.io/06-build-restore-plugin", newBuildRestorePlugin).
 		RegisterRestoreItemAction("openshift.io/07-pod-restore-plugin", newPodRestorePlugin).
@@ -40,6 +54,12 @@ func main() {
 		RegisterRestoreItemAction("openshift.io/16-cronjob-restore-plugin", newCronJobRestorePlugin).
 		RegisterRestoreItemAction("openshift.io/17-buildconfig-restore-plugin", newBuildConfigRestorePlugin).
 		RegisterRestoreItemAction("openshift.io/18-secret-restore-plugin", newSecretRestorePlugin).
+		RegisterBackupItemAction("openshift.io/19-is-backup-plugin", newImageStreamBackupPlugin).
+		RegisterRestoreItemAction("openshift.io/19-is-restore-plugin", newImageStreamRestorePlugin).
+		RegisterRestoreItemAction("openshift.io/20-SCC-restore-plugin", newSCCRestorePlugin).
+		RegisterRestoreItemAction("openshift.io/21-role-bindings-restore-plugin", newRoleBindingRestorePlugin).
+		RegisterRestoreItemAction("openshift.io/22-cluster-role-bindings-restore-plugin", newClusterRoleBindingRestorePlugin).
+		RegisterRestoreItemAction("openshift.io/23-imagetag-restore-plugin", newImageTagRestorePlugin).
 		Serve()
 }
 
@@ -109,4 +129,52 @@ func newStatefulSetRestorePlugin(logger logrus.FieldLogger) (interface{}, error)
 
 func newSecretRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
 	return &secret.RestorePlugin{Log: logger}, nil
+}
+
+func newPVCRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
+	return &pvc.RestorePlugin{Log: logger}, nil
+}
+
+func newSCCRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
+	return &scc.RestorePlugin{Log: logger}, nil
+}
+
+func newRoleBindingRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
+	return &rolebindings.RestorePlugin{Log: logger}, nil
+}
+
+func newClusterRoleBindingRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
+	return &clusterrolebindings.RestorePlugin{Log: logger}, nil
+}
+
+func newServiceAccountBackupPlugin(logger logrus.FieldLogger) (interface{}, error) {
+	saBackupPlugin := &serviceaccount.BackupPlugin{Log: logger}
+	saBackupPlugin.UpdatedForBackup = make(map[string]bool)
+	// we need to create a dependency between scc and service accounts. Service accounts are listed in SCC's users list.
+	saBackupPlugin.SCCMap = make(map[string]map[string][]apisecurity.SecurityContextConstraints)
+	return saBackupPlugin, nil
+}
+
+func newPVBackupPlugin(logger logrus.FieldLogger) (interface{}, error) {
+	return &persistentvolume.BackupPlugin{Log: logger}, nil
+}
+
+func newPVRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
+	return &persistentvolume.RestorePlugin{Log: logger}, nil
+}
+
+func newImageStreamBackupPlugin(logger logrus.FieldLogger) (interface{}, error) {
+	return &imagestream.BackupPlugin{Log: logger}, nil
+}
+
+func newImageStreamRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
+	return &imagestream.RestorePlugin{Log: logger}, nil
+}
+
+func newImageStreamTagRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
+	return &imagestreamtag.RestorePlugin{Log: logger}, nil
+}
+
+func newImageTagRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
+	return &imagetag.RestorePlugin{Log: logger}, nil
 }
