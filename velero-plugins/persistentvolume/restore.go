@@ -34,7 +34,15 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	itemMarshal, _ := json.Marshal(input.Item)
 	json.Unmarshal(itemMarshal, &pv)
 	p.Log.Infof("[pv-restore] pv: %s", pv.Name)
-	if pv.Annotations[common.MigrateTypeAnnotation] == "copy" {
+	if pv.Annotations[common.MigrateTypeAnnotation] == common.PvCopyAction {
+		// Skip the PV if this is a stage restore for a stage migration *and* it's a snapshot copy
+		// since snapshot restore is not incremental
+		if input.Restore.Annotations[common.StageOrFinalMigrationAnnotation] == common.StageMigration &&
+			len(input.Restore.Labels[common.StageRestoreLabel])>0 &&
+			pv.Annotations[common.MigrateCopyMethodAnnotation] == common.PvSnapshotCopyMethod {
+			p.Log.Infof("[pv-restore] skipping restore of pv %s, snapshot PVs restored only on final migration", pv.Name)
+			return velero.NewRestoreItemActionExecuteOutput(input.Item).WithoutRestore(), nil
+		}
 		p.Log.Infof("[pv-restore] Setting storage class, %s.", pv.Name)
 		storageClassName := pv.Annotations[common.MigrateStorageClassAnnotation]
 		pv.Spec.StorageClassName = storageClassName

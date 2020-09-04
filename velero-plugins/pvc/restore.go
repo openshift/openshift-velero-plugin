@@ -38,8 +38,16 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 
 	// Use default behavior (restore the PV) for a swing migration.
 	// For copy we remove annotations and PV volumeName
-	if pvc.Annotations[common.MigrateTypeAnnotation] == "copy" {
+	if pvc.Annotations[common.MigrateTypeAnnotation] == common.PvCopyAction {
 
+		// Skip the PVC if this is a stage restore for a stage migration *and* it's a snapshot copy
+		// since snapshot restore is not incremental
+		if input.Restore.Annotations[common.StageOrFinalMigrationAnnotation] == common.StageMigration &&
+			len(input.Restore.Labels[common.StageRestoreLabel])>0 &&
+			pvc.Annotations[common.MigrateCopyMethodAnnotation] == common.PvSnapshotCopyMethod {
+			p.Log.Infof("[pvc-restore] skipping restore of pv %s, snapshot PVCs restored only on final migration", pvc.Name)
+			return velero.NewRestoreItemActionExecuteOutput(input.Item).WithoutRestore(), nil
+		}
 		// ISSUE-61 : removing the label selectors from PVC's
 		// to avoid PV dynamic provisioner getting stuck
 		pvc.Spec.Selector = nil
