@@ -71,3 +71,10 @@ const ResticBackupAnnotation string = "backup.velero.io/backup-volumes"
 
 // Configmap Name
 const RegistryConfigMap string = "oadp-registry-config"
+
+// Restored items label
+const (
+	MigMigrationLabelKey string = "migmigration"
+	MigPlanLabelKey      string = "migration.openshift.io/migplan-ref"
+	MigratedByLabel      string = "migration.openshift.io/migrated-by" // (migmigration UID)
+)
