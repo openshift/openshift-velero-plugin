@@ -75,6 +75,6 @@ const RegistryConfigMap string = "oadp-registry-config"
 // Restored items label
 const (
 	MigMigrationLabelKey string = "migmigration"
-	MigPlanLabelKey      string = "migration.openshift.io/migplan-ref"
+	MigPlanLabelKey      string = "migplan"
 	MigratedByLabel      string = "migration.openshift.io/migrated-by" // (migmigration UID)
 )

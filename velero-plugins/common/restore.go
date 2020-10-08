@@ -55,30 +55,31 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	} else {
 		// if the current workflow is CAM then get migration registry from backup object and set the same on annotation to use in plugins.
 		annotations[MigrationRegistry] = input.Restore.Annotations[MigrationRegistry]
+
+		// Set migmigration and migplan labels on all resources, except ServiceAccounts
+		switch input.Item.DeepCopyObject().(type) {
+		case *corev1.ServiceAccount:
+			break
+		default:
+			migMigrationLabel, exist := input.Restore.Labels[MigMigrationLabelKey]
+			if !exist {
+				p.Log.Info("migmigration label was not found on restore")
+			}
+			migPlanLabel, exist := input.Restore.Labels[MigPlanLabelKey]
+			if !exist {
+				p.Log.Info("migplan label was not found on restore")
+			}
+			labels := metadata.GetLabels()
+			if labels == nil {
+				labels = make(map[string]string)
+			}
+			labels[MigratedByLabel] = migMigrationLabel
+			labels[MigPlanLabelKey] = migPlanLabel
+
+			metadata.SetLabels(labels)
+		}
 	}
 	metadata.SetAnnotations(annotations)
-
-	// Set migmigraiton label on all resources, except ServiceAccounts
-	switch input.Item.DeepCopyObject().(type) {
-	case *corev1.ServiceAccount:
-		break
-	default:
-		migMigrationLabel, exist := input.Restore.Labels[MigMigrationLabelKey]
-		if !exist {
-			p.Log.Info("migmigration label is not found on restore")
-		}
-		migPlanLabel, exist := input.Restore.Labels[MigPlanLabelKey]
-		if !exist {
-			p.Log.Info("migplan label is not found on restore")
-		}
-		labels := metadata.GetLabels()
-		if labels == nil {
-			labels = make(map[string]string)
-		}
-		labels[MigratedByLabel] = migMigrationLabel
-		labels[MigPlanLabelKey] = migPlanLabel
-		metadata.SetLabels(labels)
-	}
 
 	return velero.NewRestoreItemActionExecuteOutput(input.Item), nil
 }
