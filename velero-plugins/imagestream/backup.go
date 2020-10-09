@@ -42,6 +42,12 @@ func (p *BackupPlugin) Execute(item runtime.Unstructured, backup *v1.Backup) (ru
 		annotations = make(map[string]string)
 	}
 
+	skipImages := annotations[common.SkipImages]
+	if len(skipImages) != 0 {
+		p.Log.Info("Not running in OADP/CAM context, skipping copy of image.")
+		return item, nil, nil
+	}
+
 	internalRegistry := annotations[common.BackupRegistryHostname]
 	migrationRegistry := annotations[common.MigrationRegistry]
 	if len(migrationRegistry) == 0 {
@@ -135,4 +141,3 @@ func copyImageBackup(log logrus.FieldLogger, src, dest string) ([]byte, error) {
 	}
 	return copyImage(log, src, dest, sourceCtx, destinationCtx)
 }
-
