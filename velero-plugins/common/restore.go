@@ -73,7 +73,7 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 			if labels == nil {
 				labels = make(map[string]string)
 			}
-			labels[MigratedByLabel] = migMigrationLabel
+			labels[MigMigrationLabelKey] = migMigrationLabel
 			labels[MigPlanLabelKey] = migPlanLabel
 
 			metadata.SetLabels(labels)
