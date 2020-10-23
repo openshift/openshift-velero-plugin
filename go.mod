@@ -4,7 +4,9 @@ go 1.14
 
 require (
 	github.com/Azure/go-autorest v11.1.2+incompatible // indirect
+	github.com/bombsimon/logrusr v0.0.0-20200131103305-03a291ce59b4
 	github.com/containers/image/v5 v5.5.1
+	github.com/go-logr/logr v0.1.0
 	github.com/hashicorp/go-plugin v1.3.0 // indirect
 	github.com/openshift/api v0.0.0-20200210091934-a0e53e94816b
 	github.com/openshift/client-go v0.0.0-20200116152001-92a2713fa240
