@@ -37,7 +37,8 @@ func copyImage(log logrus.FieldLogger,src, dest string, sourceCtx, destinationCt
 	for i := 0; i < 7; i++ {
 		time.Sleep(time.Duration(retryWait) * time.Second)
 		retryWait += 5
-		manifest, err := copy.Image(context.Background(), policyContext, destRef, srcRef, &copy.Options{
+		var manifest []byte
+		manifest, err = copy.Image(context.Background(), policyContext, destRef, srcRef, &copy.Options{
 			SourceCtx:      sourceCtx,
 			DestinationCtx: destinationCtx,
 		})
