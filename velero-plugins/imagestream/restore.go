@@ -43,6 +43,11 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	itemMarshal, _ = json.Marshal(input.ItemFromBackup)
 	json.Unmarshal(itemMarshal, &imageStreamUnmodified)
 
+	skipImages := annotations[common.SkipImages]
+	if len(skipImages) != 0 {
+		p.Log.Info("Not running in OADP/CAM context, skipping copy of image.")
+		return velero.NewRestoreItemActionExecuteOutput(input.Item), nil
+	}
 	backupInternalRegistry, internalRegistry, err := common.GetSrcAndDestRegistryInfo(input.Item)
 	if err != nil {
 		return nil, err

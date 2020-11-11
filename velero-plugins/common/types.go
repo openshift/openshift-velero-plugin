@@ -19,6 +19,8 @@ const RestoreServerVersion string = "openshift.io/restore-server-version"
 const BackupRegistryHostname string = "openshift.io/backup-registry-hostname"
 const RestoreRegistryHostname string = "openshift.io/restore-registry-hostname"
 
+const SkipImages string = "openshift.io/skip-images"
+
 // annotations and labels related to stage vs. initial/final migrations/restores
 const (
 	// Whether the backup/restore is associated with a stage or a final migration
@@ -44,14 +46,14 @@ const (
 
 // PV selection annotations
 const (
-	MigrateTypeAnnotation         string = "openshift.io/migrate-type"          // copy, move
+	MigrateTypeAnnotation         string = "openshift.io/migrate-type" // copy, move
 	MigrateStorageClassAnnotation string = "openshift.io/target-storage-class"
 	MigrateAccessModeAnnotation   string = "openshift.io/target-access-mode"
 	MigrateCopyMethodAnnotation   string = "migration.openshift.io/copy-method" // snapshot, filesystem
 	PvCopyAction                  string = "copy"
 	PvMoveAction                  string = "move"
 	PvFilesystemCopyMethod        string = "filesystem"
-        PvSnapshotCopyMethod          string = "snapshot"
+	PvSnapshotCopyMethod          string = "snapshot"
 )
 
 // Stage pod (sleep) image

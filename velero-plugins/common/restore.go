@@ -49,9 +49,11 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 		}
 		tempRegistry, err := getOADPRegistryRoute(input.Restore.Namespace, backupLocation, RegistryConfigMap)
 		if err != nil {
-			return nil, err
+			p.Log.Info("[common-restore] Error getting registry route, assuming this is outside of OADP context.")
+			annotations[SkipImages] = "true"
+		} else {
+			annotations[MigrationRegistry] = tempRegistry
 		}
-		annotations[MigrationRegistry] = tempRegistry
 	} else {
 		// if the current workflow is CAM then get migration registry from backup object and set the same on annotation to use in plugins.
 		annotations[MigrationRegistry] = input.Restore.Annotations[MigrationRegistry]
