@@ -79,9 +79,9 @@ func CopyLocalImageStreamImages(
 					log.Info(fmt.Sprintf("[imagecopy] Error computing image digest for manifest: %v", err))
 					return err
 				}
-				log.Info(fmt.Sprintf("[imagecopy] src image digest: %s", tag.Items[i].Image))
+				log.V(4).Info(fmt.Sprintf("[imagecopy] src image digest: %s", tag.Items[i].Image))
 				if updateDigest && string(newDigest) != tag.Items[i].Image {
-					log.Info(fmt.Sprintf("[imagecopy] migration registry image digest: %s", newDigest))
+					log.V(4).Info(fmt.Sprintf("[imagecopy] migration registry image digest: %s", newDigest))
 					imageStream.Status.Tags[tagIndex].Items[i].Image = string(newDigest)
 					digestSplit := strings.Split(dockerImageReference, "@")
 					// update sha in dockerImageRef found
@@ -90,7 +90,7 @@ func CopyLocalImageStreamImages(
 							"@" + string(newDigest)
 					}
 				}
-				log.Info(fmt.Sprintf("[imagecopy] manifest of copied image: %s", imgManifest))
+				log.V(4).Info(fmt.Sprintf("[imagecopy] manifest of copied image: %s", imgManifest))
 			}
 		}
 	}
