@@ -13,11 +13,17 @@ type APIServerConfig struct {
 	RoutingConfig     routingConfig     `json:"routingConfig"`
 }
 
-const BackupServerVersion string = "openshift.io/backup-server-version"
-const RestoreServerVersion string = "openshift.io/restore-server-version"
-
-const BackupRegistryHostname string = "openshift.io/backup-registry-hostname"
-const RestoreRegistryHostname string = "openshift.io/restore-registry-hostname"
+// src/dest cluster annotations, general migration
+const (
+	BackupServerVersion     string = "openshift.io/backup-server-version"
+	RestoreServerVersion    string = "openshift.io/restore-server-version"
+	BackupRegistryHostname  string = "openshift.io/backup-registry-hostname"
+	RestoreRegistryHostname string = "openshift.io/restore-registry-hostname"
+	MigrationRegistry       string = "openshift.io/migration-registry"
+	// distinction for B/R and migration
+	MigrationApplicationLabelKey string = "app.kubernetes.io/part-of"
+	MigrationApplicationLabelValue string = "openshift-migration"
+)
 
 const SkipImages string = "openshift.io/skip-images"
 
@@ -56,20 +62,14 @@ const (
 	PvSnapshotCopyMethod          string = "snapshot"
 )
 
-// Stage pod (sleep) image
-const StagePodImageAnnotation = "migration.openshift.io/stage-pod-image"
-
-// kubernetes PVC annotations
-const PVCSelectedNodeAnnotation string = "volume.kubernetes.io/selected-node"
-
-// distinction for B/R and migration
-const MigrationApplicationLabelKey string = "app.kubernetes.io/part-of"
-const MigrationApplicationLabelValue string = "openshift-migration"
-
-const MigrationRegistry string = "openshift.io/migration-registry"
-
-// Restic annotations
-const ResticBackupAnnotation string = "backup.velero.io/backup-volumes"
+// Other annotations
+const (
+	StagePodImageAnnotation   string = "migration.openshift.io/stage-pod-image"  // Stage pod (sleep) image
+	RelatedIsTagNsAnnotation  string = "migration.openshift.io/related-istag-ns" // Related istag ns
+	RelatedIsTagAnnotation    string = "migration.openshift.io/related-istag"    // Related istag name
+	PVCSelectedNodeAnnotation string = "volume.kubernetes.io/selected-node"      // kubernetes PVC annotations
+	ResticBackupAnnotation    string = "backup.velero.io/backup-volumes"         // Restic annotations
+)
 
 // Configmap Name
 const RegistryConfigMap string = "oadp-registry-config"

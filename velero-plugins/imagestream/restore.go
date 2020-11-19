@@ -19,7 +19,7 @@ type RestorePlugin struct {
 	Log logrus.FieldLogger
 }
 
-// AppliesTo returns a velero.ResourceSelector that applies to everything
+// AppliesTo returns a velero.ResourceSelector that applies to imagestreams
 func (p *RestorePlugin) AppliesTo() (velero.ResourceSelector, error) {
 	return velero.ResourceSelector{
 		IncludedResources: []string{"imagestreams"},
