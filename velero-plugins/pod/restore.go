@@ -2,6 +2,9 @@ package pod
 
 import (
 	"encoding/json"
+	"time"
+	"fmt"
+	"strings"
 
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/clients"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/common"
@@ -59,9 +62,43 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	if err != nil {
 		return nil, err
 	}
+	//for true{
+	//	serviceAccounts, err := client.ServiceAccounts(pod.Namespace).List(metav1.ListOptions{})
+	//	if err != nil {
+	//		return nil, err
+	//	}
+	//	flag := make(map[string]int)
+	//	for _, sa := range serviceAccounts.Items {
+	//		if len(sa.Secrets) > 0 {
+	//			flag[sa.Name] = 1
+	//		}
+	//	}
+	//	if flag["builder"] == 1 && flag["deployer"] == 1 && flag["default"] == 1 {
+	//		break
+	//	}
+	//}
 	secretList, err := client.Secrets(pod.Namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return nil, err
+	}
+	for true{
+		flag := 0
+		for _, secret := range secretList.Items {
+				if strings.HasPrefix(secret.Name, "default-dockercfg-") {
+					p.Log.Info(fmt.Sprintf("[pod-restore] Found new dockercfg secret: %v", secret))
+					flag = 1
+					break
+				}
+		}
+		if flag == 1 {
+			p.Log.Info(fmt.Sprintf("[pod-restore] the secret is created"))
+			break
+		}
+		time.Sleep(100 * time.Millisecond)
+		secretList, err = client.Secrets(pod.Namespace).List(metav1.ListOptions{})
+		if err != nil {
+			return nil, err
+		}
 	}
 	for n, secret := range pod.Spec.ImagePullSecrets {
 		newSecret, err := common.UpdatePullSecret(&secret, secretList, p.Log)
