@@ -62,22 +62,11 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	if err != nil {
 		return nil, err
 	}
-	//for true{
-	//	serviceAccounts, err := client.ServiceAccounts(pod.Namespace).List(metav1.ListOptions{})
-	//	if err != nil {
-	//		return nil, err
-	//	}
-	//	flag := make(map[string]int)
-	//	for _, sa := range serviceAccounts.Items {
-	//		if len(sa.Secrets) > 0 {
-	//			flag[sa.Name] = 1
-	//		}
-	//	}
-	//	if flag["builder"] == 1 && flag["deployer"] == 1 && flag["default"] == 1 {
-	//		break
-	//	}
-	//}
 	secretList, err := client.Secrets(pod.Namespace).List(metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	nameSpace, err := client.Namespaces().Get(pod.Namespace, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -89,6 +78,9 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 					flag = 1
 					break
 				}
+		}
+		if time.Now().Sub(nameSpace.CreationTimestamp.Time) == time.Minute {
+			return nil, errors.New("Secret is not getting created")
 		}
 		if flag == 1 {
 			p.Log.Info(fmt.Sprintf("[pod-restore] the secret is created"))
