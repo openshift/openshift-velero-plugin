@@ -79,7 +79,7 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 					break
 				}
 		}
-		if time.Now().Sub(nameSpace.CreationTimestamp.Time) == time.Minute {
+		if time.Now().Sub(nameSpace.CreationTimestamp.Time) >= time.Minute {
 			return nil, errors.New("Secret is not getting created")
 		}
 		if flag == 1 {
