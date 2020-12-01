@@ -79,14 +79,14 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 					break
 				}
 		}
-		if time.Now().Sub(nameSpace.CreationTimestamp.Time) >= time.Minute {
-			return nil, errors.New("Secret is not getting created")
-		}
 		if flag == 1 {
 			p.Log.Info(fmt.Sprintf("[pod-restore] the secret is created"))
 			break
 		}
-		time.Sleep(100 * time.Millisecond)
+		if time.Now().Sub(nameSpace.CreationTimestamp.Time) >= 5 * time.Minute {
+			return nil, errors.New("Secret is not getting created")
+		}
+		time.Sleep(time.Second)
 		secretList, err = client.Secrets(pod.Namespace).List(metav1.ListOptions{})
 		if err != nil {
 			return nil, err
