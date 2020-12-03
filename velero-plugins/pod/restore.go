@@ -2,9 +2,10 @@ package pod
 
 import (
 	"encoding/json"
-	"time"
+	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/clients"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/common"
@@ -70,20 +71,20 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	if err != nil {
 		return nil, err
 	}
-	for true{
+	for true {
 		flag := 0
 		for _, secret := range secretList.Items {
-				if strings.HasPrefix(secret.Name, "default-dockercfg-") {
-					p.Log.Info(fmt.Sprintf("[pod-restore] Found new dockercfg secret: %v", secret))
-					flag = 1
-					break
-				}
+			if strings.HasPrefix(secret.Name, "default-dockercfg-") {
+				p.Log.Info(fmt.Sprintf("[pod-restore] Found new dockercfg secret: %v", secret))
+				flag = 1
+				break
+			}
 		}
 		if flag == 1 {
 			p.Log.Info(fmt.Sprintf("[pod-restore] the secret is created"))
 			break
 		}
-		if time.Now().Sub(nameSpace.CreationTimestamp.Time) >= 5 * time.Minute {
+		if time.Now().Sub(nameSpace.CreationTimestamp.Time) >= 5*time.Minute {
 			return nil, errors.New("Secret is not getting created")
 		}
 		time.Sleep(time.Second)
