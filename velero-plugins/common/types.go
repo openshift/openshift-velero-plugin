@@ -21,11 +21,12 @@ const (
 	RestoreRegistryHostname string = "openshift.io/restore-registry-hostname"
 	MigrationRegistry       string = "openshift.io/migration-registry"
 	// distinction for B/R and migration
-	MigrationApplicationLabelKey string = "app.kubernetes.io/part-of"
+	MigrationApplicationLabelKey   string = "app.kubernetes.io/part-of"
 	MigrationApplicationLabelValue string = "openshift-migration"
 )
 
-const SkipImages string = "openshift.io/skip-images"
+const SkipImageCopy string = "openshift.io/skip-image-copy"
+const DisableImageCopy string = "migration.openshift.io/disable-image-copy"
 
 // annotations and labels related to stage vs. initial/final migrations/restores
 const (

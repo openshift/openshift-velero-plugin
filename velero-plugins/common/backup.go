@@ -46,7 +46,7 @@ func (p *BackupPlugin) Execute(item runtime.Unstructured, backup *v1.Backup) (ru
 		backupRegistryRoute, err := getOADPRegistryRoute(backup.Namespace, backup.Spec.StorageLocation, RegistryConfigMap)
 		if err != nil {
 			p.Log.Info(fmt.Sprintf("[common-backup] Error in getting route: %s. Assuming this is outside of OADP context.", err))
-			annotations[SkipImages] = "true"
+			annotations[SkipImageCopy] = "true"
 		} else {
 			annotations[MigrationRegistry] = backupRegistryRoute
 		}
