@@ -1,6 +1,7 @@
 package imagestreamtag
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -59,7 +60,7 @@ func (p *BackupPlugin) Execute(item runtime.Unstructured, backup *v1.Backup) (ru
 		client, err := clients.ImageClient()
 		if imageStreamTag.Tag.From.Kind == "ImageStreamTag" {
 			p.Log.Info(fmt.Sprintf("[istag-backup] Looking up reference tag: %s/%s", tagNamespace, imageStreamTag.Tag.From.Name))
-			_, err = client.ImageStreamTags(tagNamespace).Get(imageStreamTag.Tag.From.Name, metav1.GetOptions{})
+			_, err = client.ImageStreamTags(tagNamespace).Get(context.Background(), imageStreamTag.Tag.From.Name, metav1.GetOptions{})
 			if err == nil {
 				p.Log.Info("[istag-backup] istag reference tag found in cluster")
 				annotations[common.RelatedIsTagNsAnnotation] = tagNamespace
@@ -68,7 +69,7 @@ func (p *BackupPlugin) Execute(item runtime.Unstructured, backup *v1.Backup) (ru
 		} else if imageStreamTag.Tag.From.Kind == "ImageStreamImage" {
 			tagNameSplit := strings.Split(imageStreamTag.Tag.From.Name, "@")
 			if len(tagNameSplit) == 2 && len(tagNameSplit[1]) > 0 {
-				istagList, err := client.ImageStreamTags(tagNamespace).List(metav1.ListOptions{})
+				istagList, err := client.ImageStreamTags(tagNamespace).List(context.Background(), metav1.ListOptions{})
 				if err == nil {
 					for _, istag := range istagList.Items {
 						if istag.Image.Name == tagNameSplit[1] &&

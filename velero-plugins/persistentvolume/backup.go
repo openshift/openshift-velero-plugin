@@ -1,6 +1,7 @@
 package persistentvolume
 
 import (
+	"context"
 	"encoding/json"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/common"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/clients"
@@ -43,7 +44,7 @@ func (p *BackupPlugin) Execute(item runtime.Unstructured, backup *v1.Backup) (ru
 	}
 	// Get and update PVC on the running cluster to use a retain policy
 	// Validate PVC wasn't deleted by getting the object from the cluster
-	pv, err := client.PersistentVolumes().Get(backupPV.Name, metav1.GetOptions{})
+	pv, err := client.PersistentVolumes().Get(context.Background(), backupPV.Name, metav1.GetOptions{})
 	if err != nil {
 		return nil, nil, err
 	}
@@ -64,7 +65,7 @@ func (p *BackupPlugin) Execute(item runtime.Unstructured, backup *v1.Backup) (ru
 		}
 	}
 	// Update PV on cluster
-	pv, err = client.PersistentVolumes().Update(pv)
+	pv, err = client.PersistentVolumes().Update(context.Background(), pv, metav1.UpdateOptions{})
 	if err != nil {
 		return nil, nil, err
 	}

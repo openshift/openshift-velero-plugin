@@ -1,6 +1,7 @@
 package pod
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -63,11 +64,11 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	if err != nil {
 		return nil, err
 	}
-	secretList, err := client.Secrets(pod.Namespace).List(metav1.ListOptions{})
+	secretList, err := client.Secrets(pod.Namespace).List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
-	nameSpace, err := client.Namespaces().Get(pod.Namespace, metav1.GetOptions{})
+	nameSpace, err := client.Namespaces().Get(context.Background(), pod.Namespace, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +89,7 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 			return nil, errors.New("Secret is not getting created")
 		}
 		time.Sleep(time.Second)
-		secretList, err = client.Secrets(pod.Namespace).List(metav1.ListOptions{})
+		secretList, err = client.Secrets(pod.Namespace).List(context.Background(), metav1.ListOptions{})
 		if err != nil {
 			return nil, err
 		}

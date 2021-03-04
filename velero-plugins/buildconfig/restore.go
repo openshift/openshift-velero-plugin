@@ -1,6 +1,7 @@
 package buildconfig
 
 import (
+	"context"
 	"encoding/json"
 
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/build"
@@ -52,7 +53,7 @@ func (p *RestorePlugin) updateSecretsAndDockerRefs(buildconfig buildv1API.BuildC
 		return buildconfig, err
 	}
 
-	secretList, err := client.Secrets(buildconfig.Namespace).List(metav1.ListOptions{})
+	secretList, err := client.Secrets(buildconfig.Namespace).List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		return buildconfig, err
 	}
