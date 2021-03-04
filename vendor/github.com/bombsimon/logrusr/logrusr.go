@@ -17,17 +17,25 @@ const (
 )
 
 type logrusr struct {
-	name   []string
-	level  int
-	logger logrus.FieldLogger
+	name             []string
+	level            int
+	logger           logrus.FieldLogger
+	defaultFormatter func(interface{}) string
 }
 
 // NewLogger will return a new logr.Logger from a logrus.FieldLogger.
 func NewLogger(l logrus.FieldLogger, name ...string) logr.Logger {
+	return NewLoggerWithFormatter(l, nil, name...)
+}
+
+// NewLoggerWithFormatter will return a new logr.Logger from a
+// logrus.FieldLogger that uses provided function to format complex data types.
+func NewLoggerWithFormatter(l logrus.FieldLogger, formatter func(interface{}) string, name ...string) logr.Logger {
 	return &logrusr{
-		name:   name,
-		level:  0,
-		logger: l,
+		name:             name,
+		level:            0,
+		logger:           l,
+		defaultFormatter: formatter,
 	}
 }
 
@@ -70,7 +78,7 @@ func (l *logrusr) V(level int) logr.InfoLogger {
 // will be discarded.
 func (l *logrusr) WithValues(keysAndValues ...interface{}) logr.Logger {
 	l.logger = l.logger.WithFields(
-		listToLogrusFields(keysAndValues...),
+		listToLogrusFields(l.defaultFormatter, keysAndValues...),
 	)
 
 	return l
@@ -96,7 +104,7 @@ func (l *logrusr) Info(msg string, keysAndValues ...interface{}) {
 	}
 
 	l.logger.
-		WithFields(listToLogrusFields(keysAndValues...)).
+		WithFields(listToLogrusFields(l.defaultFormatter, keysAndValues...)).
 		Info(msg)
 }
 
@@ -105,13 +113,13 @@ func (l *logrusr) Info(msg string, keysAndValues ...interface{}) {
 // Error.
 func (l *logrusr) Error(err error, msg string, keysAndValues ...interface{}) {
 	l.logger.
-		WithFields(listToLogrusFields(keysAndValues...)).
+		WithFields(listToLogrusFields(l.defaultFormatter, keysAndValues...)).
 		WithError(err).
 		Error(msg)
 }
 
 // listToLogrusFields converts a list of arbitrary length to key/value paris.
-func listToLogrusFields(keysAndValues ...interface{}) logrus.Fields {
+func listToLogrusFields(formatter func(interface{}) string, keysAndValues ...interface{}) logrus.Fields {
 	var f = logrus.Fields{}
 
 	// Skip all fields if it's not an even lengthed list.
@@ -135,8 +143,12 @@ func listToLogrusFields(keysAndValues ...interface{}) logrus.Fields {
 				f[s] = string(vVal)
 
 			default:
-				j, _ := json.Marshal(vVal)
-				f[s] = string(j)
+				if formatter != nil {
+					f[s] = formatter(v)
+				} else {
+					j, _ := json.Marshal(vVal)
+					f[s] = string(j)
+				}
 			}
 		}
 	}
