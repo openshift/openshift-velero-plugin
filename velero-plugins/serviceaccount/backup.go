@@ -1,6 +1,7 @@
 package serviceaccount
 
 import (
+	"context"
 	"encoding/json"
 	"strings"
 
@@ -81,7 +82,7 @@ func (p *BackupPlugin) UpdateSCCMap() error {
 		return err
 	}
 
-	sccs, err := sClient.SecurityContextConstraints().List(metav1.ListOptions{})
+	sccs, err := sClient.SecurityContextConstraints().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -105,7 +106,7 @@ func (p *BackupPlugin) UpdateSCCMap() error {
 				}
 
 				if len(splitUsername) == 3 { // map to all SAs
-					serviceAccounts, err := cClient.ServiceAccounts(namespace).List(metav1.ListOptions{})
+					serviceAccounts, err := cClient.ServiceAccounts(namespace).List(context.TODO(), metav1.ListOptions{})
 					if err != nil {
 						return err
 					}

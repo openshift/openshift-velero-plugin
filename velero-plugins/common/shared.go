@@ -1,6 +1,7 @@
 package common
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -27,7 +28,7 @@ func GetRegistryInfo(major, minor int, log logrus.FieldLogger) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	imageStreams, err := imageClient.ImageStreams("openshift").List(metav1.ListOptions{})
+	imageStreams, err := imageClient.ImageStreams("openshift").List(context.TODO(), metav1.ListOptions{})
 	if err == nil && len(imageStreams.Items) > 0 {
 		if value := imageStreams.Items[0].Status.DockerImageRepository; len(value) > 0 {
 			ref, err := reference.Parse(value)
@@ -49,7 +50,7 @@ func GetRegistryInfo(major, minor int, log logrus.FieldLogger) (string, error) {
 	if minor < 7 {
 		return "", fmt.Errorf("Kubernetes version 1.%v not supported. Must be 1.7 or greater", minor)
 	} else if minor <= 11 {
-		registrySvc, err := cClient.Services("default").Get("docker-registry", metav1.GetOptions{})
+		registrySvc, err := cClient.Services("default").Get(context.TODO(), "docker-registry", metav1.GetOptions{})
 		if err != nil {
 			// Return empty registry host but no error; registry not found
 			return "", nil
@@ -58,7 +59,7 @@ func GetRegistryInfo(major, minor int, log logrus.FieldLogger) (string, error) {
 		log.Info("[GetRegistryInfo] value from clusterIP")
 		return internalRegistry, nil
 	} else {
-		config, err := cClient.ConfigMaps("openshift-apiserver").Get("config", metav1.GetOptions{})
+		config, err := cClient.ConfigMaps("openshift-apiserver").Get(context.TODO(), "config", metav1.GetOptions{})
 		if err != nil {
 			return "", err
 		}
@@ -139,7 +140,7 @@ func getOADPRegistryRoute(namespace string, location string, configMap string) (
 		return "could not create client", err
 	}
 	cMap := client.CoreV1().ConfigMaps(namespace)
-	mapClient, err := cMap.Get(configMap, metav1.GetOptions{})
+	mapClient, err := cMap.Get(context.TODO(), configMap, metav1.GetOptions{})
 	if err != nil {
 		return "failed to find registry configmap", err
 	}
@@ -148,7 +149,7 @@ func getOADPRegistryRoute(namespace string, location string, configMap string) (
 		return "failed to generate route client", err
 	}
 	routeClient := osClient.Routes(namespace)
-	route, err := routeClient.Get(mapClient.Data[location], metav1.GetOptions{})
+	route, err := routeClient.Get(context.TODO(), mapClient.Data[location], metav1.GetOptions{})
 	if err != nil {
 		return "failed to find OADP registry route", err
 	}
@@ -177,7 +178,7 @@ func getBackupStorageLocationForBackup(name string, namespace string) (string, e
 		Get().
 		Namespace(namespace).
 		Resource("backups").
-		Do().
+		Do(context.TODO()).
 		Into(&result)
 	if err != nil {
 		return "", err
