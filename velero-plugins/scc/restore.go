@@ -6,6 +6,7 @@ import (
 
 	apisecurity "github.com/openshift/api/security/v1"
 	"github.com/sirupsen/logrus"
+	v1 "github.com/vmware-tanzu/velero/pkg/apis/velero/v1"
 	"github.com/vmware-tanzu/velero/pkg/plugin/velero"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
@@ -62,4 +63,9 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	json.Unmarshal(objrec, &out)
 
 	return velero.NewRestoreItemActionExecuteOutput(&unstructured.Unstructured{Object: out}), nil
+}
+
+// This plugin doesn't need to wait for items
+func (p *RestorePlugin) AreAdditionalItemsReady(restore *v1.Restore, additionalItems []velero.ResourceIdentifier) (bool, error) {
+	return true, nil
 }

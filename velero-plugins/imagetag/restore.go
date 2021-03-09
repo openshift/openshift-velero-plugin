@@ -2,6 +2,7 @@ package imagetag
 
 import (
 	"github.com/sirupsen/logrus"
+	v1 "github.com/vmware-tanzu/velero/pkg/apis/velero/v1"
 	"github.com/vmware-tanzu/velero/pkg/plugin/velero"
 )
 
@@ -22,4 +23,9 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 
 	p.Log.Infof("[imagetag-restore] skipping restore of imagetag")
 	return velero.NewRestoreItemActionExecuteOutput(input.Item).WithoutRestore(), nil
+}
+
+// This plugin doesn't need to wait for items
+func (p *RestorePlugin) AreAdditionalItemsReady(restore *v1.Restore, additionalItems []velero.ResourceIdentifier) (bool, error) {
+	return true, nil
 }

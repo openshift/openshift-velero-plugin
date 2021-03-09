@@ -1,14 +1,18 @@
 package imagestreamtag
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
+	"github.com/konveyor/openshift-velero-plugin/velero-plugins/clients"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/common"
 	imagev1API "github.com/openshift/api/image/v1"
 	"github.com/sirupsen/logrus"
+	v1 "github.com/vmware-tanzu/velero/pkg/apis/velero/v1"
 	"github.com/vmware-tanzu/velero/pkg/plugin/velero"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
@@ -91,8 +95,37 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 		return &velero.RestoreItemActionExecuteOutput{
 			UpdatedItem:     input.Item,
 			AdditionalItems: additionalItems,
+			WaitForAdditionalItems: true,
 		}, nil
 	}
 	p.Log.Info("[istag-restore] Not restoring local imagestreamtag")
 	return velero.NewRestoreItemActionExecuteOutput(input.Item).WithoutRestore(), nil
+}
+
+// AreAdditionalItemsReady returns whether or not passed-in ImageStreamTags are ready
+func (p *RestorePlugin) AreAdditionalItemsReady(restore *v1.Restore, additionalItems []velero.ResourceIdentifier) (bool, error) {
+	p.Log.Debug("[istag-restore] AreAdditionalItemsReady called")
+	ready := true
+	client, err := clients.ImageClient()
+	if err != nil {
+		p.Log.Debug("[istag-restore] AreAdditionalItemsReady ImageClient error: %v", err)
+		return true, err
+	}
+	for i, itemIdentifier := range additionalItems {
+		p.Log.Debug(fmt.Sprintf("[istag-restore] AreAdditionalItemsReady: %v", i))
+		if itemIdentifier.GroupResource.Group != "image.openshift.io" ||
+			itemIdentifier.GroupResource.Resource != "imagestreamtags" {
+			p.Log.Debug(fmt.Sprintf("[istag-restore] AreAdditionalItemsReady: wrong GroupResource: %v, %v", itemIdentifier.GroupResource.Group, itemIdentifier.GroupResource.Resource))
+			continue
+		}
+		_, err = client.ImageStreamTags(itemIdentifier.Namespace).Get(context.TODO(), itemIdentifier.Name, metav1.GetOptions{})
+		if err != nil {
+			// istag not ready
+			ready = false
+			p.Log.Debug(fmt.Sprintf("[istag-restore] AreAdditionalItemsReady: not ready: %v/%v", itemIdentifier.Namespace, itemIdentifier.Name))
+			break
+		}
+		p.Log.Debug(fmt.Sprintf("[istag-restore] AreAdditionalItemsReady: ready: %v/%v", itemIdentifier.Namespace, itemIdentifier.Name))
+	}
+	return ready, nil
 }
