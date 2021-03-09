@@ -11,6 +11,7 @@ import (
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/imagecopy"
 	imagev1API "github.com/openshift/api/image/v1"
 	"github.com/sirupsen/logrus"
+	v1 "github.com/vmware-tanzu/velero/pkg/apis/velero/v1"
 	"github.com/vmware-tanzu/velero/pkg/plugin/velero"
 )
 
@@ -100,4 +101,9 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	json.Unmarshal(objrec, &out)
 	input.Item.SetUnstructuredContent(out)
 	return velero.NewRestoreItemActionExecuteOutput(input.Item).WithoutRestore(), nil
+}
+
+// This plugin doesn't need to wait for items
+func (p *RestorePlugin) AreAdditionalItemsReady(restore *v1.Restore, additionalItems []velero.ResourceIdentifier) (bool, error) {
+	return true, nil
 }

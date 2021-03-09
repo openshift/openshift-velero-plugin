@@ -9,6 +9,7 @@ import (
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/common"
 	buildv1API "github.com/openshift/api/build/v1"
 	"github.com/sirupsen/logrus"
+	v1 "github.com/vmware-tanzu/velero/pkg/apis/velero/v1"
 	"github.com/vmware-tanzu/velero/pkg/plugin/velero"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -67,4 +68,9 @@ func (p *RestorePlugin) updateSecretsAndDockerRefs(buildconfig buildv1API.BuildC
 	}
 	buildconfig.Spec.CommonSpec = newCommonSpec
 	return buildconfig, nil
+}
+
+// This plugin doesn't need to wait for items
+func (p *RestorePlugin) AreAdditionalItemsReady(restore *v1.Restore, additionalItems []velero.ResourceIdentifier) (bool, error) {
+	return true, nil
 }

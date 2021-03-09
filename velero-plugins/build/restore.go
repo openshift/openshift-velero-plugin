@@ -4,6 +4,7 @@ import (
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/common"
 	buildv1API "github.com/openshift/api/build/v1"
 	"github.com/sirupsen/logrus"
+	v1 "github.com/vmware-tanzu/velero/pkg/apis/velero/v1"
 	"github.com/vmware-tanzu/velero/pkg/plugin/velero"
 	corev1API "k8s.io/api/core/v1"
 )
@@ -25,6 +26,11 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	p.Log.Info("[build-restore] Skipping restore of build to allow buildconfig to recreate it")
 	return velero.NewRestoreItemActionExecuteOutput(input.Item).WithoutRestore(), nil
 
+}
+
+// This plugin doesn't need to wait for items
+func (p *RestorePlugin) AreAdditionalItemsReady(restore *v1.Restore, additionalItems []velero.ResourceIdentifier) (bool, error) {
+	return true, nil
 }
 
 func updateDockerReference(
