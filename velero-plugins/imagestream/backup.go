@@ -41,8 +41,21 @@ func (p *BackupPlugin) Execute(item runtime.Unstructured, backup *v1.Backup) (ru
 		annotations = make(map[string]string)
 	}
 
-	skipImages := annotations[common.SkipImages]
-	if len(skipImages) != 0 {
+	if val, ok := backup.Annotations[common.DisableImageCopy]; ok && len(val) != 0 && val == "true" {
+		annotations[common.DisableImageCopy] = val
+		imageStream.Annotations = annotations
+		imageStream.Spec.Tags = nil
+		imageStream.Status.Tags = nil
+		var out map[string]interface{}
+		objrec, _ := json.Marshal(imageStream)
+		json.Unmarshal(objrec, &out)
+		item.SetUnstructuredContent(out)
+		p.Log.Info("[is-backup] Image copy is excluded for backup; skipping image copy.")
+		return item, nil, nil
+	}
+
+	skipImages := annotations[common.SkipImageCopy]
+	if len(skipImages) != 0 && skipImages == "true" {
 		p.Log.Info("Not running in OADP/CAM context, skipping copy of image.")
 		return item, nil, nil
 	}

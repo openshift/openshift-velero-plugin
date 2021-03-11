@@ -39,12 +39,17 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 		annotations = make(map[string]string)
 	}
 
+	if val, ok := annotations[common.DisableImageCopy]; ok && len(val) != 0 && val == "true" {
+		p.Log.Info("[is-restore] Image copy is excluded for backup; skipping image copy.")
+		return velero.NewRestoreItemActionExecuteOutput(input.Item), nil
+	}
+
 	imageStreamUnmodified := imagev1API.ImageStream{}
 	itemMarshal, _ = json.Marshal(input.ItemFromBackup)
 	json.Unmarshal(itemMarshal, &imageStreamUnmodified)
 
-	skipImages := annotations[common.SkipImages]
-	if len(skipImages) != 0 {
+	skipImages := annotations[common.SkipImageCopy]
+	if len(skipImages) != 0 && skipImages == "true" {
 		p.Log.Info("Not running in OADP/CAM context, skipping copy of image.")
 		return velero.NewRestoreItemActionExecuteOutput(input.Item), nil
 	}
