@@ -38,6 +38,8 @@ It has these top-level messages:
 	ListPluginsResponse
 	RestoreItemActionExecuteRequest
 	RestoreItemActionExecuteResponse
+	AreAdditionalItemsReadyRequest
+	AreAdditionalItemsReadyResponse
 	RestoreItemActionAppliesToRequest
 	RestoreItemActionAppliesToResponse
 	Empty

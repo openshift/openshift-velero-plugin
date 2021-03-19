@@ -17,6 +17,8 @@ limitations under the License.
 package velero
 
 import (
+	"time"
+
 	"k8s.io/apimachinery/pkg/runtime"
 
 	api "github.com/vmware-tanzu/velero/pkg/apis/velero/v1"
@@ -36,6 +38,13 @@ type RestoreItemAction interface {
 	// the item from being restored) or error (which will be logged and will prevent the item
 	// from being restored) if applicable.
 	Execute(input *RestoreItemActionExecuteInput) (*RestoreItemActionExecuteOutput, error)
+
+	// AreAdditionalItemsReady allows the ItemAction to communicate whether the passed-in
+	// slice of AdditionalItems (previously returned by Execute())
+	// are ready. Returns true if all items are ready, and false
+	// otherwise. The second return value is an error string if an
+	// error occurred.
+	AreAdditionalItemsReady(restore *api.Restore, additionalItems []ResourceIdentifier) (bool, error)
 }
 
 // RestoreItemActionExecuteInput contains the input parameters for the ItemAction's Execute function.
@@ -62,6 +71,19 @@ type RestoreItemActionExecuteOutput struct {
 	// on this item, and skip the restore step. When this field's
 	// value is true, AdditionalItems will be ignored.
 	SkipRestore bool
+
+	// WaitForAdditionalItems determines whether velero will wait
+	// until AreAdditionalItemsReady returns true before restoring
+	// this item. If this field's value is true, then after restoring
+	// the returned AdditionalItems, velero will not restore this item
+	// until AreAdditionalItemsReady returns true or the timeout is
+	// reached. Otherwise, AreAdditionalItemsReady is not called.
+	WaitForAdditionalItems bool
+
+	// AdditionalItemsReadyTimeout will override serverConfig.additionalItemsReadyTimeout
+	// if specified. This value specifies how long velero will wait
+	// for additional items to be ready before moving on.
+	AdditionalItemsReadyTimeout time.Duration
 }
 
 // NewRestoreItemActionExecuteOutput creates a new RestoreItemActionExecuteOutput
@@ -74,5 +96,11 @@ func NewRestoreItemActionExecuteOutput(item runtime.Unstructured) *RestoreItemAc
 // WithoutRestore returns SkipRestore for RestoreItemActionExecuteOutput
 func (r *RestoreItemActionExecuteOutput) WithoutRestore() *RestoreItemActionExecuteOutput {
 	r.SkipRestore = true
+	return r
+}
+
+// WithItemsWait returns RestoreItemActionExecuteOutput with WaitForAdditionalItems set to true.
+func (r *RestoreItemActionExecuteOutput) WithItemsWait() *RestoreItemActionExecuteOutput {
+	r.WaitForAdditionalItems = true
 	return r
 }

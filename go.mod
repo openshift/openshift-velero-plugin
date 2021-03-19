@@ -66,4 +66,4 @@ replace k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.18.4
 
 replace k8s.io/csi-translation-lib => k8s.io/csi-translation-lib v0.18.4
 
-replace github.com/vmware-tanzu/velero => github.com/konveyor/velero v0.10.2-0.20210318141452-bc9afe100258
+replace github.com/vmware-tanzu/velero => github.com/sseago/velero v0.10.2-0.20210316144755-b3538d9469d5

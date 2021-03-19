@@ -363,7 +363,7 @@ github.com/vbauerster/mpb/v5
 github.com/vbauerster/mpb/v5/cwriter
 github.com/vbauerster/mpb/v5/decor
 github.com/vbauerster/mpb/v5/internal
-# github.com/vmware-tanzu/velero v1.5.3 => github.com/konveyor/velero v0.10.2-0.20210318141452-bc9afe100258
+# github.com/vmware-tanzu/velero v1.5.3 => github.com/sseago/velero v0.10.2-0.20210316144755-b3538d9469d5
 ## explicit
 github.com/vmware-tanzu/velero/pkg/apis/velero/v1
 github.com/vmware-tanzu/velero/pkg/cmd/util/flag
@@ -686,4 +686,4 @@ sigs.k8s.io/yaml
 # k8s.io/metrics => k8s.io/metrics v0.18.4
 # k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.18.4
 # k8s.io/csi-translation-lib => k8s.io/csi-translation-lib v0.18.4
-# github.com/vmware-tanzu/velero => github.com/konveyor/velero v0.10.2-0.20210318141452-bc9afe100258
+# github.com/vmware-tanzu/velero => github.com/sseago/velero v0.10.2-0.20210316144755-b3538d9469d5

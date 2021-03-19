@@ -25,6 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
+	api "github.com/vmware-tanzu/velero/pkg/apis/velero/v1"
 	proto "github.com/vmware-tanzu/velero/pkg/plugin/generated"
 	"github.com/vmware-tanzu/velero/pkg/plugin/velero"
 )
@@ -119,8 +120,35 @@ func (c *RestoreItemActionGRPCClient) Execute(input *velero.RestoreItemActionExe
 	}
 
 	return &velero.RestoreItemActionExecuteOutput{
-		UpdatedItem:     &updatedItem,
-		AdditionalItems: additionalItems,
-		SkipRestore:     res.SkipRestore,
+		UpdatedItem:                 &updatedItem,
+		AdditionalItems:             additionalItems,
+		SkipRestore:                 res.SkipRestore,
+		WaitForAdditionalItems:      res.WaitForAdditionalItems,
+		AdditionalItemsReadyTimeout: res.AdditionalItemsReadyTimeout.AsDuration(),
 	}, nil
+}
+
+func (c *RestoreItemActionGRPCClient) AreAdditionalItemsReady(restore *api.Restore, additionalItems []velero.ResourceIdentifier) (bool, error) {
+	restoreJSON, err := json.Marshal(restore)
+	if err != nil {
+		return false, errors.WithStack(err)
+	}
+
+	var protoAdditionalItems []*proto.ResourceIdentifier
+	for _, item := range additionalItems {
+		protoAdditionalItems = append(protoAdditionalItems, restoreResourceIdentifierToProto(item))
+	}
+
+	req := &proto.AreAdditionalItemsReadyRequest{
+		Plugin:          c.plugin,
+		Restore:         restoreJSON,
+		AdditionalItems: protoAdditionalItems,
+	}
+
+	res, err := c.grpcClient.AreAdditionalItemsReady(context.Background(), req)
+	if err != nil {
+		return false, fromGRPCError(err)
+	}
+
+	return res.Ready, nil
 }

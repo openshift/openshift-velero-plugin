@@ -787,6 +787,8 @@ github.com/spf13/viper v1.4.0/go.mod h1:PTJ7Z/lr49W6bUbkmS1V3by4uWynFiR9p7+dSq/y
 github.com/spf13/viper v1.6.2/go.mod h1:t3iDnF5Jlj76alVNuyFBk5oUMCvsrkbvZK0WQdfDi5k=
 github.com/sseago/velero v0.10.2-0.20210301153545-282204e5bf16 h1:9742T38ZXgkAA9hVwWOCA31oEf9sYD68CD1V/e6xA3s=
 github.com/sseago/velero v0.10.2-0.20210301153545-282204e5bf16/go.mod h1:HhR/7owMKuYE+lD9dAH3Sa3I2mX6iMOGUYQPaDtY6bQ=
+github.com/sseago/velero v0.10.2-0.20210316144755-b3538d9469d5 h1:mJhEmNkx1Fp4kF1FtbAF74GX4kJj9ObuVptEBlc4tgE=
+github.com/sseago/velero v0.10.2-0.20210316144755-b3538d9469d5/go.mod h1:HhR/7owMKuYE+lD9dAH3Sa3I2mX6iMOGUYQPaDtY6bQ=
 github.com/storageos/go-api v0.0.0-20180912212459-343b3eff91fc/go.mod h1:ZrLn+e0ZuF3Y65PNF6dIwbJPZqfmtCXxFm9ckv0agOY=
 github.com/stretchr/objx v0.1.0 h1:4G4v2dO3VZwixGIRoQ5Lfboy6nUhCyYzaqnIAPPhYs4=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=

@@ -22,6 +22,9 @@ import (
 	"github.com/pkg/errors"
 	"golang.org/x/net/context"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+
+	"github.com/golang/protobuf/ptypes"
 
 	api "github.com/vmware-tanzu/velero/pkg/apis/velero/v1"
 	proto "github.com/vmware-tanzu/velero/pkg/plugin/generated"
@@ -128,12 +131,59 @@ func (s *RestoreItemActionGRPCServer) Execute(ctx context.Context, req *proto.Re
 	}
 
 	res := &proto.RestoreItemActionExecuteResponse{
-		Item:        updatedItemJSON,
-		SkipRestore: executeOutput.SkipRestore,
+		Item:                        updatedItemJSON,
+		SkipRestore:                 executeOutput.SkipRestore,
+		WaitForAdditionalItems:      executeOutput.WaitForAdditionalItems,
+		AdditionalItemsReadyTimeout: ptypes.DurationProto(executeOutput.AdditionalItemsReadyTimeout),
 	}
 
 	for _, item := range executeOutput.AdditionalItems {
 		res.AdditionalItems = append(res.AdditionalItems, restoreResourceIdentifierToProto(item))
+	}
+
+	return res, nil
+}
+
+func (s *RestoreItemActionGRPCServer) AreAdditionalItemsReady(ctx context.Context, req *proto.AreAdditionalItemsReadyRequest) (response *proto.AreAdditionalItemsReadyResponse, err error) {
+	defer func() {
+		if recoveredErr := handlePanic(recover()); recoveredErr != nil {
+			err = recoveredErr
+		}
+	}()
+
+	impl, err := s.getImpl(req.Plugin)
+	if err != nil {
+		return nil, newGRPCError(err)
+	}
+
+	var (
+		additionalItems []velero.ResourceIdentifier
+		restoreObj      api.Restore
+	)
+
+	if err := json.Unmarshal(req.Restore, &restoreObj); err != nil {
+		return nil, newGRPCError(errors.WithStack(err))
+	}
+
+	for _, itm := range req.AdditionalItems {
+		newItem := velero.ResourceIdentifier{
+			GroupResource: schema.GroupResource{
+				Group:    itm.Group,
+				Resource: itm.Resource,
+			},
+			Namespace: itm.Namespace,
+			Name:      itm.Name,
+		}
+
+		additionalItems = append(additionalItems, newItem)
+	}
+	ready, err := impl.AreAdditionalItemsReady(&restoreObj, additionalItems)
+	if err != nil {
+		return nil, newGRPCError(err)
+	}
+
+	res := &proto.AreAdditionalItemsReadyResponse{
+		Ready: ready,
 	}
 
 	return res, nil
