@@ -1,5 +1,5 @@
 /*
-Copyright 2017, 2019 the Velero contributors.
+Copyright 2020 the Velero contributors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -82,6 +82,19 @@ type BackupSpec struct {
 	// VolumeSnapshotLocations is a list containing names of VolumeSnapshotLocations associated with this backup.
 	// +optional
 	VolumeSnapshotLocations []string `json:"volumeSnapshotLocations,omitempty"`
+
+	// DefaultVolumesToRestic specifies whether restic should be used to take a
+	// backup of all pod volumes by default.
+	// +optional
+	// + nullable
+	DefaultVolumesToRestic *bool `json:"defaultVolumesToRestic,omitempty"`
+
+	// OrderedResources specifies the backup order of resources of specific Kind.
+	// The map key is the Kind name and value is a list of resource names separeted by commas.
+	// Each resource name has format "namespace/resourcename".  For cluster resources, simply use "resourcename".
+	// +optional
+	// +nullable
+	OrderedResources map[string]string `json:"orderedResources,omitempty"`
 }
 
 // BackupHooks contains custom behaviors that should be executed at different phases of the backup.
