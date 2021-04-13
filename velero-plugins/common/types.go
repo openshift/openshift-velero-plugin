@@ -71,6 +71,7 @@ const (
 	PVCSelectedNodeAnnotation string = "volume.kubernetes.io/selected-node"         // kubernetes PVC annotations
 	ResticBackupAnnotation    string = "backup.velero.io/backup-volumes"            // Restic annotations
 	PVOriginalReclaimPolicy   string = "migration.openshift.io/orig-reclaim-policy" // Original PersistentVolumeReclaimPolicy
+	BackupNameAnnotation      string = "migration.openshift.io/migrated-by-backup"  // Name of Backup that migrated this resource
 )
 
 // Configmap Name
