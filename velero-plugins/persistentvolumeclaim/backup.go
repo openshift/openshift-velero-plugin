@@ -1,4 +1,4 @@
-package persistentvolume
+package persistentvolumeclaim
 
 import (
 	"context"
@@ -30,11 +30,11 @@ func (p *BackupPlugin) AppliesTo() (velero.ResourceSelector, error) {
 func (p *BackupPlugin) Execute(item runtime.Unstructured, backup *v1.Backup) (runtime.Unstructured, []velero.ResourceIdentifier, error) {
 
 	if backup.Labels[common.MigrationApplicationLabelKey] != common.MigrationApplicationLabelValue {
-		p.Log.Info("[pvc-backup] Returning pv object as is since this is not a migration activity")
+		p.Log.Info("[pvc-backup] Returning pvc object as is since this is not a migration activity")
 		return item, nil, nil
 	}
-	p.Log.Info("[pvc-backup] Entering Persistent Volume backup plugin")
-	// Convert to PV
+	p.Log.Info("[pvc-backup] Entering Persistent Volume Claim backup plugin")
+	// Convert to PVC
 	backupPVC := corev1API.PersistentVolumeClaim{}
 	itemMarshal, _ := json.Marshal(item)
 	json.Unmarshal(itemMarshal, &backupPVC)
