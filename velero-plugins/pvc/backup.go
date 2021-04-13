@@ -1,4 +1,4 @@
-package persistentvolumeclaim
+package pvc
 
 import (
 	"context"

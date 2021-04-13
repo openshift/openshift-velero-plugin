@@ -38,6 +38,7 @@ func main() {
 		RegisterRestoreItemAction("openshift.io/02-serviceaccount-restore-plugin", newServiceAccountRestorePlugin).
 		RegisterBackupItemAction("openshift.io/03-pv-backup-plugin", newPVBackupPlugin).
 		RegisterRestoreItemAction("openshift.io/03-pv-restore-plugin", newPVRestorePlugin).
+		RegisterRestoreItemAction("openshift.io/04-pvc-backup-plugin", newPVCBackupPlugin).
 		RegisterRestoreItemAction("openshift.io/04-pvc-restore-plugin", newPVCRestorePlugin).
 		RegisterBackupItemAction("openshift.io/04-imagestreamtag-backup-plugin", newImageStreamTagBackupPlugin).
 		RegisterRestoreItemAction("openshift.io/04-imagestreamtag-restore-plugin", newImageStreamTagRestorePlugin).
@@ -130,6 +131,10 @@ func newStatefulSetRestorePlugin(logger logrus.FieldLogger) (interface{}, error)
 
 func newSecretRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
 	return &secret.RestorePlugin{Log: logger}, nil
+}
+
+func newPVCBackupPlugin(logger logrus.FieldLogger) (interface{}, error) {
+	return &pvc.BackupPlugin{Log: logger}, nil
 }
 
 func newPVCRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
