@@ -23,4 +23,4 @@ require (
 
 replace bitbucket.org/ww/goautoneg v0.0.0-20120707110453-75cd24fc2f2c => github.com/markusthoemmes/goautoneg v0.0.0-20190713162725-c6008fefa5b1
 
-replace github.com/vmware-tanzu/velero => github.com/konveyor/velero v0.10.2-0.20210415185542-05bae5e157fa
+replace github.com/vmware-tanzu/velero => github.com/konveyor/velero v0.10.2-0.20210517170947-84365048b688

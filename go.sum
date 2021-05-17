@@ -484,6 +484,8 @@ github.com/konsorten/go-windows-terminal-sequences v1.0.3 h1:CE8S1cTafDpPvMhIxNJ
 github.com/konsorten/go-windows-terminal-sequences v1.0.3/go.mod h1:T0+1ngSBFLxvqU3pZ+m/2kptfBszLMUkC4ZK/EgS/cQ=
 github.com/konveyor/velero v0.10.2-0.20210415185542-05bae5e157fa h1:WDfzCiQzeEG1IBRAeK4wD+8GycAeAC+E3GUDFD1R0w4=
 github.com/konveyor/velero v0.10.2-0.20210415185542-05bae5e157fa/go.mod h1:kZ04m2yXHY1f842yxqIQlaKUHecS3AtxWY24erf8uQQ=
+github.com/konveyor/velero v0.10.2-0.20210517170947-84365048b688 h1:j7dCiuPPN/tn1aCYT2FrGd0mhULBwwOmYgtF4WQT4p0=
+github.com/konveyor/velero v0.10.2-0.20210517170947-84365048b688/go.mod h1:kZ04m2yXHY1f842yxqIQlaKUHecS3AtxWY24erf8uQQ=
 github.com/kr/fs v0.1.0/go.mod h1:FFnZGqtBN9Gxj7eW1uZ42v5BccTP0vu6NEaFoC2HwRg=
 github.com/kr/logfmt v0.0.0-20140226030751-b84e30acd515/go.mod h1:+0opPa2QZZtGFBFZlji/RkVcI2GknAs/DXo4wKdlNEc=
 github.com/kr/pretty v0.1.0 h1:L/CwN0zerZDmRFUapSPitk6f+Q3+0za1rQkzVuMiMFI=
