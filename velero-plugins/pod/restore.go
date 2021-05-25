@@ -38,6 +38,10 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	json.Unmarshal(itemMarshal, &pod)
 	p.Log.Infof("[pod-restore] pod: %s", pod.Name)
 
+	podUnmodified := corev1API.Pod{}
+	itemMarshal, _ = json.Marshal(input.ItemFromBackup)
+	json.Unmarshal(itemMarshal, &podUnmodified)
+
 	// ISSUE-61 : removing the node selectors from pods
 	// to avoid pod being `unschedulable` on destination
 	pod.Spec.NodeSelector = nil
@@ -64,11 +68,15 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	if err != nil {
 		return nil, err
 	}
-	secretList, err := client.Secrets(pod.Namespace).List(context.Background(), metav1.ListOptions{})
+	destNamespace := podUnmodified.Namespace
+	if input.Restore.Spec.NamespaceMapping[destNamespace] != "" {
+		destNamespace = input.Restore.Spec.NamespaceMapping[destNamespace]
+	}
+	secretList, err := client.Secrets(destNamespace).List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
-	nameSpace, err := client.Namespaces().Get(context.Background(), pod.Namespace, metav1.GetOptions{})
+	nameSpace, err := client.Namespaces().Get(context.Background(), destNamespace, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +97,7 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 			return nil, errors.New("Secret is not getting created")
 		}
 		time.Sleep(time.Second)
-		secretList, err = client.Secrets(pod.Namespace).List(context.Background(), metav1.ListOptions{})
+		secretList, err = client.Secrets(destNamespace).List(context.Background(), metav1.ListOptions{})
 		if err != nil {
 			return nil, err
 		}

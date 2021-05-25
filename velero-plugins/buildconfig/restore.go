@@ -34,7 +34,11 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	itemMarshal, _ := json.Marshal(input.Item)
 	json.Unmarshal(itemMarshal, &buildconfig)
 
-	buildconfig, err := p.updateSecretsAndDockerRefs(buildconfig, input.Restore.Spec.NamespaceMapping)
+	buildconfigUnmodified := buildv1API.BuildConfig{}
+	itemMarshal, _ = json.Marshal(input.ItemFromBackup)
+	json.Unmarshal(itemMarshal, &buildconfigUnmodified)
+
+	buildconfig, err := p.updateSecretsAndDockerRefs(buildconfig, buildconfigUnmodified.Namespace, input.Restore.Spec.NamespaceMapping)
 	if err != nil {
 		p.Log.Error("[buildconfig-restore] error modifying buildconfig: ", err)
 		return nil, err
@@ -47,13 +51,17 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	return velero.NewRestoreItemActionExecuteOutput(&unstructured.Unstructured{Object: out}), nil
 }
 
-func (p *RestorePlugin) updateSecretsAndDockerRefs(buildconfig buildv1API.BuildConfig, namespaceMapping map[string]string) (buildv1API.BuildConfig, error) {
+func (p *RestorePlugin) updateSecretsAndDockerRefs(buildconfig buildv1API.BuildConfig, srcNamespace string, namespaceMapping map[string]string) (buildv1API.BuildConfig, error) {
 	client, err := clients.CoreClient()
 	if err != nil {
 		return buildconfig, err
 	}
 
-	secretList, err := client.Secrets(buildconfig.Namespace).List(context.Background(), metav1.ListOptions{})
+	destNamespace := srcNamespace
+	if namespaceMapping[destNamespace] != "" {
+		destNamespace = namespaceMapping[destNamespace]
+	}
+	secretList, err := client.Secrets(destNamespace).List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		return buildconfig, err
 	}
