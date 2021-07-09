@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-FROM golang:1.14 as builder
+FROM registry.access.redhat.com/ubi8/go-toolset:1.14.7 AS builder
 WORKDIR /go/src/github.com/konveyor/openshift-velero-plugin
 COPY . ./
 ENV BUILDTAGS containers_image_ostree_stub exclude_graphdriver_devicemapper exclude_graphdriver_btrfs containers_image_openpgp exclude_graphdriver_overlay
