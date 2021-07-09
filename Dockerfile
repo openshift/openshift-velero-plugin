@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 FROM registry.access.redhat.com/ubi8/go-toolset:1.14.7 AS builder
-WORKDIR /go/src/github.com/konveyor/openshift-velero-plugin
-COPY . ./
+ENV GOPATH=$APP_ROOT
+COPY . $APP_ROOT/src/github.com/konveyor/openshift-velero-plugin
 ENV BUILDTAGS containers_image_ostree_stub exclude_graphdriver_devicemapper exclude_graphdriver_btrfs containers_image_openpgp exclude_graphdriver_overlay
 ENV BIN velero-plugins
-RUN go build -installsuffix "static" -tags "$BUILDTAGS" -i -o _output/$BIN -mod=mod ./$BIN
+RUN CGO_ENABLED=1 GOOS=linux go build -tags "$BUILDTAGS" -a -o velero-plugins -mod=mod github.com/konveyor/openshift-velero-plugin/velero-plugins
 
 FROM registry.access.redhat.com/ubi8-minimal
 RUN mkdir /plugins
-COPY --from=builder /go/src/github.com/konveyor/openshift-velero-plugin/_output/$BIN /plugins/
+COPY --from=builder /opt/app-root/src/github.com/konveyor/openshift-velero-plugin/_output/$BIN /plugins/
 USER nobody:nobody
 ENTRYPOINT ["/bin/bash", "-c", "cp /plugins/* /target/."]
