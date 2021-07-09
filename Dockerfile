@@ -15,7 +15,7 @@ FROM registry.access.redhat.com/ubi8/go-toolset:1.14.7 AS builder
 ENV GOPATH=$APP_ROOT
 ENV BUILDTAGS containers_image_ostree_stub exclude_graphdriver_devicemapper exclude_graphdriver_btrfs containers_image_openpgp exclude_graphdriver_overlay
 ENV BIN velero-plugins
-COPY --chown=default . $APP_ROOT/src/github.com/konveyor/openshift-velero-plugin
+COPY --chown=1001 . $APP_ROOT/src/github.com/konveyor/openshift-velero-plugin
 WORKDIR $APP_ROOT/src/github.com/konveyor/openshift-velero-plugin
 RUN go build -installsuffix "static" -tags "$BUILDTAGS" -o _output/$BIN ./$BIN
 
