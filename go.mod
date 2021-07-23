@@ -14,13 +14,16 @@ require (
 	github.com/sirupsen/logrus v1.8.0
 	github.com/spf13/afero v1.3.1 // indirect
 	github.com/stretchr/testify v1.6.1
-	github.com/vmware-tanzu/velero v1.6.0
+	github.com/vmware-tanzu/velero v1.6.2
 	golang.org/x/sys v0.0.0-20210303074136-134d130e1a04 // indirect
-	k8s.io/api v0.20.0
-	k8s.io/apimachinery v0.20.0
-	k8s.io/client-go v0.20.0
+	k8s.io/api v0.20.7
+	k8s.io/apimachinery v0.20.7
+	k8s.io/client-go v0.20.7
 )
+
+// CVE-2021-3121
+replace github.com/gogo/protobuf => github.com/gogo/protobuf v1.3.2
 
 replace bitbucket.org/ww/goautoneg v0.0.0-20120707110453-75cd24fc2f2c => github.com/markusthoemmes/goautoneg v0.0.0-20190713162725-c6008fefa5b1
 
-replace github.com/vmware-tanzu/velero => github.com/konveyor/velero v0.10.2-0.20210517170947-84365048b688
+replace github.com/vmware-tanzu/velero => github.com/openshift/velero v0.10.2-0.20210728132925-bab294f5d24c
