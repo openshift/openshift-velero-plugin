@@ -49,6 +49,8 @@ const (
 	// Designated as a `final` Restore.
 	// The value is the Task.UID().
 	FinalRestoreLabel = "migration-final-restore"
+	// Exclude PVCs if marked "move" or "snapshot" in the plan
+	ExcludePVCPodAnnotation = "migration.openshift.io/exclude-pvcs"
 )
 
 // PV selection annotations
