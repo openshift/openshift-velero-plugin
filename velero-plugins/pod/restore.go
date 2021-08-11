@@ -113,9 +113,51 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	destStagePodImage := input.Restore.Annotations[common.StagePodImageAnnotation]
 	if len(pod.Labels[common.IncludedInStageBackupLabel]) > 0 && len(destStagePodImage) > 0 {
 		p.Log.Infof("[pod-restore] swapping stage pod images for pod %s", pod.Name)
+		pvcVolumes := []corev1API.Volume{}
+		excludePVC := []string{}
+		if len(pod.Annotations[common.ExcludePVCPodAnnotation]) > 0 {
+			excludePVC = strings.Split(pod.Annotations[common.ExcludePVCPodAnnotation], ",")
+		}
+		contains := func(volumeName string) bool {
+			for _, name := range excludePVC {
+				if name == volumeName {
+					return true
+				}
+			}
+			return false
+		}
+		for _, volume := range pod.Spec.Volumes {
+			if volume.PersistentVolumeClaim == nil {
+				continue
+			}
+
+			if len(excludePVC) > 0 &&  contains(volume.Name){
+				continue
+			}
+			pvcVolumes = append(pvcVolumes, volume)
+		}
+		pod.Spec.Volumes = pvcVolumes
+		inVolumes := func(mount corev1API.VolumeMount) bool {
+			for _, volume := range pvcVolumes {
+				if volume.Name == mount.Name {
+					return true
+				}
+			}
+			return false
+		}
+
 		for n, container := range pod.Spec.Containers {
 			p.Log.Infof("[pod-restore] swapping stage pod image from %s to %s", container.Image, destStagePodImage)
 			pod.Spec.Containers[n].Image = destStagePodImage
+			pod.Spec.Containers[n].Command = []string{"sleep"}
+			pod.Spec.Containers[n].Args = []string{"infinity"}
+			volumeMount := []corev1API.VolumeMount{}
+			for _, vol := range container.VolumeMounts {
+				if inVolumes(vol) {
+					volumeMount = append(volumeMount, vol)
+				}
+			}
+			pod.Spec.Containers[n].VolumeMounts = volumeMount
 		}
 	}
 	var out map[string]interface{}
