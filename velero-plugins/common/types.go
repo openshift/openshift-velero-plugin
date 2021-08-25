@@ -20,6 +20,7 @@ const (
 	BackupRegistryHostname  string = "openshift.io/backup-registry-hostname"
 	RestoreRegistryHostname string = "openshift.io/restore-registry-hostname"
 	MigrationRegistry       string = "openshift.io/migration-registry"
+	PausedOwnerRef          string = "openshift.io/paused-owner-ref"
 	// distinction for B/R and migration
 	MigrationApplicationLabelKey   string = "app.kubernetes.io/part-of"
 	MigrationApplicationLabelValue string = "openshift-migration"

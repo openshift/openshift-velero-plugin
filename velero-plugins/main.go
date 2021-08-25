@@ -45,9 +45,11 @@ func main() {
 		RegisterRestoreItemAction("openshift.io/06-build-restore-plugin", newBuildRestorePlugin).
 		RegisterRestoreItemAction("openshift.io/07-pod-restore-plugin", newPodRestorePlugin).
 		RegisterRestoreItemAction("openshift.io/08-deploymentconfig-restore-plugin", newDeploymentConfigRestorePlugin).
+		RegisterBackupItemAction("openshift.io/09-replicationcontroller-backup-plugin", newReplicationControllerBackupPlugin).
 		RegisterRestoreItemAction("openshift.io/09-replicationcontroller-restore-plugin", newReplicationControllerRestorePlugin).
 		RegisterRestoreItemAction("openshift.io/10-job-restore-plugin", newJobRestorePlugin).
 		RegisterRestoreItemAction("openshift.io/11-daemonset-restore-plugin", newDaemonSetRestorePlugin).
+		RegisterBackupItemAction("openshift.io/12-replicaset-backup-plugin", newReplicaSetBackupPlugin).
 		RegisterRestoreItemAction("openshift.io/12-replicaset-restore-plugin", newReplicaSetRestorePlugin).
 		RegisterRestoreItemAction("openshift.io/13-deployment-restore-plugin", newDeploymentRestorePlugin).
 		RegisterRestoreItemAction("openshift.io/14-statefulset-restore-plugin", newStatefulSetRestorePlugin).
@@ -104,8 +106,16 @@ func newPodRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
 	return &pod.RestorePlugin{Log: logger}, nil
 }
 
+func newReplicaSetBackupPlugin(logger logrus.FieldLogger) (interface{}, error) {
+	return &replicaset.BackupPlugin{Log: logger}, nil
+}
+
 func newReplicaSetRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
 	return &replicaset.RestorePlugin{Log: logger}, nil
+}
+
+func newReplicationControllerBackupPlugin(logger logrus.FieldLogger) (interface{}, error) {
+	return &replicationcontroller.BackupPlugin{Log: logger}, nil
 }
 
 func newReplicationControllerRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
