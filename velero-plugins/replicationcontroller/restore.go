@@ -42,10 +42,19 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	if err != nil {
 		return nil, err
 	}
+
+	annotations := replicationController.Annotations
+
 	// Don't restore ReplicationController if owned by DeploymentConfig
 	for i := range ownerRefs {
 		ref := ownerRefs[i]
 		if ref.Kind == "DeploymentConfig" {
+			if _, ok := annotations[common.PausedOwnerRef]; ok {
+				delete(annotations, common.PausedOwnerRef)
+				replicationController.Annotations = annotations
+				continue
+			}
+
 			p.Log.Infof("[replicationcontroller-restore] skipping restore of ReplicationController %s, belongs to DeploymentConfig", replicationController.Name)
 			return velero.NewRestoreItemActionExecuteOutput(input.Item).WithoutRestore(), nil
 		}

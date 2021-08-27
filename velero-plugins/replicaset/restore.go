@@ -42,10 +42,18 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	if err != nil {
 		return nil, err
 	}
-	// Don't restore ReplicaSet if owned by Deployment
+
+	annotations := replicaSet.Annotations
+
+	// Don't restore ReplicaSet if owned by Deployment and the deployment was not paused
 	for i := range ownerRefs {
 		ref := ownerRefs[i]
 		if ref.Kind == "Deployment" {
+			if _, ok := annotations[common.PausedOwnerRef]; ok {
+				delete(annotations, common.PausedOwnerRef)
+				replicaSet.Annotations = annotations
+				continue
+			}
 			p.Log.Infof("[replicaset-restore] skipping restore of ReplicaSet %s, belongs to Deployment", replicaSet.Name)
 			return velero.NewRestoreItemActionExecuteOutput(input.Item).WithoutRestore(), nil
 		}
