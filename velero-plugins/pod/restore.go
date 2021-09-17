@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"k8s.io/utils/pointer"
 	"strings"
 	"time"
 
@@ -63,7 +62,7 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	defaultVolumesToResticFlag := backup.Spec.DefaultVolumesToRestic
 
 	// Check if pod has owner Refs and defaultVolumesToRestic flag as false
-	if len(ownerRefs) > 0 && pod.Annotations[common.ResticBackupAnnotation] == "" && defaultVolumesToResticFlag == pointer.BoolPtr(false) {
+	if len(ownerRefs) > 0 && pod.Annotations[common.ResticBackupAnnotation] == "" && !*defaultVolumesToResticFlag {
 		p.Log.Infof("[pod-restore] skipping restore of pod %s, has owner references and no restic backup", pod.Name)
 		return velero.NewRestoreItemActionExecuteOutput(input.Item).WithoutRestore(), nil
 	}
