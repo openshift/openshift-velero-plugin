@@ -167,7 +167,7 @@ func getBackupStorageLocationForBackup(name string, namespace string) (string, e
 	result := velero.BackupList{}
 
 	if err != nil {
-		panic(err)
+		return "", err
 	}
 	client, err := rest.UnversionedRESTClientFor(&crdConfig)
 	if err != nil {
@@ -190,4 +190,47 @@ func getBackupStorageLocationForBackup(name string, namespace string) (string, e
 		}
 	}
 	return "", errors.New("BackupStorageLocation not found")
+}
+
+// fetches backup for a given backup name
+func GetBackup(name string, namespace string) (*velero.Backup, error) {
+	if name == "" {
+		return nil, errors.New("cannot get backup for an empty name")
+	}
+
+	if namespace == "" {
+		return nil, errors.New("cannot get backup for an empty namespace")
+	}
+
+	config, err := rest.InClusterConfig()
+	crdConfig := *config
+	crdConfig.ContentConfig.GroupVersion = &schema.GroupVersion{Group: "velero.io", Version: "v1"}
+	crdConfig.APIPath = "/apis"
+	crdConfig.NegotiatedSerializer = serializer.NewCodecFactory(scheme.Scheme)
+	crdConfig.UserAgent = rest.DefaultKubernetesUserAgent()
+	result := velero.BackupList{}
+
+	if err != nil {
+		return nil, err
+	}
+	client, err := rest.UnversionedRESTClientFor(&crdConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	err = client.
+		Get().
+		Namespace(namespace).
+		Resource("backups").
+		Do(context.Background()).
+		Into(&result)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(result.Items) == 0 {
+		return nil, errors.New("could not find backup for the given name")
+	}
+
+	return &result.Items[0], nil
 }

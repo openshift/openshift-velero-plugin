@@ -50,8 +50,23 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	if err != nil {
 		return nil, err
 	}
-	// Check if pod has owner Refs
-	if len(ownerRefs) > 0 && pod.Annotations[common.ResticBackupAnnotation] == "" {
+
+	// get backup associated with the restore
+	backupName := input.Restore.Spec.BackupName
+	backup, err := common.GetBackup(backupName, input.Restore.Namespace)
+	if err != nil {
+		p.Log.Infof("[pod-restore] could not fetch backup associated with the restore, got error: %s", err.Error())
+	}
+
+	var defaultVolumesToResticFlag *bool = nil
+
+	if err == nil {
+		// check for default restic flag
+		defaultVolumesToResticFlag = backup.Spec.DefaultVolumesToRestic
+	}
+
+	// Check if pod has owner Refs and defaultVolumesToRestic flag as false/nil
+	if len(ownerRefs) > 0 && pod.Annotations[common.ResticBackupAnnotation] == "" && (defaultVolumesToResticFlag == nil || !*defaultVolumesToResticFlag) {
 		p.Log.Infof("[pod-restore] skipping restore of pod %s, has owner references and no restic backup", pod.Name)
 		return velero.NewRestoreItemActionExecuteOutput(input.Item).WithoutRestore(), nil
 	}
