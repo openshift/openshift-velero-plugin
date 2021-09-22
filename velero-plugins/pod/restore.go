@@ -55,11 +55,15 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	backupName := input.Restore.Spec.BackupName
 	backup, err := common.GetBackup(backupName, input.Restore.Namespace)
 	if err != nil {
-		return nil, err
+		p.Log.Infof("[pod-restore] could not fetch backup associated with the restore, got error: %s", err.Error())
 	}
 
-	// check for default restic flag
-	defaultVolumesToResticFlag := backup.Spec.DefaultVolumesToRestic
+	var defaultVolumesToResticFlag *bool = nil
+
+	if err == nil {
+		// check for default restic flag
+		defaultVolumesToResticFlag = backup.Spec.DefaultVolumesToRestic
+	}
 
 	// Check if pod has owner Refs and defaultVolumesToRestic flag as false/nil
 	if len(ownerRefs) > 0 && pod.Annotations[common.ResticBackupAnnotation] == "" && (defaultVolumesToResticFlag == nil || !*defaultVolumesToResticFlag) {
