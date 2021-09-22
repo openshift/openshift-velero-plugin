@@ -167,7 +167,7 @@ func getBackupStorageLocationForBackup(name string, namespace string) (string, e
 	result := velero.BackupList{}
 
 	if err != nil {
-		panic(err)
+		return "", err
 	}
 	client, err := rest.UnversionedRESTClientFor(&crdConfig)
 	if err != nil {
@@ -198,6 +198,10 @@ func GetBackup(name string, namespace string) (*velero.Backup, error) {
 		return nil, errors.New("cannot get backup for an empty name")
 	}
 
+	if namespace == "" {
+		return nil, errors.New("cannot get backup for an empty namespace")
+	}
+
 	config, err := rest.InClusterConfig()
 	crdConfig := *config
 	crdConfig.ContentConfig.GroupVersion = &schema.GroupVersion{Group: "velero.io", Version: "v1"}
@@ -207,7 +211,7 @@ func GetBackup(name string, namespace string) (*velero.Backup, error) {
 	result := velero.BackupList{}
 
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	client, err := rest.UnversionedRESTClientFor(&crdConfig)
 	if err != nil {
