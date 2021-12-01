@@ -15,9 +15,23 @@ type BackupPlugin struct {
 	Log logrus.FieldLogger
 }
 
-// AppliesTo returns a velero.ResourceSelector that applies to everything.
+// AppliesTo returns a velero.ResourceSelector that applies to the listed resources in the slice.
 func (p *BackupPlugin) AppliesTo() (velero.ResourceSelector, error) {
-	return velero.ResourceSelector{}, nil
+	return velero.ResourceSelector{
+		IncludedResources: []string{
+			"pods",
+			"imagestreams",
+			"imagestreamtags",
+			"deployments",
+			"deploymentconfigs",
+			"jobs",
+			"cronjobs",
+			"statefulsets",
+			"daemonsets",
+			"replicasets",
+			"replicationcontroller",
+			"buildconfigs"},
+	}, nil
 }
 
 // Execute sets a custom annotation on the item being backed up.
