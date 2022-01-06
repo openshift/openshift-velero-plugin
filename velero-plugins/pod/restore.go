@@ -111,8 +111,10 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 		defaultVolumesToResticFlag = backup.Spec.DefaultVolumesToRestic
 	}
 
+	p.Log.Info("[pod-restore] checking if pod has restore hooks")
 	podHasRestoreHooks, err := podHasRestoreHooks(pod, input.Restore.Spec.Hooks.Resources)
 	if err != nil {
+		p.Log.Errorf("[pod-restore] checking if pod has restore hooks failed, got error: %s", err.Error())
 		return nil, err
 	}
 	// Check if pod has owner Refs and defaultVolumesToRestic flag as false/nil
