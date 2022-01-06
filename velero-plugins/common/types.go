@@ -84,3 +84,10 @@ const (
 	MigMigrationLabelKey string = "migration.openshift.io/migrated-by-migmigration"
 	MigPlanLabelKey      string = "migration.openshift.io/migrated-by-migplan"
 )
+
+const (
+	// Post Restore Hook must contain this annotation
+	PostRestoreHookAnnotation string = "post.hook.restore.velero.io/command"
+	//InitContainer restore hook must contain this annotation
+	InitContainerRestoreHookAnnotation string = "init.hook.restore.velero.io/container-image"
+)

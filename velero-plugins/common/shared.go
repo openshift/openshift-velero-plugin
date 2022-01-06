@@ -5,6 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"regexp"
+	"strconv"
+	"strings"
+
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/clients"
 	"github.com/openshift/client-go/route/clientset/versioned/scheme"
 	routev1client "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
@@ -18,9 +22,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	"regexp"
-	"strconv"
-	"strings"
 )
 
 func GetRegistryInfo(major, minor int, log logrus.FieldLogger) (string, error) {
@@ -233,4 +234,13 @@ func GetBackup(name string, namespace string) (*velero.Backup, error) {
 	}
 
 	return &result.Items[0], nil
+}
+
+func StringInSlice(a string, list []string) bool {
+	for _, b := range list {
+		if b == a {
+			return true
+		}
+	}
+	return false
 }
