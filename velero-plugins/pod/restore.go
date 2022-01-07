@@ -54,12 +54,15 @@ func podRestoreHookIncludeResources(pod *corev1API.Pod, restoreHookSpec velerov1
 
 // Check if pod has restore hooks via pod annotations or via restore hook rules
 func podHasRestoreHooks(pod corev1API.Pod, resources []velerov1.RestoreResourceHookSpec) (bool, error) {
-    _, postRestoreHookDefined := pod.Annotations[common.PostRestoreHookAnnotation]
+	_, postRestoreHookDefined := pod.Annotations[common.PostRestoreHookAnnotation]
 	_, initContainerRestoreHookDefined := pod.Annotations[common.InitContainerRestoreHookAnnotation]
 	if postRestoreHookDefined || initContainerRestoreHookDefined {
 		return true, nil
 	}
 	for _, restoreHookSpec := range resources {
+		if  len(restoreHookSpec.PostHooks) == 0 {
+			continue
+		}
 		//convert MatchLabels to labels.Selector
 		selector, err := metav1.LabelSelectorAsSelector(restoreHookSpec.LabelSelector)
 		if err != nil {
