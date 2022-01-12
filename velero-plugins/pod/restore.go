@@ -69,6 +69,7 @@ func (p *RestorePlugin) podHasRestoreHooks(pod corev1API.Pod, resources []velero
 	p.Log.Info("[pod-restore] pod has no restore hooks via annotations")
 	
 	for _, restoreHookSpec := range resources {
+		p.Log.Debugf("DEBUG [pod-restore] %v", restoreHookSpec)
 		if  len(restoreHookSpec.PostHooks) == 0 {
 			continue
 		}
