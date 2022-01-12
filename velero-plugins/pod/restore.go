@@ -79,10 +79,8 @@ func (p *RestorePlugin) podHasRestoreHooks(pod corev1API.Pod, resources []velero
 			p.Log.Errorf("[pod-restore] labelselector conversion error: %v", err)
 			return false, err
 		}
-		if  len(restoreHookSpec.PostHooks) > 0 &&
-			p.podRestoreHookIncludeNamespace(&pod, restoreHookSpec) &&
-			p.podRestoreHookIncludeResources(&pod, restoreHookSpec) ||
-			selector.Matches(labels.Set(pod.Labels)) {
+		if  len(restoreHookSpec.PostHooks) > 0 && selector.Matches(labels.Set(pod.Labels)) ||
+			(p.podRestoreHookIncludeNamespace(&pod, restoreHookSpec) &&	p.podRestoreHookIncludeResources(&pod, restoreHookSpec)) {
 			p.Log.Info("[pod-restore] pod has restore hooks via include/exclude rules")
 			return true, nil
 		}
