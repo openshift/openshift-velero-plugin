@@ -32,23 +32,29 @@ func (p *RestorePlugin) AppliesTo() (velero.ResourceSelector, error) {
 }
 
 // Returns true if pod is not excluded by namespace rules
-func podRestoreHookIncludeNamespace(pod *corev1API.Pod, restoreHookSpec velerov1.RestoreResourceHookSpec) bool {
+func (p *RestorePlugin) podRestoreHookIncludeNamespace(pod *corev1API.Pod, restoreHookSpec velerov1.RestoreResourceHookSpec) bool {
 	if len(restoreHookSpec.IncludedNamespaces) == 0 && !common.StringInSlice(pod.Namespace, restoreHookSpec.ExcludedNamespaces) {
+		p.Log.Info("[pod-restore] pod has restore hooks via unspecified included namespaces and is not in excluded namespaces")
 		return true
 	}
 	if common.StringInSlice(pod.Namespace, restoreHookSpec.IncludedNamespaces) {
+		p.Log.Info("[pod-restore] pod has restore hooks via included namespaces")
 		return true
 	}
+	p.Log.Info("[pod-restore] pod has no restore hooks via included/exclude namespaces")
 	return false
 }
 
-func podRestoreHookIncludeResources(pod *corev1API.Pod, restoreHookSpec velerov1.RestoreResourceHookSpec) bool {
+func (p *RestorePlugin) podRestoreHookIncludeResources(pod *corev1API.Pod, restoreHookSpec velerov1.RestoreResourceHookSpec) bool {
 	if len(restoreHookSpec.IncludedResources) == 0 && !common.StringInSlice(pod.Name, restoreHookSpec.ExcludedResources) {
+		p.Log.Info("[pod-restore] pod has restore hooks via unspecified included resources and is not in excluded resources")
 		return true
 	}
 	if common.StringInSlice(pod.Name, restoreHookSpec.IncludedResources) {
+		p.Log.Info("[pod-restore] pod has restore hooks via included resources")
 		return true
 	}
+	p.Log.Info("[pod-restore] pod has no restore hooks via included/exclude resources")
 	return false
 }
 
@@ -60,6 +66,8 @@ func (p *RestorePlugin) podHasRestoreHooks(pod corev1API.Pod, resources []velero
 		p.Log.Info("[pod-restore] pod has restore hooks via annotations")
 		return true, nil
 	}
+	p.Log.Info("[pod-restore] pod has no restore hooks via annotations")
+	
 	for _, restoreHookSpec := range resources {
 		if  len(restoreHookSpec.PostHooks) == 0 {
 			continue
@@ -71,8 +79,8 @@ func (p *RestorePlugin) podHasRestoreHooks(pod corev1API.Pod, resources []velero
 			return false, err
 		}
 		if  len(restoreHookSpec.PostHooks) > 0 &&
-			podRestoreHookIncludeNamespace(&pod, restoreHookSpec) &&
-			podRestoreHookIncludeResources(&pod, restoreHookSpec) ||
+			p.podRestoreHookIncludeNamespace(&pod, restoreHookSpec) &&
+			p.podRestoreHookIncludeResources(&pod, restoreHookSpec) ||
 			selector.Matches(labels.Set(pod.Labels)) {
 			p.Log.Info("[pod-restore] pod has restore hooks via include/exclude rules")
 			return true, nil
