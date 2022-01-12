@@ -62,7 +62,9 @@ func (p *RestorePlugin) podHasRestoreHooks(pod corev1API.Pod, resources []velero
 			Resources: collections.NewIncludesExcludes().Includes(restoreHookSpec.IncludedResources...).Excludes(restoreHookSpec.ExcludedResources...),
 			LabelSelector: restoreHookLabelSelector,
 		}
-		return restoreHookSelector.ApplicableTo(kuberesource.Pods, pod.Namespace, pod.Labels), nil
+		if restoreHookSelector.ApplicableTo(kuberesource.Pods, pod.Namespace, pod.Labels) {
+			return true, nil
+		}
 	}
 	p.Log.Info("[pod-restore] pod has no restore hooks")
 	return false, nil
