@@ -121,7 +121,7 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 		return nil, err
 	}
 	// Check if pod has owner Refs and defaultVolumesToRestic flag as false/nil
-	if len(ownerRefs) > 0 && pod.Annotations[common.ResticBackupAnnotation] == "" && (defaultVolumesToResticFlag == nil || !*defaultVolumesToResticFlag)   && !podHasRestoreHooks {
+	if (len(ownerRefs) > 0 && pod.Annotations[common.ResticBackupAnnotation] == "" && (defaultVolumesToResticFlag == nil || !*defaultVolumesToResticFlag))   && !podHasRestoreHooks {
 		p.Log.Infof("[pod-restore] skipping restore of pod %s, has owner references, no restic backup, and no restore hooks", pod.Name)
 		return velero.NewRestoreItemActionExecuteOutput(input.Item).WithoutRestore(), nil
 	}
