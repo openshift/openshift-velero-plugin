@@ -12,13 +12,13 @@ import (
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/common"
 	"github.com/sirupsen/logrus"
 	velerov1 "github.com/vmware-tanzu/velero/pkg/apis/velero/v1"
+	"github.com/vmware-tanzu/velero/pkg/kuberesource"
 	"github.com/vmware-tanzu/velero/pkg/plugin/velero"
 	"github.com/vmware-tanzu/velero/pkg/util/collections"
 	corev1API "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 // RestorePlugin is a restore item action plugin for Velero
@@ -42,10 +42,6 @@ func (p *RestorePlugin) podHasRestoreHooks(pod corev1API.Pod, resources []velero
 		return true, nil
 	}
 	p.Log.Info("[pod-restore] pod has no restore hooks via annotations")
-	groupResource := schema.GroupResource{
-		Group:    pod.GroupVersionKind().Group,
-		Resource: pod.GroupVersionKind().Kind,
-	}
 	for _, restoreHookSpec := range resources {
 		p.Log.Infof("[pod-restore] hook spec: %v", restoreHookSpec)
 		if  len(restoreHookSpec.PostHooks) == 0 {
@@ -66,7 +62,7 @@ func (p *RestorePlugin) podHasRestoreHooks(pod corev1API.Pod, resources []velero
 			Resources: collections.NewIncludesExcludes().Includes(restoreHookSpec.IncludedResources...).Excludes(restoreHookSpec.ExcludedResources...),
 			LabelSelector: restoreHookLabelSelector,
 		}
-		return restoreHookSelector.ApplicableTo(groupResource, pod.Namespace, pod.Labels), nil
+		return restoreHookSelector.ApplicableTo(kuberesource.Pods, pod.Namespace, pod.Labels), nil
 	}
 	p.Log.Info("[pod-restore] pod has no restore hooks")
 	return false, nil
