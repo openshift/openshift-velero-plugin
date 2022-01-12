@@ -79,8 +79,8 @@ func (p *RestorePlugin) podHasRestoreHooks(pod corev1API.Pod, resources []velero
 			p.Log.Errorf("[pod-restore] labelselector conversion error: %v", err)
 			return false, err
 		}
-		if  len(restoreHookSpec.PostHooks) > 0 && selector.Matches(labels.Set(pod.Labels)) ||
-			(p.podRestoreHookIncludeNamespace(&pod, restoreHookSpec) &&	p.podRestoreHookIncludeResources(&pod, restoreHookSpec)) {
+		if  len(restoreHookSpec.PostHooks) > 0 && selector.Matches(labels.Set(pod.Labels)) &&
+			p.podRestoreHookIncludeNamespace(&pod, restoreHookSpec) &&	p.podRestoreHookIncludeResources(&pod, restoreHookSpec) {
 			p.Log.Info("[pod-restore] pod has restore hooks via include/exclude rules")
 			return true, nil
 		}
@@ -125,11 +125,14 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 		defaultVolumesToResticFlag = backup.Spec.DefaultVolumesToRestic
 	}
 
+	podHasRestoreHooks := false
 	p.Log.Info("[pod-restore] checking if pod has restore hooks")
-	podHasRestoreHooks, err := p.podHasRestoreHooks(pod, input.Restore.Spec.Hooks.Resources)
-	if err != nil {
-		p.Log.Errorf("[pod-restore] checking if pod has restore hooks failed, got error: %s", err.Error())
-		return nil, err
+	if input.Restore.Spec.Hooks != nil && input.Restore.Spec.Hooks.Resources != nil {
+		podHasRestoreHooks, err = p.podHasRestoreHooks(pod, input.Restore.Spec.Hooks.Resources)
+		if err != nil {
+			p.Log.Errorf("[pod-restore] checking if pod has restore hooks failed, got error: %s", err.Error())
+			return nil, err
+		}
 	}
 	// Check if pod has owner Refs and defaultVolumesToRestic flag as false/nil
 	if (len(ownerRefs) > 0 && pod.Annotations[common.ResticBackupAnnotation] == "" && (defaultVolumesToResticFlag == nil || !*defaultVolumesToResticFlag))   && !podHasRestoreHooks {
