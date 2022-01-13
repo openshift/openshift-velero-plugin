@@ -11,10 +11,14 @@ import (
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/clients"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/common"
 	"github.com/sirupsen/logrus"
+	velerov1 "github.com/vmware-tanzu/velero/pkg/apis/velero/v1"
+	"github.com/vmware-tanzu/velero/pkg/kuberesource"
 	"github.com/vmware-tanzu/velero/pkg/plugin/velero"
+	"github.com/vmware-tanzu/velero/pkg/util/collections"
 	corev1API "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/labels"
 )
 
 // RestorePlugin is a restore item action plugin for Velero
@@ -27,6 +31,43 @@ func (p *RestorePlugin) AppliesTo() (velero.ResourceSelector, error) {
 	return velero.ResourceSelector{
 		IncludedResources: []string{"pods"},
 	}, nil
+}
+
+// Check if pod has restore hooks via pod annotations or via restore hook rules
+func (p *RestorePlugin) podHasRestoreHooks(pod corev1API.Pod, resources []velerov1.RestoreResourceHookSpec) (bool, error) {
+	_, postRestoreHookDefined := pod.Annotations[common.PostRestoreHookAnnotation]
+	_, initContainerRestoreHookDefined := pod.Annotations[common.InitContainerRestoreHookAnnotation]
+	if postRestoreHookDefined || initContainerRestoreHookDefined {
+		p.Log.Info("[pod-restore] pod has restore hooks via annotations")
+		return true, nil
+	}
+	p.Log.Info("[pod-restore] pod has no restore hooks via annotations")
+	for _, restoreHookSpec := range resources {
+		p.Log.Infof("[pod-restore] hook spec: %v", restoreHookSpec)
+		if  len(restoreHookSpec.PostHooks) == 0 {
+			continue
+		}
+		//convert MatchLabels to labels.Selector
+		var restoreHookLabelSelector labels.Selector
+		var err error
+		if restoreHookSpec.LabelSelector != nil {
+			restoreHookLabelSelector, err = metav1.LabelSelectorAsSelector(restoreHookSpec.LabelSelector)
+			if err != nil {
+				p.Log.Errorf("[pod-restore] restore hook labelSelector conversion error: %v", err)
+				return false, err
+			}
+		}
+		restoreHookSelector := common.ResourceHookSelector{
+			Namespaces: collections.NewIncludesExcludes().Includes(restoreHookSpec.IncludedNamespaces...).Excludes(restoreHookSpec.ExcludedNamespaces...),
+			Resources: collections.NewIncludesExcludes().Includes(restoreHookSpec.IncludedResources...).Excludes(restoreHookSpec.ExcludedResources...),
+			LabelSelector: restoreHookLabelSelector,
+		}
+		if restoreHookSelector.ApplicableTo(kuberesource.Pods, pod.Namespace, pod.Labels) {
+			return true, nil
+		}
+	}
+	p.Log.Info("[pod-restore] pod has no restore hooks")
+	return false, nil
 }
 
 // Execute action for the restore plugin for the pod resource
@@ -65,9 +106,18 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 		defaultVolumesToResticFlag = backup.Spec.DefaultVolumesToRestic
 	}
 
+	podHasRestoreHooks := false
+	p.Log.Info("[pod-restore] checking if pod has restore hooks")
+	if input.Restore.Spec.Hooks.Resources != nil {
+		podHasRestoreHooks, err = p.podHasRestoreHooks(pod, input.Restore.Spec.Hooks.Resources)
+		if err != nil {
+			p.Log.Errorf("[pod-restore] checking if pod has restore hooks failed, got error: %s", err.Error())
+			return nil, err
+		}
+	}
 	// Check if pod has owner Refs and defaultVolumesToRestic flag as false/nil
-	if len(ownerRefs) > 0 && pod.Annotations[common.ResticBackupAnnotation] == "" && (defaultVolumesToResticFlag == nil || !*defaultVolumesToResticFlag) {
-		p.Log.Infof("[pod-restore] skipping restore of pod %s, has owner references and no restic backup", pod.Name)
+	if (len(ownerRefs) > 0 && pod.Annotations[common.ResticBackupAnnotation] == "" && (defaultVolumesToResticFlag == nil || !*defaultVolumesToResticFlag))   && !podHasRestoreHooks {
+		p.Log.Infof("[pod-restore] skipping restore of pod %s, has owner references, no restic backup, and no restore hooks", pod.Name)
 		return velero.NewRestoreItemActionExecuteOutput(input.Item).WithoutRestore(), nil
 	}
 
