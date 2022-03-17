@@ -229,11 +229,12 @@ func GetBackup(name string, namespace string) (*velero.Backup, error) {
 		return nil, err
 	}
 
-	if len(result.Items) == 0 {
-		return nil, errors.New("could not find backup for the given name")
+	for _, backup := range result.Items {
+		if backup.Name == name {
+			return &backup, nil
+		}
 	}
-
-	return &result.Items[0], nil
+	return nil, errors.New("cannot find backup for the given name")
 }
 
 func StringInSlice(a string, list []string) bool {
