@@ -15,7 +15,7 @@ require (
 	github.com/openshift/library-go v0.0.0-20200521120150-e4959e210d3a
 	github.com/pquerna/ffjson v0.0.0-20190813045741-dac163c6c0a9 // indirect
 	github.com/sirupsen/logrus v1.8.1
-	github.com/stretchr/testify v1.7.0
+	github.com/stretchr/testify v1.7.1
 	github.com/vbauerster/mpb/v5 v5.2.2 // indirect
 	github.com/vmware-tanzu/velero v1.6.2
 	k8s.io/api v0.20.7
