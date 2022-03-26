@@ -14,7 +14,6 @@ import (
 	"github.com/vmware-tanzu/velero/pkg/plugin/velero"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-
 )
 
 // BackupPlugin is a backup item action plugin for Velero
@@ -41,12 +40,9 @@ func (p *BackupPlugin) Execute(item runtime.Unstructured, backup *v1.Backup) (ru
 		annotations = make(map[string]string)
 	}
 	// clear out any previous istag annotations from old migrations
-	if _, found := annotations[common.RelatedIsTagAnnotation]; found {
-		delete(annotations, common.RelatedIsTagAnnotation)
-	}
-	if _, found := annotations[common.RelatedIsTagNsAnnotation]; found {
-		delete(annotations, common.RelatedIsTagNsAnnotation)
-	}
+	delete(annotations, common.RelatedIsTagAnnotation)
+	delete(annotations, common.RelatedIsTagNsAnnotation)
+	
 	p.Log.Info(fmt.Sprintf("[istag-backup] Backing up imagestreamtag %s", imageStreamTag.Name))
 
 	referenceTag := imageStreamTag.Tag != nil && imageStreamTag.Tag.From != nil
