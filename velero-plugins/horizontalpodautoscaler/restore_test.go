@@ -13,5 +13,5 @@ func TestRestorePluginAppliesTo(t *testing.T) {
 	restorePlugin := &RestorePlugin{Log: test.NewLogger()}
 	actual, err := restorePlugin.AppliesTo()
 	require.NoError(t, err)
-	assert.Equal(t, velero.ResourceSelector{IncludedResources: []string{"horizontalpodautocalers"}}, actual)
+	assert.Equal(t, velero.ResourceSelector{IncludedResources: []string{"horizontalpodautoscalers"}}, actual)
 }

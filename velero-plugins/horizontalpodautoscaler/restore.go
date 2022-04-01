@@ -19,7 +19,7 @@ type RestorePlugin struct {
 // AppliesTo returns a velero.ResourceSelector that applies to everything
 func (p *RestorePlugin) AppliesTo() (velero.ResourceSelector, error) {
 	return velero.ResourceSelector{
-		IncludedResources: []string{"horizontalautoscalers"},
+		IncludedResources: []string{"horizontalpodautoscalers"},
 	}, nil
 }
 
