@@ -41,7 +41,8 @@ func (p *RestorePlugin) AppliesTo() (velero.ResourceSelector, error) {
 			"replicasets.extensions",
 			"replicationcontroller",
 			"buildconfigs",
-			"buildconfigs.build.openshift.io"},
+			"buildconfigs.build.openshift.io",
+			"horizontalpodautoscalers"},
 	}, nil
 }
 
