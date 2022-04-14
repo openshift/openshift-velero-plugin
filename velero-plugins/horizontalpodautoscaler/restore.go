@@ -48,7 +48,7 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 		}
 	}
 
-	p.Log.Info("[hpa-restore] Route has statically-defined host so leaving as-is")
+	p.Log.Info("[hpa-restore] ScaleTargetRef not a DeploymentConfig, leaving as-is")
 
 	return velero.NewRestoreItemActionExecuteOutput(input.Item), nil
 }
