@@ -18,6 +18,9 @@ require (
 	k8s.io/client-go v0.20.7
 )
 
+// CVE-2021-41190
+replace github.com/opencontainers/image-spec => github.com/opencontainers/image-spec v1.0.2-0.20211123152302-43a7dee1ec31
+
 // CVE-2021-3121
 replace github.com/gogo/protobuf => github.com/gogo/protobuf v1.3.2
 
