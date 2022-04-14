@@ -23,7 +23,7 @@ func (p *RestorePlugin) AppliesTo() (velero.ResourceSelector, error) {
 	}, nil
 }
 
-// Execute fixes the route path on restore to use the target cluster's domain name
+// Execute fixes apiVersion in ScaleTargetRef of HPA 
 func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*velero.RestoreItemActionExecuteOutput, error) {
 	p.Log.Info("[hpa-restore] Entering HorizontalPodAutoscaler restore plugin")
 	hpa := v2beta1.HorizontalPodAutoscaler{}
