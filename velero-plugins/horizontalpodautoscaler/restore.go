@@ -23,7 +23,7 @@ func (p *RestorePlugin) AppliesTo() (velero.ResourceSelector, error) {
 	}, nil
 }
 
-// Execute fixes apiVersion in ScaleTargetRef of HPA 
+// Execute fixes apiVersion in ScaleTargetRef of HPA
 func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*velero.RestoreItemActionExecuteOutput, error) {
 	p.Log.Info("[hpa-restore] Entering HorizontalPodAutoscaler restore plugin")
 	hpa := v2beta1.HorizontalPodAutoscaler{}
@@ -33,7 +33,8 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	if (v2beta1.CrossVersionObjectReference{}) != hpa.Spec.ScaleTargetRef {
 		gv, err := schema.ParseGroupVersion(hpa.Spec.ScaleTargetRef.APIVersion)
 		if err != nil {
-			return velero.NewRestoreItemActionExecuteOutput(input.Item), nil
+			p.Log.Error("[hpa-restore] error parsing API version of spec.scaleTargetRef: ", err)
+			return nil, err
 		}
 
 		if gv == (schema.GroupVersion{Group: "", Version: "v1"}) && hpa.Spec.ScaleTargetRef.Kind == "DeploymentConfig" {
