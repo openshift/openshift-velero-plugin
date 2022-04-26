@@ -134,9 +134,10 @@ func GetServerVersion() (int, int, error) {
 // Takes Namesapce where the operator resides, name of the BackupStorageLocation and name of configMap as input and returns the Route of backup registry.
 func getOADPRegistryRoute(uid types.UID, namespace string, location string, configMap string) (string, error) {
 
-	registryTmpFilename := fmt.Sprintf("/tmp/openshift.io/velero-plugin/%s/%s/%s/%s", uid, namespace, location, configMap)
+	registryTmpFilePath := fmt.Sprintf("/tmp/openshift.io/velero-plugin/%s/%s/%s/%s/", uid, namespace, location, configMap)
+	registryTmpFileName := "registry.txt"
 	// retrieve registry hostname from temporary file
-	tmpSpecHost, err := os.ReadFile(registryTmpFilename)
+	tmpSpecHost, err := os.ReadFile(registryTmpFilePath + registryTmpFileName)
 	if err == nil && len(tmpSpecHost) > 0 {
 		return string(tmpSpecHost), nil
 	}
@@ -167,9 +168,17 @@ func getOADPRegistryRoute(uid types.UID, namespace string, location string, conf
 	}
 
 	// save the registry hostname to a temporary file
-	err = os.WriteFile(registryTmpFilename, []byte(route.Spec.Host), 0644)
+	err = os.MkdirAll(registryTmpFilePath, 0755)
 	if err != nil {
-		return "failed to save registry hostname to temporary file", err
+		return "failed to create directory", err
+	}
+	osFile, err := os.Create(registryTmpFilePath + registryTmpFileName)
+	if err != nil {
+		return "failed to create temporary file", err
+	}
+	_, err = osFile.Write([]byte(route.Spec.Host))
+	if err != nil {
+		return "failed to write registry hostname to temporary file", err
 	}
 	return route.Spec.Host, nil
 }
