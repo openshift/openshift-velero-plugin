@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -20,6 +21,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
@@ -130,7 +132,14 @@ func GetServerVersion() (int, int, error) {
 }
 
 // Takes Namesapce where the operator resides, name of the BackupStorageLocation and name of configMap as input and returns the Route of backup registry.
-func getOADPRegistryRoute(namespace string, location string, configMap string) (string, error) {
+func getOADPRegistryRoute(uid types.UID, namespace string, location string, configMap string) (string, error) {
+
+	registryTmpFilename := fmt.Sprintf("/tmp/openshift.io/velero-plugin/%s/%s/%s/%s", uid, namespace, location, configMap)
+	// retrieve registry hostname from temporary file
+	if tmpSpecHost, err := os.ReadFile(registryTmpFilename); err == nil && len(tmpSpecHost) > 0 {
+		return string(tmpSpecHost), nil
+	}
+
 
 	config, err := rest.InClusterConfig()
 	if err != nil {
@@ -153,6 +162,12 @@ func getOADPRegistryRoute(namespace string, location string, configMap string) (
 	route, err := routeClient.Get(context.Background(), mapClient.Data[location], metav1.GetOptions{})
 	if err != nil {
 		return "failed to find OADP registry route", err
+	}
+
+	// save the registry hostname to a temporary file
+	err = os.WriteFile(registryTmpFilename, []byte(route.Spec.Host), 0644)
+	if err != nil {
+		return "failed to save registry hostname to temporary file", err
 	}
 	return route.Spec.Host, nil
 }

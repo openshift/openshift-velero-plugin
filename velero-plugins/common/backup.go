@@ -70,7 +70,7 @@ func (p *BackupPlugin) Execute(item runtime.Unstructured, backup *v1.Backup) (ru
 
 	if backup.Labels[MigrationApplicationLabelKey] != MigrationApplicationLabelValue {
 		// if the current workflow is not CAM(i.e B/R) then get the backup registry route and set the same on annotation to use in plugins.
-		backupRegistryRoute, err := getOADPRegistryRoute(backup.Namespace, backup.Spec.StorageLocation, RegistryConfigMap)
+		backupRegistryRoute, err := getOADPRegistryRoute(backup.GetUID(), backup.Namespace, backup.Spec.StorageLocation, RegistryConfigMap)
 		if err != nil {
 			p.Log.Info(fmt.Sprintf("[common-backup] Error in getting route: %s. Assuming this is outside of OADP context.", err))
 			annotations[SkipImageCopy] = "true"
