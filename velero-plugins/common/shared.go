@@ -136,9 +136,11 @@ func getOADPRegistryRoute(uid types.UID, namespace string, location string, conf
 
 	registryTmpFilename := fmt.Sprintf("/tmp/openshift.io/velero-plugin/%s/%s/%s/%s", uid, namespace, location, configMap)
 	// retrieve registry hostname from temporary file
-	if tmpSpecHost, err := os.ReadFile(registryTmpFilename); err == nil && len(tmpSpecHost) > 0 {
+	tmpSpecHost, err := os.ReadFile(registryTmpFilename)
+	if err == nil && len(tmpSpecHost) > 0 {
 		return string(tmpSpecHost), nil
 	}
+	err = nil // reset error
 
 
 	config, err := rest.InClusterConfig()
