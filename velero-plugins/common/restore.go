@@ -76,7 +76,7 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 		}
 		tempRegistry, err := getOADPRegistryRoute(input.Restore.GetUID(), input.Restore.Namespace, backupLocation, RegistryConfigMap)
 		if err != nil {
-			p.Log.Info("[common-restore] Error getting registry route, assuming this is outside of OADP context.")
+			p.Log.Info(fmt.Sprintf("[common-restore] Error in getting route: %s, got %s. Assuming this is outside of OADP context.", err, tempRegistry))
 			annotations[SkipImageCopy] = "true"
 		} else {
 			annotations[MigrationRegistry] = tempRegistry
