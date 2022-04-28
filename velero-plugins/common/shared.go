@@ -26,7 +26,34 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-func GetRegistryInfo(major, minor int, log logrus.FieldLogger) (string, error) {
+const tmpOADPPath = "/tmp/openshift.io/velero-plugin"
+
+func writeByteToDirPath(dirPath string, fileName string, data []byte) error {
+	err := os.MkdirAll(dirPath, 0755)
+	if err != nil {
+		return err
+	}
+	file, err := os.Create(dirPath + "/" + fileName)
+	if err != nil {
+		return err
+	}
+	_, err = file.Write(data)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func GetRegistryInfo(uid types.UID, major, minor int, log logrus.FieldLogger) (string, error) {
+	registryInfoTmpFilePath := fmt.Sprintf("%s/%s/%s/", tmpOADPPath, uid, "registry-info")
+	registryInfoTmpFileName := "registry-info.txt"
+	registryInfoByte, err := os.ReadFile(registryInfoTmpFilePath + registryInfoTmpFileName)
+	if err == nil {
+		return string(registryInfoByte), nil
+	}
+	err = nil // reset err
+
+
 	imageClient, err := clients.ImageClient()
 	if err != nil {
 		return "", err
@@ -37,6 +64,10 @@ func GetRegistryInfo(major, minor int, log logrus.FieldLogger) (string, error) {
 			ref, err := reference.Parse(value)
 			if err == nil {
 				log.Info("[GetRegistryInfo] value from imagestream")
+				err := writeByteToDirPath(registryInfoTmpFilePath, registryInfoTmpFileName, []byte(ref.Registry))
+				if err != nil {
+					return "", err
+				}
 				return ref.Registry, nil
 			}
 		}
@@ -60,6 +91,10 @@ func GetRegistryInfo(major, minor int, log logrus.FieldLogger) (string, error) {
 		}
 		internalRegistry := registrySvc.Spec.ClusterIP + ":" + strconv.Itoa(int(registrySvc.Spec.Ports[0].Port))
 		log.Info("[GetRegistryInfo] value from clusterIP")
+		err = writeByteToDirPath(registryInfoTmpFilePath, registryInfoTmpFileName, []byte(internalRegistry))
+		if err != nil {
+			return "", err
+		}
 		return internalRegistry, nil
 	} else {
 		config, err := cClient.ConfigMaps("openshift-apiserver").Get(context.Background(), "config", metav1.GetOptions{})
@@ -73,9 +108,17 @@ func GetRegistryInfo(major, minor int, log logrus.FieldLogger) (string, error) {
 		}
 		internalRegistry := serverConfig.ImagePolicyConfig.InternalRegistryHostname
 		if len(internalRegistry) == 0 {
+			err = writeByteToDirPath(registryInfoTmpFilePath, registryInfoTmpFileName, []byte(""))
+			if err != nil {
+				return "", err
+			}
 			return "", nil
 		}
 		log.Info("[GetRegistryInfo] value from clusterIP")
+		err = writeByteToDirPath(registryInfoTmpFilePath, registryInfoTmpFileName, []byte(internalRegistry))
+		if err != nil {
+			return "", err
+		}
 		return internalRegistry, nil
 	}
 }
@@ -96,6 +139,24 @@ func getMetadataAndAnnotations(item runtime.Unstructured) (metav1.Object, map[st
 
 // returns major, minor versions for kube
 func GetServerVersion() (int, int, error) {
+	// save server version to tmp file
+	serverVersionTmpFilePath := tmpOADPPath + "/server-version/"
+	serverVersionTmpFileNameMajor := "major.txt"
+	serverVersionTmpFileNameMinor := "minor.txt"
+	majorByte, errMajorByte := os.ReadFile(serverVersionTmpFilePath + serverVersionTmpFileNameMajor)
+	minorByte, errMinorByte := os.ReadFile(serverVersionTmpFilePath + serverVersionTmpFileNameMinor)
+	if errMajorByte == nil && errMinorByte == nil {
+		major, errMajor := strconv.Atoi(string(majorByte))
+		if errMajor != nil {
+			return 0, 0, errMajor
+		}
+		minor, errMinor := strconv.Atoi(string(minorByte))
+		if errMinor != nil {
+			return 0, 0, errMinor
+		}
+		return major, minor, nil
+	}
+
 	client, err := clients.DiscoveryClient()
 	if err != nil {
 		return 0, 0, err
@@ -128,13 +189,23 @@ func GetServerVersion() (int, int, error) {
 		}
 	}
 
+	// save server version to tmp file
+	err = writeByteToDirPath(serverVersionTmpFilePath, serverVersionTmpFileNameMajor, []byte(strconv.Itoa(major)))
+	if err != nil {
+		return 0, 0, err
+	}
+	err = writeByteToDirPath(serverVersionTmpFilePath, serverVersionTmpFileNameMinor, []byte(strconv.Itoa(minor)))
+	if err != nil {
+		return 0, 0, err
+	}
+
 	return major, minor, nil
 }
 
 // Takes Namesapce where the operator resides, name of the BackupStorageLocation and name of configMap as input and returns the Route of backup registry.
 func getOADPRegistryRoute(uid types.UID, namespace string, location string, configMap string) (string, error) {
 
-	registryTmpFilePath := fmt.Sprintf("/tmp/openshift.io/velero-plugin/%s/%s/%s/%s/", uid, namespace, location, configMap)
+	registryTmpFilePath := fmt.Sprintf("%s/%s/%s/%s/%s/%s/", tmpOADPPath, uid, "registry-route",namespace, location, configMap)
 	registryTmpFileName := "registry.txt"
 	// retrieve registry hostname from temporary file
 	tmpSpecHost, err := os.ReadFile(registryTmpFilePath + registryTmpFileName)
@@ -168,23 +239,24 @@ func getOADPRegistryRoute(uid types.UID, namespace string, location string, conf
 	}
 
 	// save the registry hostname to a temporary file
-	err = os.MkdirAll(registryTmpFilePath, 0755)
+	err = writeByteToDirPath(registryTmpFilePath, registryTmpFileName, []byte(route.Spec.Host))
 	if err != nil {
-		return "failed to create directory", err
-	}
-	osFile, err := os.Create(registryTmpFilePath + registryTmpFileName)
-	if err != nil {
-		return "failed to create temporary file", err
-	}
-	_, err = osFile.Write([]byte(route.Spec.Host))
-	if err != nil {
-		return "failed to write registry hostname to temporary file", err
+		return "", err
 	}
 	return route.Spec.Host, nil
 }
 
 // Takes Backup Name an Namespace where the operator resides and returns the name of the BackupStorageLocation
-func getBackupStorageLocationForBackup(name string, namespace string) (string, error) {
+func getBackupStorageLocationForBackup(uid types.UID, name string, namespace string) (string, error) {
+	bslTmpFilePath := fmt.Sprintf("%s/%s/%s/%s/%s/", tmpOADPPath, uid, "backup-storage-location", namespace, name)
+	bslTmpFileName := "bsl.txt"
+	// retrieve bsl for backup from temporary file
+	bslForBackupFromTmp, err := os.ReadFile(bslTmpFilePath + bslTmpFileName)
+	if err == nil && len(bslForBackupFromTmp) > 0 {
+		return string(bslForBackupFromTmp), nil
+	}
+	err = nil // reset error
+
 	config, err := rest.InClusterConfig()
 	crdConfig := *config
 	crdConfig.ContentConfig.GroupVersion = &schema.GroupVersion{Group: "velero.io", Version: "v1"}
@@ -213,6 +285,11 @@ func getBackupStorageLocationForBackup(name string, namespace string) (string, e
 
 	for _, element := range result.Items {
 		if element.Name == name {
+			// save the bsl for backup to a temporary file
+			err = writeByteToDirPath(bslTmpFilePath, bslTmpFileName, []byte(element.Spec.StorageLocation))
+			if err != nil {
+				return "", err
+			}
 			return element.Spec.StorageLocation, nil
 		}
 	}
@@ -220,7 +297,21 @@ func getBackupStorageLocationForBackup(name string, namespace string) (string, e
 }
 
 // fetches backup for a given backup name
-func GetBackup(name string, namespace string) (*velero.Backup, error) {
+func GetBackup(uid types.UID, name string, namespace string) (*velero.Backup, error) {
+	// this function is only used by pod/restore.go to check for backup.Spec.DefaultVolumesToRestic. We can cache this
+	backupTmpFilePath := fmt.Sprintf("%s/%s/%s/%s/%s/", tmpOADPPath, uid, "backup", namespace, name)
+	backupTmpFileName := "backup.txt"
+	// retrieve backup from temporary file
+	backupFromTmp, err := os.ReadFile(backupTmpFilePath + backupTmpFileName)
+	if err == nil && len(backupFromTmp) > 0 {
+		backup := velero.Backup{}
+		if err := json.Unmarshal(backupFromTmp, &backup); err != nil {
+			return nil, err
+		}
+		return &backup, nil
+	}
+	err = nil // reset error
+
 	if name == "" {
 		return nil, errors.New("cannot get backup for an empty name")
 	}
@@ -257,6 +348,16 @@ func GetBackup(name string, namespace string) (*velero.Backup, error) {
 
 	for _, backup := range result.Items {
 		if backup.Name == name {
+			backupBytes, err := json.Marshal(backup)
+			if err != nil {
+				return nil, err
+			}
+			// save the backup to a temporary file
+			err = writeByteToDirPath(backupTmpFilePath, backupTmpFileName, backupBytes)
+			if err != nil {
+				return nil, err
+			}
+
 			return &backup, nil
 		}
 	}

@@ -62,7 +62,7 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	}
 
 	annotations[RestoreServerVersion] = fmt.Sprintf("%v.%v", major, minor)
-	registryHostname, err := GetRegistryInfo(major, minor, p.Log)
+	registryHostname, err := GetRegistryInfo(input.Restore.GetUID() , major, minor, p.Log)
 	if err != nil {
 		return nil, err
 	}
@@ -70,7 +70,7 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 
 	if input.Restore.Labels[MigrationApplicationLabelKey] != MigrationApplicationLabelValue {
 		// if the current workflow is not CAM(i.e B/R) then get the backup registry route and set the same on annotation to use in plugins.
-		backupLocation, err := getBackupStorageLocationForBackup(input.Restore.Spec.BackupName, input.Restore.Namespace)
+		backupLocation, err := getBackupStorageLocationForBackup(input.Restore.GetUID(), input.Restore.Spec.BackupName, input.Restore.Namespace)
 		if err != nil {
 			return nil, err
 		}
