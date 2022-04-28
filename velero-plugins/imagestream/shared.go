@@ -1,13 +1,30 @@
 package imagestream
 
 import (
+	"encoding/json"
 	"errors"
+	"os"
+
 	"github.com/containers/image/v5/types"
+	"github.com/konveyor/openshift-velero-plugin/velero-plugins/common"
+	k8stypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
 )
 
 
-func internalRegistrySystemContext() (*types.SystemContext, error) {
+func internalRegistrySystemContext(uid k8stypes.UID) (*types.SystemContext, error) {
+	internalRegistrySystemContextFilePath := common.TmpOADPPath + "/" + string(uid) + "/" + "internal-registry-system-context"
+	internalRegistrySystemContextFileName := "internal-registry-system-context.txt"
+	systemContextBytes, err := os.ReadFile(internalRegistrySystemContextFilePath + "/" + internalRegistrySystemContextFileName)
+	if err == nil {
+		systemContext := types.SystemContext{}
+		err := json.Unmarshal(systemContextBytes, &systemContext)
+		if err == nil {
+			return &systemContext, nil
+		}
+	}
+
+
 	config, err := rest.InClusterConfig()
 	if err != nil {
 		return nil, err
@@ -23,6 +40,14 @@ func internalRegistrySystemContext() (*types.SystemContext, error) {
 			Username: "ignored",
 			Password: config.BearerToken,
 		},
+	}
+	systemContextBytes, err = json.Marshal(ctx)
+	if err != nil {
+		return nil, err
+	}
+	err = common.WriteByteToDirPath(internalRegistrySystemContextFilePath, internalRegistrySystemContextFileName, systemContextBytes)
+	if err != nil {
+		return nil, err
 	}
 	return ctx, nil
 }
