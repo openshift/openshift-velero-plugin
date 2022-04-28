@@ -68,22 +68,7 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	}
 	annotations[RestoreRegistryHostname] = registryHostname
 
-	if input.Restore.Labels[MigrationApplicationLabelKey] != MigrationApplicationLabelValue {
-		// if the current workflow is not CAM(i.e B/R) then get the backup registry route and set the same on annotation to use in plugins.
-		backupLocation, err := getBackupStorageLocationForBackup(input.Restore.GetUID(), input.Restore.Spec.BackupName, input.Restore.Namespace)
-		if err != nil {
-			return nil, err
-		}
-		tempRegistry, err := getOADPRegistryRoute(input.Restore.GetUID(), input.Restore.Namespace, backupLocation, RegistryConfigMap)
-		if err != nil {
-			p.Log.Info(fmt.Sprintf("[common-restore] Error in getting route: %s, got %s. Assuming this is outside of OADP context.", err, tempRegistry))
-			annotations[SkipImageCopy] = "true"
-		} else {
-			annotations[MigrationRegistry] = tempRegistry
-		}
-	} else {
-		// if the current workflow is CAM then get migration registry from backup object and set the same on annotation to use in plugins.
-		annotations[MigrationRegistry] = input.Restore.Annotations[MigrationRegistry]
+	if input.Restore.Labels[MigrationApplicationLabelKey] == MigrationApplicationLabelValue {
 
 		// Set migmigration and migplan labels on all resources, except ServiceAccounts
 		switch input.Item.DeepCopyObject().(type) {
