@@ -2,13 +2,9 @@ package imagestream
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
-	"fmt"
-	"os"
 
 	"github.com/containers/image/v5/types"
-	"github.com/konveyor/openshift-velero-plugin/velero-plugins/common"
 	"github.com/openshift/client-go/route/clientset/versioned/scheme"
 	routev1client "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
 	velero "github.com/vmware-tanzu/velero/pkg/apis/velero/v1"
@@ -20,17 +16,16 @@ import (
 	"k8s.io/client-go/rest"
 )
 
+var (
+	internalRegistrySystemContextVar *types.SystemContext
+	oadpRegistryRoute *string
+	bslNameForBackup map[k8stypes.UID]string
+)
+	
 
 func internalRegistrySystemContext(uid k8stypes.UID) (*types.SystemContext, error) {
-	internalRegistrySystemContextFilePath := common.TmpOADPPath + "/" + string(uid) + "/" + "internal-registry-system-context"
-	internalRegistrySystemContextFileName := "internal-registry-system-context.txt"
-	systemContextBytes, err := os.ReadFile(internalRegistrySystemContextFilePath + "/" + internalRegistrySystemContextFileName)
-	if err == nil {
-		systemContext := types.SystemContext{}
-		err := json.Unmarshal(systemContextBytes, &systemContext)
-		if err == nil {
-			return &systemContext, nil
-		}
+	if internalRegistrySystemContextVar != nil {
+		return internalRegistrySystemContextVar, nil
 	}
 
 
@@ -50,14 +45,7 @@ func internalRegistrySystemContext(uid k8stypes.UID) (*types.SystemContext, erro
 			Password: config.BearerToken,
 		},
 	}
-	systemContextBytes, err = json.Marshal(ctx)
-	if err != nil {
-		return nil, err
-	}
-	err = common.WriteByteToDirPath(internalRegistrySystemContextFilePath, internalRegistrySystemContextFileName, systemContextBytes)
-	if err != nil {
-		return nil, err
-	}
+	internalRegistrySystemContextVar = ctx // cache the system context
 	return ctx, nil
 }
 
@@ -72,15 +60,9 @@ func migrationRegistrySystemContext() (*types.SystemContext, error) {
 
 // Takes Namesapce where the operator resides, name of the BackupStorageLocation and name of configMap as input and returns the Route of backup registry.
 func getOADPRegistryRoute(uid k8stypes.UID, namespace string, location string, configMap string) (string, error) {
-
-	registryTmpFilePath := fmt.Sprintf("%s/%s/%s/%s/%s/%s/", common.TmpOADPPath, uid, "registry-route",namespace, location, configMap)
-	registryTmpFileName := "registry.txt"
-	// retrieve registry hostname from temporary file
-	tmpSpecHost, err := os.ReadFile(registryTmpFilePath + registryTmpFileName)
-	if err == nil && len(tmpSpecHost) > 0 {
-		return string(tmpSpecHost), nil
+	if oadpRegistryRoute != nil {
+		return *oadpRegistryRoute, nil
 	}
-	err = nil // reset error
 
 
 	config, err := rest.InClusterConfig()
@@ -107,23 +89,17 @@ func getOADPRegistryRoute(uid k8stypes.UID, namespace string, location string, c
 	}
 
 	// save the registry hostname to a temporary file
-	err = common.WriteByteToDirPath(registryTmpFilePath, registryTmpFileName, []byte(route.Spec.Host))
-	if err != nil {
-		return "", err
-	}
+	oadpRegistryRoute = &route.Spec.Host
 	return route.Spec.Host, nil
 }
 
 // Takes Backup Name an Namespace where the operator resides and returns the name of the BackupStorageLocation
 func getBackupStorageLocationForBackup(uid k8stypes.UID, name string, namespace string) (string, error) {
-	bslTmpFilePath := fmt.Sprintf("%s/%s/%s/%s/%s/", common.TmpOADPPath, uid, "backup-storage-location", namespace, name)
-	bslTmpFileName := "bsl.txt"
-	// retrieve bsl for backup from temporary file
-	bslForBackupFromTmp, err := os.ReadFile(bslTmpFilePath + bslTmpFileName)
-	if err == nil && len(bslForBackupFromTmp) > 0 {
-		return string(bslForBackupFromTmp), nil
+	if bslNameForBackup != nil {
+		return bslNameForBackup[uid], nil
+	} else {
+		bslNameForBackup = make(map[k8stypes.UID]string)
 	}
-	err = nil // reset error
 
 	config, err := rest.InClusterConfig()
 	crdConfig := *config
@@ -153,11 +129,7 @@ func getBackupStorageLocationForBackup(uid k8stypes.UID, name string, namespace 
 
 	for _, element := range result.Items {
 		if element.Name == name {
-			// save the bsl for backup to a temporary file
-			err = common.WriteByteToDirPath(bslTmpFilePath, bslTmpFileName, []byte(element.Spec.StorageLocation))
-			if err != nil {
-				return "", err
-			}
+			bslNameForBackup[uid] = element.Spec.StorageLocation
 			return element.Spec.StorageLocation, nil
 		}
 	}

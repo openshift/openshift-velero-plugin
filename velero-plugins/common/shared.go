@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -23,34 +22,21 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
 )
+var (
+	registryInfo *string
+	serverVersion *serverVersionStruct
+	backupMap map[types.UID]velero.Backup
+)
 
-const TmpOADPPath = "/tmp/openshift.io/velero-plugin"
-
-func WriteByteToDirPath(dirPath string, fileName string, data []byte) error {
-	err := os.MkdirAll(dirPath, 0755)
-	if err != nil {
-		return err
-	}
-	file, err := os.Create(dirPath + "/" + fileName)
-	if err != nil {
-		return err
-	}
-	_, err = file.Write(data)
-	if err != nil {
-		return err
-	}
-	return nil
+type serverVersionStruct struct {
+	Major int
+	Minor int
 }
 
-func GetRegistryInfo(uid types.UID, major, minor int, log logrus.FieldLogger) (string, error) {
-	registryInfoTmpFilePath := fmt.Sprintf("%s/%s/%s/", TmpOADPPath, uid, "registry-info")
-	registryInfoTmpFileName := "registry-info.txt"
-	registryInfoByte, err := os.ReadFile(registryInfoTmpFilePath + registryInfoTmpFileName)
-	if err == nil {
-		return string(registryInfoByte), nil
+func GetRegistryInfo(log logrus.FieldLogger) (string, error) {
+	if registryInfo != nil {
+		return *registryInfo, nil //use cache
 	}
-	err = nil // reset err
-
 
 	imageClient, err := clients.ImageClient()
 	if err != nil {
@@ -62,13 +48,15 @@ func GetRegistryInfo(uid types.UID, major, minor int, log logrus.FieldLogger) (s
 			ref, err := reference.Parse(value)
 			if err == nil {
 				log.Info("[GetRegistryInfo] value from imagestream")
-				err := WriteByteToDirPath(registryInfoTmpFilePath, registryInfoTmpFileName, []byte(ref.Registry))
-				if err != nil {
-					return "", err
-				}
+				registryInfo = StringPtr(ref.Registry) //save cache
 				return ref.Registry, nil
 			}
 		}
+	}
+
+	major, minor, err := GetServerVersion()
+	if err != nil {
+		return "", err
 	}
 
 	if major != 1 {
@@ -85,14 +73,12 @@ func GetRegistryInfo(uid types.UID, major, minor int, log logrus.FieldLogger) (s
 		registrySvc, err := cClient.Services("default").Get(context.Background(), "docker-registry", metav1.GetOptions{})
 		if err != nil {
 			// Return empty registry host but no error; registry not found
+			registryInfo = StringPtr("")
 			return "", nil
 		}
 		internalRegistry := registrySvc.Spec.ClusterIP + ":" + strconv.Itoa(int(registrySvc.Spec.Ports[0].Port))
+		registryInfo = &internalRegistry //save cache
 		log.Info("[GetRegistryInfo] value from clusterIP")
-		err = WriteByteToDirPath(registryInfoTmpFilePath, registryInfoTmpFileName, []byte(internalRegistry))
-		if err != nil {
-			return "", err
-		}
 		return internalRegistry, nil
 	} else {
 		config, err := cClient.ConfigMaps("openshift-apiserver").Get(context.Background(), "config", metav1.GetOptions{})
@@ -105,18 +91,11 @@ func GetRegistryInfo(uid types.UID, major, minor int, log logrus.FieldLogger) (s
 			return "", err
 		}
 		internalRegistry := serverConfig.ImagePolicyConfig.InternalRegistryHostname
+		registryInfo = &internalRegistry //save cache
 		if len(internalRegistry) == 0 {
-			err = WriteByteToDirPath(registryInfoTmpFilePath, registryInfoTmpFileName, []byte(""))
-			if err != nil {
-				return "", err
-			}
 			return "", nil
 		}
 		log.Info("[GetRegistryInfo] value from clusterIP")
-		err = WriteByteToDirPath(registryInfoTmpFilePath, registryInfoTmpFileName, []byte(internalRegistry))
-		if err != nil {
-			return "", err
-		}
 		return internalRegistry, nil
 	}
 }
@@ -138,17 +117,8 @@ func getMetadataAndAnnotations(item runtime.Unstructured) (metav1.Object, map[st
 // returns major, minor versions for kube
 func GetServerVersion() (int, int, error) {
 	// save server version to tmp file
-	serverVersionTmpFilePath := TmpOADPPath + "/server-version/"
-	serverVersionTmpFileNameMajor := "major.txt"
-	serverVersionTmpFileNameMinor := "minor.txt"
-	majorByte, errMajorByte := os.ReadFile(serverVersionTmpFilePath + serverVersionTmpFileNameMajor)
-	minorByte, errMinorByte := os.ReadFile(serverVersionTmpFilePath + serverVersionTmpFileNameMinor)
-	if errMajorByte == nil && errMinorByte == nil {
-		major, errMajor := strconv.Atoi(string(majorByte))
-		minor, errMinor := strconv.Atoi(string(minorByte))
-		if errMajor == nil && errMinor == nil {
-			return major, minor, nil
-		}
+	if serverVersion != nil {
+		return serverVersion.Major, serverVersion.Minor, nil
 	}
 
 	client, err := clients.DiscoveryClient()
@@ -183,15 +153,7 @@ func GetServerVersion() (int, int, error) {
 		}
 	}
 
-	// save server version to tmp file
-	err = WriteByteToDirPath(serverVersionTmpFilePath, serverVersionTmpFileNameMajor, []byte(strconv.Itoa(major)))
-	if err != nil {
-		return 0, 0, err
-	}
-	err = WriteByteToDirPath(serverVersionTmpFilePath, serverVersionTmpFileNameMinor, []byte(strconv.Itoa(minor)))
-	if err != nil {
-		return 0, 0, err
-	}
+	serverVersion = &serverVersionStruct{Major: major, Minor: minor} //save cache
 
 	return major, minor, nil
 }
@@ -199,18 +161,14 @@ func GetServerVersion() (int, int, error) {
 // fetches backup for a given backup name
 func GetBackup(uid types.UID, name string, namespace string) (*velero.Backup, error) {
 	// this function is only used by pod/restore.go to check for backup.Spec.DefaultVolumesToRestic. We can cache this
-	backupTmpFilePath := fmt.Sprintf("%s/%s/%s/%s/%s/", TmpOADPPath, uid, "backup", namespace, name)
-	backupTmpFileName := "backup.txt"
-	// retrieve backup from temporary file
-	backupFromTmp, err := os.ReadFile(backupTmpFilePath + backupTmpFileName)
-	if err == nil && len(backupFromTmp) > 0 {
-		backup := velero.Backup{}
-		if err := json.Unmarshal(backupFromTmp, &backup); err != nil {
-			return nil, err
+	// value in backupMap for performance.
+	if backupMap == nil {
+		backupMap = make(map[types.UID]velero.Backup)
+	} else {
+		if backup, ok := backupMap[uid]; ok && backup.Name == name && backup.Namespace == namespace {
+			return &backup, nil
 		}
-		return &backup, nil
 	}
-	err = nil // reset error
 
 	if name == "" {
 		return nil, errors.New("cannot get backup for an empty name")
@@ -248,15 +206,7 @@ func GetBackup(uid types.UID, name string, namespace string) (*velero.Backup, er
 
 	for _, backup := range result.Items {
 		if backup.Name == name {
-			backupBytes, err := json.Marshal(backup)
-			if err != nil {
-				return nil, err
-			}
-			// save the backup to a temporary file
-			err = WriteByteToDirPath(backupTmpFilePath, backupTmpFileName, backupBytes)
-			if err != nil {
-				return nil, err
-			}
+			backupMap[uid] = backup // save cache
 
 			return &backup, nil
 		}
@@ -271,4 +221,8 @@ func StringInSlice(a string, list []string) bool {
 		}
 	}
 	return false
+}
+
+func StringPtr(s string) *string {
+	return &s
 }
