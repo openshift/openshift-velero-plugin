@@ -2,10 +2,12 @@ package deploymentconfig
 
 import (
 	"encoding/json"
+	"strconv"
 
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/common"
 	appsv1API "github.com/openshift/api/apps/v1"
 	"github.com/sirupsen/logrus"
+	"github.com/vmware-tanzu/velero/pkg/label"
 	"github.com/vmware-tanzu/velero/pkg/plugin/velero"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
@@ -52,6 +54,36 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 				deploymentConfig.Spec.Triggers[i].ImageChangeParams.From.Namespace = newNamespace
 			}
 		}
+	}
+
+	// Set replicas to 0 if defaultVolumesToRestic is true
+
+	// get backup associated with the restore
+	backupName := input.Restore.Spec.BackupName
+	backup, err := common.GetBackup(input.Restore.GetUID(), backupName, input.Restore.Namespace)
+	if err != nil {
+		p.Log.Infof("[deploymentconfig-restore] could not fetch backup associated with the restore, got error: %s", err.Error())
+	}
+	var defaultVolumesToResticFlag *bool = nil
+	if err == nil {
+		// check for default restic flag
+		defaultVolumesToResticFlag = backup.Spec.DefaultVolumesToRestic
+	}
+	if deploymentConfig.Spec.Replicas > 0 &&
+		defaultVolumesToResticFlag != nil && *defaultVolumesToResticFlag {
+		if deploymentConfig.Annotations == nil {
+			deploymentConfig.Annotations = make(map[string]string)
+		}
+		deploymentConfig.Annotations[common.DCOriginalReplicas] = strconv.FormatInt(int64(deploymentConfig.Spec.Replicas), 10)
+		deploymentConfig.Annotations[common.DCOriginalPaused] = strconv.FormatBool(deploymentConfig.Spec.Paused)
+		deploymentConfig.Spec.Replicas = 0
+		deploymentConfig.Spec.Paused = false
+		if deploymentConfig.Labels == nil {
+			deploymentConfig.Labels = make(map[string]string)
+		}
+		labelVal := label.GetValidName(input.Restore.Name)
+		deploymentConfig.Labels[common.DCReplicasModifiedLabel] = labelVal
+		p.Log.Infof("[deploymentconfig-restore] scaling down deploymentconfig, setting original-replicas, original-paused annotations to %ss,%s, setting replicas-modified label to %s", deploymentConfig.Annotations[common.DCOriginalReplicas], deploymentConfig.Annotations[common.DCOriginalPaused], labelVal)
 	}
 
 	var out map[string]interface{}
