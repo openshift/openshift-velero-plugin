@@ -10,14 +10,14 @@ type RestorePlugin struct {
 	Log logrus.FieldLogger
 }
 
-// AppliesTo returns a velero.ResourceSelector that applies to secrets
+// AppliesTo returns a velero.ResourceSelector that applies to imagetags
 func (p *RestorePlugin) AppliesTo() (velero.ResourceSelector, error) {
 	return velero.ResourceSelector{
 		IncludedResources: []string{"imagetags"},
 	}, nil
 }
 
-// Execute action for the restore plugin for the secret resource
+// Execute action for the restore plugin for the imagetag resource
 func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*velero.RestoreItemActionExecuteOutput, error) {
 
 	p.Log.Infof("[imagetag-restore] skipping restore of imagetag")
