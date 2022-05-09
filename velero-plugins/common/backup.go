@@ -48,6 +48,7 @@ func (p *BackupPlugin) AppliesTo() (velero.ResourceSelector, error) {
 }
 
 // Execute sets a custom annotation on the item being backed up.
+// Finds OADP Registry to copy images to and set as migrationRegistry.
 func (p *BackupPlugin) Execute(item runtime.Unstructured, backup *v1.Backup) (runtime.Unstructured, []velero.ResourceIdentifier, error) {
 	p.Log.Info("[common-backup] Entering common backup plugin")
 
