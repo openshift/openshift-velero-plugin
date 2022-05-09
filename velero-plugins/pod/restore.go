@@ -94,7 +94,7 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 
 	// get backup associated with the restore
 	backupName := input.Restore.Spec.BackupName
-	backup, err := common.GetBackup(backupName, input.Restore.Namespace)
+	backup, err := common.GetBackup(input.Restore.GetUID(), backupName, input.Restore.Namespace)
 	if err != nil {
 		p.Log.Infof("[pod-restore] could not fetch backup associated with the restore, got error: %s", err.Error())
 	}
