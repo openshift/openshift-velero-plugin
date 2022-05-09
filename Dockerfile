@@ -22,5 +22,5 @@ RUN go build -installsuffix "static" -tags "$BUILDTAGS" -o _output/$BIN ./$BIN
 FROM registry.access.redhat.com/ubi8-minimal
 RUN mkdir /plugins
 COPY --from=builder /opt/app-root/src/github.com/konveyor/openshift-velero-plugin/_output/$BIN /plugins/
-USER nobody:nobody
+USER 65534:65534
 ENTRYPOINT ["/bin/bash", "-c", "cp /plugins/* /target/."]
