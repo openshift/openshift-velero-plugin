@@ -3,6 +3,9 @@ package imagestream
 import (
 	"context"
 	"errors"
+	"log"
+	"os"
+	"strings"
 
 	"github.com/containers/image/v5/types"
 	"github.com/openshift/client-go/route/clientset/versioned/scheme"
@@ -63,8 +66,11 @@ func getOADPRegistryRoute(uid k8stypes.UID, namespace string, location string, c
 	if oadpRegistryRoute != nil {
 		return *oadpRegistryRoute, nil
 	}
-
-
+	if os.Getenv("OADP_VELERO_POD_REGISTRY_ENABLED") == "true" {
+		route := "localhost:" + os.Getenv("OADP_REGISTRY_BSL_" + strings.ToUpper(location))
+		log.Println("OADP_VELERO_POD_REGISTRY_ENABLED is true, using " + route)
+		return route, nil
+	}
 	config, err := rest.InClusterConfig()
 	if err != nil {
 		return "cannot load in-cluster config", err
