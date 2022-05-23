@@ -18,7 +18,7 @@ import (
 
 var (
 	internalRegistrySystemContextVar *types.SystemContext
-	oadpRegistryRoute *string
+	oadpRegistryRoute map[k8stypes.UID]*string
 	bslNameForBackup map[k8stypes.UID]string
 )
 	
@@ -60,10 +60,9 @@ func migrationRegistrySystemContext() (*types.SystemContext, error) {
 
 // Takes Namesapce where the operator resides, name of the BackupStorageLocation and name of configMap as input and returns the Route of backup registry.
 func getOADPRegistryRoute(uid k8stypes.UID, namespace string, location string, configMap string) (string, error) {
-	if oadpRegistryRoute != nil {
-		return *oadpRegistryRoute, nil
+	if route, found := oadpRegistryRoute[uid]; found && route != nil {
+		return *route, nil
 	}
-
 
 	config, err := rest.InClusterConfig()
 	if err != nil {
@@ -89,7 +88,7 @@ func getOADPRegistryRoute(uid k8stypes.UID, namespace string, location string, c
 	}
 
 	// save the registry hostname to a temporary file
-	oadpRegistryRoute = &route.Spec.Host
+	oadpRegistryRoute[uid] = &route.Spec.Host
 	return route.Spec.Host, nil
 }
 
