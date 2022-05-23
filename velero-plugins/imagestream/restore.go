@@ -5,8 +5,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/bombsimon/logrusr"
+	"github.com/bombsimon/logrusr/v3"
 	"github.com/containers/image/v5/copy"
+	"github.com/kaovilai/udistribution/pkg/image/udistribution"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/common"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/imagecopy"
 	imagev1API "github.com/openshift/api/image/v1"
@@ -38,20 +39,32 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	if annotations == nil {
 		annotations = make(map[string]string)
 	}
-
+	var ut *udistribution.UdistributionTransport
 	if input.Restore.Labels[common.MigrationApplicationLabelKey] != common.MigrationApplicationLabelValue {
 		// if the current workflow is not CAM(i.e B/R) then get the backup registry route and set the same on annotation to use in plugins.
-		backupLocation, err := getBackupStorageLocationForBackup(input.Restore.GetUID(), input.Restore.Spec.BackupName, input.Restore.Namespace)
+		backupLocation, err := common.GetBackup(input.Restore.GetUID(), input.Restore.Spec.BackupName, input.Restore.Namespace)
 		if err != nil {
 			return nil, err
 		}
-		tempRegistry, err := getOADPRegistryRoute(input.Restore.GetUID(), input.Restore.Namespace, backupLocation, common.RegistryConfigMap)
-		if err != nil {
-			p.Log.Info(fmt.Sprintf("[common-restore] Error in getting route: %s, got %s. Assuming this is outside of OADP context.", err, tempRegistry))
-			annotations[common.SkipImageCopy] = "true"
+		if imagecopy.UsePluginRegistry(){
+			var err error
+			p.Log.Info(fmt.Sprintf("[is-restore] Getting UdistributionTransportForLocation(%s, namespace: %s)", backupLocation.Spec.StorageLocation, backupLocation.Namespace))
+			ut, err = GetUdistributionTransportForLocation(backupLocation.GetUID(), backupLocation.Spec.StorageLocation, backupLocation.Namespace, p.Log)
+			if err != nil {
+				return nil, err
+			}
+			p.Log.Info(fmt.Sprintf("[is-restore] migrationRegistry: %s)", fmt.Sprintf("%s%s", imagecopy.BSLRoutePrefix,  GetUdistributionKey(backupLocation.Spec.StorageLocation, backupLocation.Namespace))))
+			annotations[common.MigrationRegistry] = fmt.Sprintf("%s%s", imagecopy.BSLRoutePrefix,  GetUdistributionKey(backupLocation.Spec.StorageLocation, backupLocation.Namespace))
 		} else {
-			annotations[common.MigrationRegistry] = tempRegistry
+			tempRegistry, err := getOADPRegistryRoute(input.Restore.GetUID(), input.Restore.Namespace, backupLocation.Spec.StorageLocation, common.RegistryConfigMap)
+			if err != nil {
+				p.Log.Info(fmt.Sprintf("[is-restore] Error in getting route: %s, got %s. Assuming this is outside of OADP context.", err, tempRegistry))
+				annotations[common.SkipImageCopy] = "true"
+			} else {
+				annotations[common.MigrationRegistry] = tempRegistry
+			}
 		}
+		
 	} else {
 		// if the current workflow is CAM then get migration registry from backup object and set the same on annotation to use in plugins.
 		annotations[common.MigrationRegistry] = input.Restore.Annotations[common.MigrationRegistry]
@@ -92,22 +105,25 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	if err != nil {
 		return nil, err
 	}
-	destinationCtx, err := internalRegistrySystemContext(input.Restore.GetUID())
+	destinationCtx, err := internalRegistrySystemContext()
 	if err != nil {
 		return nil, err
 	}
 	err = imagecopy.CopyLocalImageStreamImages(
 		imageStreamUnmodified,
-		backupInternalRegistry,
-		migrationRegistry,
-		internalRegistry,
-		destNamespace,
-		&copy.Options{
-			SourceCtx:      sourceCtx,
-			DestinationCtx: destinationCtx,
-		},
-		logrusr.NewLogger(p.Log),
-		false)
+		imagecopy.CopyLocalImageStreamImagesOptions{
+			InternalRegistryPath: backupInternalRegistry,
+			SrcRegistry: migrationRegistry,
+			DestRegistry: internalRegistry,
+			DestNamespace: destNamespace,
+			CopyOptions: &copy.Options{
+							SourceCtx:      sourceCtx,
+							DestinationCtx: destinationCtx,
+						},
+			Log: logrusr.New(p.Log),
+			UpdateDigest: false,
+			Ut: ut,
+		})
 	if err != nil {
 		return nil, err
 	}

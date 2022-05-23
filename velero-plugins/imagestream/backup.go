@@ -5,8 +5,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/bombsimon/logrusr"
+	"github.com/bombsimon/logrusr/v3"
 	"github.com/containers/image/v5/copy"
+	"github.com/kaovilai/udistribution/pkg/image/udistribution"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/common"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/imagecopy"
 	imagev1API "github.com/openshift/api/image/v1"
@@ -40,15 +41,28 @@ func (p *BackupPlugin) Execute(item runtime.Unstructured, backup *v1.Backup) (ru
 	if annotations == nil {
 		annotations = make(map[string]string)
 	}
-
+	var ut *udistribution.UdistributionTransport
 	if backup.Labels[common.MigrationApplicationLabelKey] != common.MigrationApplicationLabelValue {
 		// if the current workflow is not CAM(i.e B/R) then get the backup registry route and set the same on annotation to use in plugins.
-		backupRegistryRoute, err := getOADPRegistryRoute(backup.GetUID(), backup.Namespace, backup.Spec.StorageLocation, common.RegistryConfigMap)
-		if err != nil {
-			p.Log.Info(fmt.Sprintf("[common-backup] Error in getting route: %s, got %s. Assuming this is outside of OADP context.", err, backupRegistryRoute))
-			annotations[common.SkipImageCopy] = "true"
+		if imagecopy.UsePluginRegistry(){
+			var err error
+			p.Log.Info(fmt.Sprintf("[is-backup] Getting UdistributionTransportForLocation(%s, namespace: %s)", backup.Spec.StorageLocation, backup.Namespace))
+			ut, err = GetUdistributionTransportForLocation(backup.GetUID(), backup.Spec.StorageLocation, backup.Namespace, p.Log)
+			if err != nil {
+				// print error with stack trace
+				p.Log.Error(fmt.Sprintf("[is-backup] Error getting UdistributionTransportForLocation: %v", err))
+				return nil, nil, err
+			}
+			p.Log.Info(fmt.Sprintf("[is-backup] migrationRegistry: %s)", fmt.Sprintf("%s%s", imagecopy.BSLRoutePrefix,  GetUdistributionKey(backup.Spec.StorageLocation, backup.Namespace))))
+			annotations[common.MigrationRegistry] = fmt.Sprintf("%s%s", imagecopy.BSLRoutePrefix,  GetUdistributionKey(backup.Spec.StorageLocation, backup.Namespace))
 		} else {
-			annotations[common.MigrationRegistry] = backupRegistryRoute
+			backupRegistryRoute, err := getOADPRegistryRoute(backup.GetUID(), backup.Namespace, backup.Spec.StorageLocation, common.RegistryConfigMap)
+			if err != nil {
+				p.Log.Info(fmt.Sprintf("[is-backup] Error in getting route: %s, got %s. Assuming this is outside of OADP context.", err, backupRegistryRoute))
+				annotations[common.SkipImageCopy] = "true"
+			} else {
+				annotations[common.MigrationRegistry] = backupRegistryRoute
+			}
 		}
 	} else {
 		// if the current workflow is CAM then get migration registry from backup object and set the same on annotation to use in plugins.
@@ -81,7 +95,7 @@ func (p *BackupPlugin) Execute(item runtime.Unstructured, backup *v1.Backup) (ru
 	}
 	p.Log.Info(fmt.Sprintf("[is-backup] internal registry: %#v", internalRegistry))
 
-	sourceCtx, err := internalRegistrySystemContext(backup.GetUID())
+	sourceCtx, err := internalRegistrySystemContext()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -91,16 +105,19 @@ func (p *BackupPlugin) Execute(item runtime.Unstructured, backup *v1.Backup) (ru
 	}
 	err = imagecopy.CopyLocalImageStreamImages(
 		imageStream,
-		internalRegistry,
-		internalRegistry,
-		migrationRegistry,
-		imageStream.Namespace,
-		&copy.Options{
-			SourceCtx:      sourceCtx,
-			DestinationCtx: destinationCtx,
-		},
-		logrusr.NewLogger(p.Log),
-		true)
+		imagecopy.CopyLocalImageStreamImagesOptions{
+			InternalRegistryPath: internalRegistry,
+			SrcRegistry: internalRegistry,
+			DestRegistry: migrationRegistry,
+			DestNamespace: imageStream.Namespace,
+			CopyOptions: &copy.Options{
+							SourceCtx:      sourceCtx,
+							DestinationCtx: destinationCtx,
+						},
+			Log: logrusr.New(p.Log),
+			UpdateDigest: true,
+			Ut: ut,
+		})
 	if err != nil {
 		return nil, nil, err
 	}

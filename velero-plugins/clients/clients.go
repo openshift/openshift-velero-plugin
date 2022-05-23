@@ -32,6 +32,19 @@ var routeClientError error
 var buildClient *buildv1.BuildV1Client
 var buildClientError error
 
+var inClusterConfig *rest.Config
+
+func GetInClusterConfig() (*rest.Config, error) {
+	if inClusterConfig != nil {
+		return inClusterConfig, nil
+	}
+	inClusterConfig, err := rest.InClusterConfig()
+	if err != nil {
+		return nil, err
+	}
+	return inClusterConfig, nil
+}
+
 // CoreClient returns a kubernetes CoreV1Client
 func CoreClient() (*corev1.CoreV1Client, error) {
 	if coreClient == nil && coreClientError == nil {
@@ -41,7 +54,7 @@ func CoreClient() (*corev1.CoreV1Client, error) {
 }
 
 func newCoreClient() (*corev1.CoreV1Client, error) {
-	config, err := rest.InClusterConfig()
+	config, err := GetInClusterConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +74,7 @@ func ImageClient() (*imagev1.ImageV1Client, error) {
 }
 
 func newImageClient() (*imagev1.ImageV1Client, error) {
-	config, err := rest.InClusterConfig()
+	config, err := GetInClusterConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +94,7 @@ func DiscoveryClient() (*discovery.DiscoveryClient, error) {
 }
 
 func newDiscoveryClient() (*discovery.DiscoveryClient, error) {
-	config, err := rest.InClusterConfig()
+	config, err := GetInClusterConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +114,7 @@ func RouteClient() (*routev1.RouteV1Client, error) {
 }
 
 func newRouteClient() (*routev1.RouteV1Client, error) {
-	config, err := rest.InClusterConfig()
+	config, err := GetInClusterConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -121,7 +134,7 @@ func BuildClient() (*buildv1.BuildV1Client, error) {
 }
 
 func newBuildClient() (*buildv1.BuildV1Client, error) {
-	config, err := rest.InClusterConfig()
+	config, err := GetInClusterConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -141,7 +154,7 @@ func AppsClient() (*appsv1.AppsV1Client, error) {
 }
 
 func newAppsClient() (*appsv1.AppsV1Client, error) {
-	config, err := rest.InClusterConfig()
+	config, err := GetInClusterConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -161,7 +174,7 @@ func OCPAppsClient() (*ocpappsv1.AppsV1Client, error) {
 }
 
 func newOCPAppsClient() (*ocpappsv1.AppsV1Client, error) {
-	config, err := rest.InClusterConfig()
+	config, err := GetInClusterConfig()
 	if err != nil {
 		return nil, err
 	}

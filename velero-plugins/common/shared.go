@@ -12,20 +12,25 @@ import (
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/clients"
 	"github.com/openshift/client-go/route/clientset/versioned/scheme"
 	"github.com/openshift/library-go/pkg/image/reference"
+	"github.com/openshift/oadp-operator/api/v1alpha1"
+	"github.com/openshift/oadp-operator/pkg/credentials"
 	"github.com/sirupsen/logrus"
 	velero "github.com/vmware-tanzu/velero/pkg/apis/velero/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/types"
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
 )
 var (
 	registryInfo *string
 	serverVersion *serverVersionStruct
 	backupMap map[types.UID]velero.Backup
+	backupStorageLocationMap map[types.UID]velero.BackupStorageLocation
 )
 
 type serverVersionStruct struct {
@@ -158,6 +163,24 @@ func GetServerVersion() (int, int, error) {
 	return major, minor, nil
 }
 
+func GetVeleroV1Client() (*rest.RESTClient, error) {
+	config, err := clients.GetInClusterConfig()
+	crdConfig := *config
+	crdConfig.ContentConfig.GroupVersion = &schema.GroupVersion{Group: "velero.io", Version: "v1"}
+	crdConfig.APIPath = "/apis"
+	crdConfig.NegotiatedSerializer = serializer.NewCodecFactory(scheme.Scheme)
+	crdConfig.UserAgent = rest.DefaultKubernetesUserAgent()
+
+	if err != nil {
+		return nil, err
+	}
+	client, err := rest.UnversionedRESTClientFor(&crdConfig)
+	if err != nil {
+		return nil, err
+	}
+	return client, nil
+}
+
 // fetches backup for a given backup name
 func GetBackup(uid types.UID, name string, namespace string) (*velero.Backup, error) {
 	// this function is only used by pod/restore.go to check for backup.Spec.DefaultVolumesToRestic. We can cache this
@@ -178,40 +201,23 @@ func GetBackup(uid types.UID, name string, namespace string) (*velero.Backup, er
 		return nil, errors.New("cannot get backup for an empty namespace")
 	}
 
-	config, err := rest.InClusterConfig()
-	crdConfig := *config
-	crdConfig.ContentConfig.GroupVersion = &schema.GroupVersion{Group: "velero.io", Version: "v1"}
-	crdConfig.APIPath = "/apis"
-	crdConfig.NegotiatedSerializer = serializer.NewCodecFactory(scheme.Scheme)
-	crdConfig.UserAgent = rest.DefaultKubernetesUserAgent()
-	result := velero.BackupList{}
-
+	client, err := GetVeleroV1Client()
 	if err != nil {
 		return nil, err
 	}
-	client, err := rest.UnversionedRESTClientFor(&crdConfig)
-	if err != nil {
-		return nil, err
-	}
-
+	result := velero.Backup{}
 	err = client.
 		Get().
 		Namespace(namespace).
 		Resource("backups").
+		Name(name).
 		Do(context.Background()).
 		Into(&result)
 	if err != nil {
 		return nil, err
 	}
-
-	for _, backup := range result.Items {
-		if backup.Name == name {
-			backupMap[uid] = backup // save cache
-
-			return &backup, nil
-		}
-	}
-	return nil, errors.New("cannot find backup for the given name")
+	backupMap[uid] = result // save cache
+	return &result, nil
 }
 
 func StringInSlice(a string, list []string) bool {
@@ -225,4 +231,77 @@ func StringInSlice(a string, list []string) bool {
 
 func StringPtr(s string) *string {
 	return &s
+}
+
+func GetBackupStorageLocationForBackup(uid types.UID, name string, namespace string) (*velero.BackupStorageLocation, error) {
+	b, err := GetBackup(uid, name, namespace)
+	if err != nil {
+		return nil, err
+	}
+	if b.Spec.StorageLocation == "" {
+		return nil, errors.New("backup does not have a storage location")
+	}
+	return GetBackupStorageLocation(b.Spec.StorageLocation, namespace)
+}
+
+func GetBackupStorageLocation(name, namespace string) (*velero.BackupStorageLocation, error) {
+	client, err := GetVeleroV1Client()
+	if err != nil {
+		return nil, err
+	}
+	result := velero.BackupStorageLocation{}
+	err = client.
+		Get().
+		Namespace(namespace).
+		Resource("backupstoragelocations").
+		Name(name).
+		Do(context.Background()).
+		Into(&result)
+	if err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+// Get secret for backup storage location along with key to use to get secret data.
+func GetSecretKeyForBackupStorageLocation(name, namespace string) (*corev1.Secret, string, error) {
+	if name == "" {
+		return nil, "", errors.New("cannot get secret for an empty name")
+	}
+	if namespace == "" {
+		return nil, "", errors.New("cannot get secret for an empty namespace")
+	}
+	bsl, err := GetBackupStorageLocation(name, namespace)
+	if err != nil {
+		return nil, "", err
+	}
+	var sName, sKey string
+	if bsl.Spec.Credential != nil {
+		sName = bsl.Spec.Credential.Name
+		sKey = bsl.Spec.Credential.Key
+	} else {
+		// discover secret name from OADP default for storage location's plugin
+		provider := strings.TrimPrefix(bsl.Spec.Provider, "velero.io/")
+		if psf, found := credentials.PluginSpecificFields[v1alpha1.DefaultPlugin(provider)];
+			found && psf.IsCloudProvider {
+			sName = psf.SecretName
+			sKey = "cloud" // default key
+		}
+	}
+	if sName == "" {
+		return nil, "", errors.New("cannot get secret for a storage location without a credential")
+	}
+	icc, err := clients.GetInClusterConfig()
+	if err != nil {
+		return nil, "", err
+	}
+	cv1c, err := corev1client.NewForConfig(icc)
+	if err != nil {
+		return nil, "", err
+	}
+	secret, err := cv1c.Secrets(namespace).Get(context.Background(), sName, metav1.GetOptions{})
+	if err != nil {
+		return nil, "", err
+	}
+	return secret, sKey, nil
 }
