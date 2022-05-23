@@ -81,7 +81,7 @@ func (p *BackupPlugin) Execute(item runtime.Unstructured, backup *v1.Backup) (ru
 	}
 	p.Log.Info(fmt.Sprintf("[is-backup] internal registry: %#v", internalRegistry))
 
-	sourceCtx, err := internalRegistrySystemContext(backup.GetUID())
+	sourceCtx, err := internalRegistrySystemContext()
 	if err != nil {
 		return nil, nil, err
 	}
