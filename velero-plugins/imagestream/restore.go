@@ -92,7 +92,7 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	if err != nil {
 		return nil, err
 	}
-	destinationCtx, err := internalRegistrySystemContext(input.Restore.GetUID())
+	destinationCtx, err := internalRegistrySystemContext()
 	if err != nil {
 		return nil, err
 	}

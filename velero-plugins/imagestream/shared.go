@@ -23,7 +23,7 @@ var (
 )
 	
 
-func internalRegistrySystemContext(uid k8stypes.UID) (*types.SystemContext, error) {
+func internalRegistrySystemContext() (*types.SystemContext, error) {
 	if internalRegistrySystemContextVar != nil {
 		return internalRegistrySystemContextVar, nil
 	}
