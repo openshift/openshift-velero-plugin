@@ -184,7 +184,7 @@ func GetBackup(uid types.UID, name string, namespace string) (*velero.Backup, er
 	crdConfig.APIPath = "/apis"
 	crdConfig.NegotiatedSerializer = serializer.NewCodecFactory(scheme.Scheme)
 	crdConfig.UserAgent = rest.DefaultKubernetesUserAgent()
-	result := velero.BackupList{}
+	result := velero.Backup{}
 
 	if err != nil {
 		return nil, err
@@ -197,21 +197,15 @@ func GetBackup(uid types.UID, name string, namespace string) (*velero.Backup, er
 	err = client.
 		Get().
 		Namespace(namespace).
-		Resource("backups").
+		Resource("backup").
+		Name(name).
 		Do(context.Background()).
 		Into(&result)
 	if err != nil {
 		return nil, err
 	}
-
-	for _, backup := range result.Items {
-		if backup.Name == name {
-			backupMap[uid] = backup // save cache
-
-			return &backup, nil
-		}
-	}
-	return nil, errors.New("cannot find backup for the given name")
+	backupMap[uid] = result // save cache
+	return &result, nil
 }
 
 func StringInSlice(a string, list []string) bool {
