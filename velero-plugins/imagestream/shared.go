@@ -5,12 +5,12 @@ import (
 	"errors"
 
 	"github.com/containers/image/v5/types"
+	"github.com/konveyor/openshift-velero-plugin/velero-plugins/clients"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/common"
 	routev1client "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8stypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 )
 
 var (
@@ -25,7 +25,7 @@ func internalRegistrySystemContext() (*types.SystemContext, error) {
 	}
 
 
-	config, err := rest.InClusterConfig()
+	config, err := clients.GetInClusterConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +60,7 @@ func getOADPRegistryRoute(uid k8stypes.UID, namespace string, location string, c
 		return *route, nil
 	}
 
-	config, err := rest.InClusterConfig()
+	config, err := clients.GetInClusterConfig()
 	if err != nil {
 		return "cannot load in-cluster config", err
 	}

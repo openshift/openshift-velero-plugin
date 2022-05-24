@@ -178,7 +178,7 @@ func GetBackup(uid types.UID, name string, namespace string) (*velero.Backup, er
 		return nil, errors.New("cannot get backup for an empty namespace")
 	}
 
-	config, err := rest.InClusterConfig()
+	config, err := clients.GetInClusterConfig()
 	crdConfig := *config
 	crdConfig.ContentConfig.GroupVersion = &schema.GroupVersion{Group: "velero.io", Version: "v1"}
 	crdConfig.APIPath = "/apis"
