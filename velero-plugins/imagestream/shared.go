@@ -5,12 +5,9 @@ import (
 	"errors"
 
 	"github.com/containers/image/v5/types"
-	"github.com/openshift/client-go/route/clientset/versioned/scheme"
+	"github.com/konveyor/openshift-velero-plugin/velero-plugins/common"
 	routev1client "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
-	velero "github.com/vmware-tanzu/velero/pkg/apis/velero/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/runtime/serializer"
 	k8stypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -19,7 +16,6 @@ import (
 var (
 	internalRegistrySystemContextVar *types.SystemContext
 	oadpRegistryRoute map[k8stypes.UID]*string
-	bslNameForBackup map[k8stypes.UID]string
 )
 	
 
@@ -94,45 +90,11 @@ func getOADPRegistryRoute(uid k8stypes.UID, namespace string, location string, c
 
 // Takes Backup Name an Namespace where the operator resides and returns the name of the BackupStorageLocation
 func getBackupStorageLocationNameForBackup(uid k8stypes.UID, name string, namespace string) (string, error) {
-	if bslNameForBackup != nil {
-		if _, found := bslNameForBackup[uid]; found {
-			return bslNameForBackup[uid], nil
-		}
-	} else {
-		bslNameForBackup = make(map[k8stypes.UID]string)
-	}
-
-	config, err := rest.InClusterConfig()
-	crdConfig := *config
-	crdConfig.ContentConfig.GroupVersion = &schema.GroupVersion{Group: "velero.io", Version: "v1"}
-	crdConfig.APIPath = "/apis"
-	crdConfig.NegotiatedSerializer = serializer.NewCodecFactory(scheme.Scheme)
-	crdConfig.UserAgent = rest.DefaultKubernetesUserAgent()
-	result := velero.BackupList{}
-
+	b, err := common.GetBackup(uid, name, namespace)
 	if err != nil {
 		return "", err
+	} else if b == nil {
+		return "", errors.New("backup is nil")
 	}
-	client, err := rest.UnversionedRESTClientFor(&crdConfig)
-	if err != nil {
-		return "", err
-	}
-
-	err = client.
-		Get().
-		Namespace(namespace).
-		Resource("backups").
-		Do(context.Background()).
-		Into(&result)
-	if err != nil {
-		return "", err
-	}
-
-	for _, element := range result.Items {
-		if element.Name == name {
-			bslNameForBackup[uid] = element.Spec.StorageLocation
-			return element.Spec.StorageLocation, nil
-		}
-	}
-	return "", errors.New("BackupStorageLocation not found")
+	return b.Spec.StorageLocation, nil
 }
