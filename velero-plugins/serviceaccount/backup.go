@@ -15,7 +15,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/rest"
 )
 
 // BackupPlugin is a backup item action plugin for Heptio Velero.
@@ -147,7 +146,7 @@ func SecurityClient() (*security.SecurityV1Client, error) {
 
 // This should be moved to clients package in future
 func newSecurityClient() (*security.SecurityV1Client, error) {
-	config, err := rest.InClusterConfig()
+	config, err := clients.GetInClusterConfig()
 	if err != nil {
 		return nil, err
 	}
