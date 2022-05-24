@@ -93,9 +93,11 @@ func getOADPRegistryRoute(uid k8stypes.UID, namespace string, location string, c
 }
 
 // Takes Backup Name an Namespace where the operator resides and returns the name of the BackupStorageLocation
-func getBackupStorageLocationForBackup(uid k8stypes.UID, name string, namespace string) (string, error) {
+func getBackupStorageLocationNameForBackup(uid k8stypes.UID, name string, namespace string) (string, error) {
 	if bslNameForBackup != nil {
-		return bslNameForBackup[uid], nil
+		if _, found := bslNameForBackup[uid]; found {
+			return bslNameForBackup[uid], nil
+		}
 	} else {
 		bslNameForBackup = make(map[k8stypes.UID]string)
 	}
