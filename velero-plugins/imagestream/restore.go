@@ -41,7 +41,7 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 
 	if input.Restore.Labels[common.MigrationApplicationLabelKey] != common.MigrationApplicationLabelValue {
 		// if the current workflow is not CAM(i.e B/R) then get the backup registry route and set the same on annotation to use in plugins.
-		backupLocation, err := getBackupStorageLocationForBackup(input.Restore.GetUID(), input.Restore.Spec.BackupName, input.Restore.Namespace)
+		backupLocation, err := getBackupStorageLocationNameForBackup(input.Restore.GetUID(), input.Restore.Spec.BackupName, input.Restore.Namespace)
 		if err != nil {
 			return nil, err
 		}
