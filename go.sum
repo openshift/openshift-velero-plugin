@@ -814,8 +814,8 @@ github.com/jteeuwen/go-bindata v3.0.8-0.20151023091102-a0ff2567cfb7+incompatible
 github.com/jtolds/gls v4.20.0+incompatible/go.mod h1:QJZ7F/aHp+rZTRtaJ1ow/lLfFfVYBRgL+9YlvaHOwJU=
 github.com/julienschmidt/httprouter v1.2.0/go.mod h1:SYymIcj16QtmaHHD7aYtjjsJG7VTCxuUUipMqKk8s4w=
 github.com/julienschmidt/httprouter v1.3.0/go.mod h1:JR6WtHb+2LUe8TCKY3cZOxFyyO8IZAc4RVcycCCAKdM=
-github.com/kaovilai/udistribution v0.0.4 h1:zHFOP1rwZ3m1RI/Ig/TsBRbg6BCY8O6igPJfb1+324s=
-github.com/kaovilai/udistribution v0.0.4/go.mod h1:XfSj7GiYYVZXRKzDk2Qun5lpuhGW9PAyEGs277FIUOQ=
+github.com/kaovilai/udistribution v0.0.5 h1:90JuhEQzPQ1yNtq56rVbxjGndtMcpaSIQSegaxP2qR8=
+github.com/kaovilai/udistribution v0.0.5/go.mod h1:XZqI1ayxgIFIo4wFu1T+PJpNcQSkVvgxx1pEWGfcjbA=
 github.com/kisielk/errcheck v1.2.0/go.mod h1:/BMXB+zMLi60iA8Vv6Ksmxu/1UDYcXs4uQLJ+jE2L00=
 github.com/kisielk/errcheck v1.5.0/go.mod h1:pFxgyoBC7bSaBwPgfKdkLd5X25qrDl4LWUI2bnpBCr8=
 github.com/kisielk/gotool v1.0.0/go.mod h1:XhKaO+MFFWcvkIS/tQcRk01m1F5IRFswLeQ+oQHNcck=
@@ -1065,8 +1065,9 @@ github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZb
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/posener/complete v1.1.1/go.mod h1:em0nMJCgc9GFtwrmVmEMR/ZL6WyhyjMBndrE9hABlRI=
 github.com/pquerna/cachecontrol v0.0.0-20171018203845-0dec1b30a021/go.mod h1:prYjPmNq4d1NPVmpShWobRqXY3q7Vp+80DqgxxUrUIA=
-github.com/proglottis/gpgme v0.1.1 h1:72xI0pt/hy7pqsRxk32KExITkXp+RZErRizsA+up/lQ=
 github.com/proglottis/gpgme v0.1.1/go.mod h1:fPbW/EZ0LvwQtH8Hy7eixhp1eF3G39dtx7GUN+0Gmy0=
+github.com/proglottis/gpgme v0.1.2 h1:dKlhDqJ0kdEt+YHCD8FQEUdF9cJj/+mbJUNyUGNAEzY=
+github.com/proglottis/gpgme v0.1.2/go.mod h1:fPbW/EZ0LvwQtH8Hy7eixhp1eF3G39dtx7GUN+0Gmy0=
 github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.51.2/go.mod h1:3WYi4xqXxGGXWDdQIITnLNmuDzO5n6wYva9spVhR4fg=
 github.com/prometheus/client_golang v0.0.0-20180209125602-c332b6f63c06/go.mod h1:7SWBe2y4D6OKWSNQJUaRYU/AaXPKyh/dDVn+NZz0KFw=
 github.com/prometheus/client_golang v0.9.1/go.mod h1:7SWBe2y4D6OKWSNQJUaRYU/AaXPKyh/dDVn+NZz0KFw=
