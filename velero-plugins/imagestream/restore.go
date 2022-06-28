@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/bombsimon/logrusr"
+	"github.com/bombsimon/logrusr/v3"
 	"github.com/containers/image/v5/copy"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/common"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/imagecopy"
@@ -106,7 +106,7 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 			SourceCtx:      sourceCtx,
 			DestinationCtx: destinationCtx,
 		},
-		logrusr.NewLogger(p.Log),
+		logrusr.New(p.Log),
 		false)
 	if err != nil {
 		return nil, err

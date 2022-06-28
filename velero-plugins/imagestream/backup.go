@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/bombsimon/logrusr"
+	"github.com/bombsimon/logrusr/v3"
 	"github.com/containers/image/v5/copy"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/common"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/imagecopy"
@@ -99,7 +99,7 @@ func (p *BackupPlugin) Execute(item runtime.Unstructured, backup *v1.Backup) (ru
 			SourceCtx:      sourceCtx,
 			DestinationCtx: destinationCtx,
 		},
-		logrusr.NewLogger(p.Log),
+		logrusr.New(p.Log),
 		true)
 	if err != nil {
 		return nil, nil, err
