@@ -54,7 +54,7 @@ func (p *BackupPlugin) Execute(item runtime.Unstructured, backup *v1.Backup) (ru
 				return nil, nil, err
 			}
 			p.Log.Info(fmt.Sprintf("[is-backup] migrationRegistry: %s)", fmt.Sprintf("%s%s", imagecopy.BSLRoutePrefix,  GetUdistributionKey(backup.Spec.StorageLocation, backup.Namespace))))
-			annotations[common.MigrationRegistry] = fmt.Sprintf("%s%s", imagecopy.BSLRoutePrefix,  GetUdistributionKey(backup.Spec.StorageLocation, backup.Namespace))
+			annotations[common.MigrationRegistry] = imagecopy.BSLRoutePrefix
 		} else {
 			backupRegistryRoute, err := getOADPRegistryRoute(backup.GetUID(), backup.Namespace, backup.Spec.StorageLocation, common.RegistryConfigMap)
 			if err != nil {

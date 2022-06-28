@@ -54,7 +54,7 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 				return nil, err
 			}
 			p.Log.Info(fmt.Sprintf("[is-restore] migrationRegistry: %s)", fmt.Sprintf("%s%s", imagecopy.BSLRoutePrefix,  GetUdistributionKey(backupLocation.Spec.StorageLocation, backupLocation.Namespace))))
-			annotations[common.MigrationRegistry] = fmt.Sprintf("%s%s", imagecopy.BSLRoutePrefix,  GetUdistributionKey(backupLocation.Spec.StorageLocation, backupLocation.Namespace))
+			annotations[common.MigrationRegistry] = imagecopy.BSLRoutePrefix
 		} else {
 			tempRegistry, err := getOADPRegistryRoute(input.Restore.GetUID(), input.Restore.Namespace, backupLocation.Spec.StorageLocation, common.RegistryConfigMap)
 			if err != nil {

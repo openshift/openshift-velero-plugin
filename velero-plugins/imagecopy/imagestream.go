@@ -116,6 +116,11 @@ func CopyLocalImageStreamImages(
 				}
 				srcPath += fmt.Sprintf("%s%s", o.SrcRegistry, strings.TrimPrefix(dockerImageReference, o.InternalRegistryPath))
 				destPath += fmt.Sprintf("%s/%s/%s%s", o.DestRegistry, o.DestNamespace, imageStream.Name, destTag)
+				
+				// if src or dest registry is empty (ie. when using udistribution), remove extra '/'
+				srcPath = strings.Replace(srcPath, ":///", "://", -1)
+				destPath = strings.Replace(destPath, ":///", "://", -1)
+
 				o.Log.Info(fmt.Sprintf("[imagecopy] copying from: %s", srcPath))
 				o.Log.Info(fmt.Sprintf("[imagecopy] copying to: %s", destPath))
 
