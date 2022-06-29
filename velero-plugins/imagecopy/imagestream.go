@@ -46,6 +46,14 @@ type CopyLocalImageStreamImagesOptions struct {
 	Ut *udistribution.UdistributionTransport
 }
 
+func (o CopyLocalImageStreamImagesOptions) GetSrcRegistry() string {
+	return o.SrcRegistry
+}
+
+func (o CopyLocalImageStreamImagesOptions) GetDestRegistry() string {
+	return o.DestRegistry
+}
+
 
 // CopyLocalImageStreamImages copies all local images associated with the ImageStream
 // is: ImageStream resource that images are being copied for
@@ -93,14 +101,19 @@ func CopyLocalImageStreamImages(
 				const dockerTransport = "docker://"
 				var (
 					srcPath = ""; destPath = ""
-				) 
-				if strings.HasPrefix(o.SrcRegistry, BSLRoutePrefix) {
+				)
+
+				//copy registry from options for building src/dest path
+				srcPathRegistry := o.GetSrcRegistry()
+				destPathRegistry := o.GetDestRegistry()
+
+				if strings.HasPrefix(srcPathRegistry, BSLRoutePrefix) {
 					if o.Ut == nil {
 						return errors.New("udistribution transport not found")
 					}
 					o.Log.Info(fmt.Sprintf("[imagecopy] copying image from BSL registry: %s", o.Ut.Name()))
 					srcPath += o.Ut.Name() + "://"
-					o.SrcRegistry = strings.TrimPrefix(o.SrcRegistry, BSLRoutePrefix)
+					srcPathRegistry = strings.TrimPrefix(srcPathRegistry, BSLRoutePrefix)
 				} else {
 					srcPath += dockerTransport
 				}
@@ -110,12 +123,12 @@ func CopyLocalImageStreamImages(
 					}
 					o.Log.Info(fmt.Sprintf("[imagecopy] copying image to BSL registry: %s", o.Ut.Name()))
 					destPath += o.Ut.Name() + "://"
-					o.DestRegistry = strings.TrimPrefix(o.DestRegistry, BSLRoutePrefix)
+					destPathRegistry = strings.TrimPrefix(destPathRegistry, BSLRoutePrefix)
 				} else {
 					destPath += dockerTransport
 				}
-				srcPath += fmt.Sprintf("%s%s", o.SrcRegistry, strings.TrimPrefix(dockerImageReference, o.InternalRegistryPath))
-				destPath += fmt.Sprintf("%s/%s/%s%s", o.DestRegistry, o.DestNamespace, imageStream.Name, destTag)
+				srcPath += fmt.Sprintf("%s%s", srcPathRegistry, strings.TrimPrefix(dockerImageReference, o.InternalRegistryPath))
+				destPath += fmt.Sprintf("%s/%s/%s%s", destPathRegistry, o.DestNamespace, imageStream.Name, destTag)
 				
 				// if src or dest registry is empty (ie. when using udistribution), remove extra '/'
 				srcPath = strings.Replace(srcPath, ":///", "://", -1)
