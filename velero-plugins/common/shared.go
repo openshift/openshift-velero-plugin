@@ -197,7 +197,7 @@ func GetBackup(uid types.UID, name string, namespace string) (*velero.Backup, er
 	err = client.
 		Get().
 		Namespace(namespace).
-		Resource("backup").
+		Resource("backups").
 		Name(name).
 		Do(context.Background()).
 		Into(&result)
