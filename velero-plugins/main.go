@@ -9,6 +9,7 @@ import (
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/daemonset"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/deployment"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/deploymentconfig"
+	"github.com/konveyor/openshift-velero-plugin/velero-plugins/horizontalpodautoscaler"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/imagestream"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/imagestreamtag"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/imagetag"
@@ -63,6 +64,7 @@ func main() {
 		RegisterRestoreItemAction("openshift.io/21-role-bindings-restore-plugin", newRoleBindingRestorePlugin).
 		RegisterRestoreItemAction("openshift.io/22-cluster-role-bindings-restore-plugin", newClusterRoleBindingRestorePlugin).
 		RegisterRestoreItemAction("openshift.io/23-imagetag-restore-plugin", newImageTagRestorePlugin).
+		RegisterRestoreItemAction("openshift.io/24-horizontalpodautoscaler-restore-plugin", newHorizontalPodAutoscalerRestorePlugin).
 		Serve()
 }
 
@@ -192,4 +194,8 @@ func newImageStreamTagRestorePlugin(logger logrus.FieldLogger) (interface{}, err
 
 func newImageTagRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
 	return &imagetag.RestorePlugin{Log: logger}, nil
+}
+
+func newHorizontalPodAutoscalerRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
+	return &horizontalpodautoscaler.RestorePlugin{Log: logger}, nil
 }

@@ -41,6 +41,20 @@ func (p *BackupPlugin) Execute(item runtime.Unstructured, backup *v1.Backup) (ru
 		annotations = make(map[string]string)
 	}
 
+	if backup.Labels[common.MigrationApplicationLabelKey] != common.MigrationApplicationLabelValue {
+		// if the current workflow is not CAM(i.e B/R) then get the backup registry route and set the same on annotation to use in plugins.
+		backupRegistryRoute, err := getOADPRegistryRoute(backup.GetUID(), backup.Namespace, backup.Spec.StorageLocation, common.RegistryConfigMap)
+		if err != nil {
+			p.Log.Info(fmt.Sprintf("[common-backup] Error in getting route: %s, got %s. Assuming this is outside of OADP context.", err, backupRegistryRoute))
+			annotations[common.SkipImageCopy] = "true"
+		} else {
+			annotations[common.MigrationRegistry] = backupRegistryRoute
+		}
+	} else {
+		// if the current workflow is CAM then get migration registry from backup object and set the same on annotation to use in plugins.
+		annotations[common.MigrationRegistry] = backup.Annotations[common.MigrationRegistry]
+	}
+
 	if val, ok := backup.Annotations[common.DisableImageCopy]; ok && len(val) != 0 && val == "true" {
 		annotations[common.DisableImageCopy] = val
 		imageStream.Annotations = annotations
@@ -67,7 +81,7 @@ func (p *BackupPlugin) Execute(item runtime.Unstructured, backup *v1.Backup) (ru
 	}
 	p.Log.Info(fmt.Sprintf("[is-backup] internal registry: %#v", internalRegistry))
 
-	sourceCtx, err := internalRegistrySystemContext()
+	sourceCtx, err := internalRegistrySystemContext(backup.GetUID())
 	if err != nil {
 		return nil, nil, err
 	}

@@ -6,14 +6,10 @@ require (
 	github.com/bombsimon/logrusr v1.0.0
 	github.com/containers/image/v5 v5.19.0
 	github.com/go-logr/logr v0.4.0
-	github.com/googleapis/gnostic v0.5.1 // indirect
 	github.com/hashicorp/go-plugin v1.3.0 // indirect
-	github.com/magefile/mage v1.11.0 // indirect
-	github.com/mtrmac/gpgme v0.1.2 // indirect
 	github.com/openshift/api v0.0.0-20210105115604-44119421ec6b
 	github.com/openshift/client-go v0.0.0-20210112165513-ebc401615f47
 	github.com/openshift/library-go v0.0.0-20200521120150-e4959e210d3a
-	github.com/pquerna/ffjson v0.0.0-20190813045741-dac163c6c0a9 // indirect
 	github.com/sirupsen/logrus v1.8.1
 	github.com/stretchr/testify v1.7.1
 	github.com/vbauerster/mpb/v5 v5.2.2 // indirect
@@ -21,8 +17,10 @@ require (
 	k8s.io/api v0.20.7
 	k8s.io/apimachinery v0.20.7
 	k8s.io/client-go v0.20.7
-	sigs.k8s.io/structured-merge-diff/v4 v4.0.3 // indirect
 )
+
+// CVE-2021-41190
+replace github.com/opencontainers/image-spec => github.com/opencontainers/image-spec v1.0.2-0.20211123152302-43a7dee1ec31
 
 // CVE-2021-3121
 replace github.com/gogo/protobuf => github.com/gogo/protobuf v1.3.2

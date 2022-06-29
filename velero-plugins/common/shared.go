@@ -11,7 +11,6 @@ import (
 
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/clients"
 	"github.com/openshift/client-go/route/clientset/versioned/scheme"
-	routev1client "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
 	"github.com/openshift/library-go/pkg/image/reference"
 	"github.com/sirupsen/logrus"
 	velero "github.com/vmware-tanzu/velero/pkg/apis/velero/v1"
@@ -20,11 +19,25 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
-	"k8s.io/client-go/kubernetes"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
 )
+var (
+	registryInfo *string
+	serverVersion *serverVersionStruct
+	backupMap map[types.UID]velero.Backup
+)
 
-func GetRegistryInfo(major, minor int, log logrus.FieldLogger) (string, error) {
+type serverVersionStruct struct {
+	Major int
+	Minor int
+}
+
+func GetRegistryInfo(log logrus.FieldLogger) (string, error) {
+	if registryInfo != nil {
+		return *registryInfo, nil //use cache
+	}
+
 	imageClient, err := clients.ImageClient()
 	if err != nil {
 		return "", err
@@ -35,9 +48,15 @@ func GetRegistryInfo(major, minor int, log logrus.FieldLogger) (string, error) {
 			ref, err := reference.Parse(value)
 			if err == nil {
 				log.Info("[GetRegistryInfo] value from imagestream")
+				registryInfo = StringPtr(ref.Registry) //save cache
 				return ref.Registry, nil
 			}
 		}
+	}
+
+	major, minor, err := GetServerVersion()
+	if err != nil {
+		return "", err
 	}
 
 	if major != 1 {
@@ -54,9 +73,11 @@ func GetRegistryInfo(major, minor int, log logrus.FieldLogger) (string, error) {
 		registrySvc, err := cClient.Services("default").Get(context.Background(), "docker-registry", metav1.GetOptions{})
 		if err != nil {
 			// Return empty registry host but no error; registry not found
+			registryInfo = StringPtr("")
 			return "", nil
 		}
 		internalRegistry := registrySvc.Spec.ClusterIP + ":" + strconv.Itoa(int(registrySvc.Spec.Ports[0].Port))
+		registryInfo = &internalRegistry //save cache
 		log.Info("[GetRegistryInfo] value from clusterIP")
 		return internalRegistry, nil
 	} else {
@@ -70,6 +91,7 @@ func GetRegistryInfo(major, minor int, log logrus.FieldLogger) (string, error) {
 			return "", err
 		}
 		internalRegistry := serverConfig.ImagePolicyConfig.InternalRegistryHostname
+		registryInfo = &internalRegistry //save cache
 		if len(internalRegistry) == 0 {
 			return "", nil
 		}
@@ -94,6 +116,11 @@ func getMetadataAndAnnotations(item runtime.Unstructured) (metav1.Object, map[st
 
 // returns major, minor versions for kube
 func GetServerVersion() (int, int, error) {
+	// save server version to tmp file
+	if serverVersion != nil {
+		return serverVersion.Major, serverVersion.Minor, nil
+	}
+
 	client, err := clients.DiscoveryClient()
 	if err != nil {
 		return 0, 0, err
@@ -126,75 +153,23 @@ func GetServerVersion() (int, int, error) {
 		}
 	}
 
+	serverVersion = &serverVersionStruct{Major: major, Minor: minor} //save cache
+
 	return major, minor, nil
 }
 
-// Takes Namesapce where the operator resides, name of the BackupStorageLocation and name of configMap as input and returns the Route of backup registry.
-func getOADPRegistryRoute(namespace string, location string, configMap string) (string, error) {
-
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		return "cannot load in-cluster config", err
-	}
-	client, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return "could not create client", err
-	}
-	cMap := client.CoreV1().ConfigMaps(namespace)
-	mapClient, err := cMap.Get(context.Background(), configMap, metav1.GetOptions{})
-	if err != nil {
-		return "failed to find registry configmap", err
-	}
-	osClient, err := routev1client.NewForConfig(config)
-	if err != nil {
-		return "failed to generate route client", err
-	}
-	routeClient := osClient.Routes(namespace)
-	route, err := routeClient.Get(context.Background(), mapClient.Data[location], metav1.GetOptions{})
-	if err != nil {
-		return "failed to find OADP registry route", err
-	}
-	return route.Spec.Host, nil
-}
-
-// Takes Backup Name an Namespace where the operator resides and returns the name of the BackupStorageLocation
-func getBackupStorageLocationForBackup(name string, namespace string) (string, error) {
-	config, err := rest.InClusterConfig()
-	crdConfig := *config
-	crdConfig.ContentConfig.GroupVersion = &schema.GroupVersion{Group: "velero.io", Version: "v1"}
-	crdConfig.APIPath = "/apis"
-	crdConfig.NegotiatedSerializer = serializer.NewCodecFactory(scheme.Scheme)
-	crdConfig.UserAgent = rest.DefaultKubernetesUserAgent()
-	result := velero.BackupList{}
-
-	if err != nil {
-		return "", err
-	}
-	client, err := rest.UnversionedRESTClientFor(&crdConfig)
-	if err != nil {
-		return "", err
-	}
-
-	err = client.
-		Get().
-		Namespace(namespace).
-		Resource("backups").
-		Do(context.Background()).
-		Into(&result)
-	if err != nil {
-		return "", err
-	}
-
-	for _, element := range result.Items {
-		if element.Name == name {
-			return element.Spec.StorageLocation, nil
+// fetches backup for a given backup name
+func GetBackup(uid types.UID, name string, namespace string) (*velero.Backup, error) {
+	// this function is only used by pod/restore.go to check for backup.Spec.DefaultVolumesToRestic. We can cache this
+	// value in backupMap for performance.
+	if backupMap == nil {
+		backupMap = make(map[types.UID]velero.Backup)
+	} else {
+		if backup, ok := backupMap[uid]; ok && backup.Name == name && backup.Namespace == namespace {
+			return &backup, nil
 		}
 	}
-	return "", errors.New("BackupStorageLocation not found")
-}
 
-// fetches backup for a given backup name
-func GetBackup(name string, namespace string) (*velero.Backup, error) {
 	if name == "" {
 		return nil, errors.New("cannot get backup for an empty name")
 	}
@@ -231,6 +206,8 @@ func GetBackup(name string, namespace string) (*velero.Backup, error) {
 
 	for _, backup := range result.Items {
 		if backup.Name == name {
+			backupMap[uid] = backup // save cache
+
 			return &backup, nil
 		}
 	}
@@ -244,4 +221,8 @@ func StringInSlice(a string, list []string) bool {
 		}
 	}
 	return false
+}
+
+func StringPtr(s string) *string {
+	return &s
 }

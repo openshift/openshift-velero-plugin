@@ -39,6 +39,23 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 		annotations = make(map[string]string)
 	}
 
+	if input.Restore.Labels[common.MigrationApplicationLabelKey] != common.MigrationApplicationLabelValue {
+		// if the current workflow is not CAM(i.e B/R) then get the backup registry route and set the same on annotation to use in plugins.
+		backupLocation, err := getBackupStorageLocationForBackup(input.Restore.GetUID(), input.Restore.Spec.BackupName, input.Restore.Namespace)
+		if err != nil {
+			return nil, err
+		}
+		tempRegistry, err := getOADPRegistryRoute(input.Restore.GetUID(), input.Restore.Namespace, backupLocation, common.RegistryConfigMap)
+		if err != nil {
+			p.Log.Info(fmt.Sprintf("[common-restore] Error in getting route: %s, got %s. Assuming this is outside of OADP context.", err, tempRegistry))
+			annotations[common.SkipImageCopy] = "true"
+		} else {
+			annotations[common.MigrationRegistry] = tempRegistry
+		}
+	} else {
+		// if the current workflow is CAM then get migration registry from backup object and set the same on annotation to use in plugins.
+		annotations[common.MigrationRegistry] = input.Restore.Annotations[common.MigrationRegistry]
+	}
 	if val, ok := annotations[common.DisableImageCopy]; ok && len(val) != 0 && val == "true" {
 		p.Log.Info("[is-restore] Image copy is excluded for backup; skipping image copy.")
 		return velero.NewRestoreItemActionExecuteOutput(input.Item), nil
@@ -75,7 +92,7 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	if err != nil {
 		return nil, err
 	}
-	destinationCtx, err := internalRegistrySystemContext()
+	destinationCtx, err := internalRegistrySystemContext(input.Restore.GetUID())
 	if err != nil {
 		return nil, err
 	}
