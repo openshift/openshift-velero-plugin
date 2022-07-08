@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -12,50 +14,83 @@ import (
 	"github.com/containers/image/v5/signature"
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/go-logr/logr"
+	"github.com/kaovilai/udistribution/pkg/image/udistribution"
 	imagev1API "github.com/openshift/api/image/v1"
 	//"github.com/sirupsen/logrus"
 )
 
+const (
+	EnvOpenShiftImagestreamBackup = "OPENSHIFT_IMAGESTREAM_BACKUP"
+	// Prefix to indicate use of plugin registry
+	BSLRoutePrefix = "bsl://"
+)
+
+// We expect usePluginRegistry ENV to be set once when container is started.
+// When true, we will use the plugin registry to copy images.
+var usePluginRegistry, _ = strconv.ParseBool(os.Getenv(EnvOpenShiftImagestreamBackup))
+
+// use getter to avoid changing bool in other packages
+func UsePluginRegistry() bool {
+	return usePluginRegistry
+}
+
+// Using struct for options clarity when specifying options
+type CopyLocalImageStreamImagesOptions struct {
+	InternalRegistryPath string
+	SrcRegistry          string
+	DestRegistry         string
+	DestNamespace        string
+	CopyOptions          *copy.Options
+	Log                  logr.Logger
+	UpdateDigest         bool
+	Ut                   *udistribution.UdistributionTransport
+}
+
+func (o CopyLocalImageStreamImagesOptions) GetSrcRegistry() string {
+	return o.SrcRegistry
+}
+
+func (o CopyLocalImageStreamImagesOptions) GetDestRegistry() string {
+	return o.DestRegistry
+}
+
 // CopyLocalImageStreamImages copies all local images associated with the ImageStream
 // is: ImageStream resource that images are being copied for
-// internalRegistryPath: The internal registry path for the cluster in which is comes from, used to determine which images are local
-// srcRegistry: the registry to copy the images from
-// destRegistry: the registry to copy the images to
-// destNamespace: the namespace to copy to
-// log: the logger to log to
-// updateDigest: whether to update the input imageStream if the digest changes on pushing to the new registry
+// options: CopyLocalImageStreamImagesOptions struct contains options for this function.
+//   internalRegistryPath: The internal registry path for the cluster in which is comes from, used to determine which images are local
+//   srcRegistry: the registry to copy the images from
+//   destRegistry: the registry to copy the images to
+//   destNamespace: the namespace to copy to
+//   log: the logger to log to
+//   updateDigest: whether to update the input imageStream if the digest changes on pushing to the new registry
+//   ut: the udistribution transport to use
 func CopyLocalImageStreamImages(
 	imageStream imagev1API.ImageStream,
-	internalRegistryPath string,
-	srcRegistry string,
-	destRegistry string,
-	destNamespace string,
-	copyOptions *copy.Options,
-	log logr.Logger,
-	updateDigest bool) error {
+	o CopyLocalImageStreamImagesOptions,
+) error {
 	localImageCopied := false
 	localImageCopiedByTag := false
 	for tagIndex, tag := range imageStream.Status.Tags {
-		log.Info(fmt.Sprintf("[imagecopy] Copying tag: %#v", tag.Tag))
+		o.Log.Info(fmt.Sprintf("[imagecopy] Copying tag: %#v", tag.Tag))
 		specTag := findSpecTag(imageStream.Spec.Tags, tag.Tag)
 		copyToTag := true
 		if specTag != nil && specTag.From != nil {
 			// we have a tag.
-			log.Info(fmt.Sprintf("[imagecopy] image tagged: %s, %s", specTag.From.Kind, specTag.From.Name))
+			o.Log.Info(fmt.Sprintf("[imagecopy] image tagged: %s, %s", specTag.From.Kind, specTag.From.Name))
 			// Use the tag if it references an ImageStreamImage in the current namespace
 			if !(specTag.From.Kind == "ImageStreamImage" && (specTag.From.Namespace == "" || specTag.From.Namespace == imageStream.Namespace)) {
-				log.Info(fmt.Sprintf("[imagecopy] not using tag for copy (either out-of-namespace or not an ImageStreamImage tag"))
+				o.Log.Info("[imagecopy] not using tag for copy (either out-of-namespace or not an ImageStreamImage tag")
 				copyToTag = false
 			}
 		}
 		// Iterate over items in reverse order so most recently tagged is copied last
 		for i := len(tag.Items) - 1; i >= 0; i-- {
 			dockerImageReference := tag.Items[i].DockerImageReference
-			if len(internalRegistryPath) > 0 && strings.HasPrefix(dockerImageReference, internalRegistryPath) {
-				if len(srcRegistry) == 0 {
+			if len(o.InternalRegistryPath) > 0 && strings.HasPrefix(dockerImageReference, o.InternalRegistryPath) {
+				if len(o.SrcRegistry) == 0 {
 					return errors.New("copy source registry not found but ImageStream has internal images")
 				}
-				if len(destRegistry) == 0 {
+				if len(o.DestRegistry) == 0 {
 					return errors.New("copy destination registry not found but ImageStream has internal images")
 				}
 				localImageCopied = true
@@ -64,24 +99,57 @@ func CopyLocalImageStreamImages(
 					localImageCopiedByTag = true
 					destTag = ":" + tag.Tag
 				}
-				srcPath := fmt.Sprintf("docker://%s%s", srcRegistry, strings.TrimPrefix(dockerImageReference, internalRegistryPath))
-				destPath := fmt.Sprintf("docker://%s/%s/%s%s", destRegistry, destNamespace, imageStream.Name, destTag)
-				log.Info(fmt.Sprintf("[imagecopy] copying from: %s", srcPath))
-				log.Info(fmt.Sprintf("[imagecopy] copying to: %s", destPath))
+				const dockerTransport = "docker://"
+				srcPath := ""
+				destPath := ""
 
-				imgManifest, err := copyImage(log, srcPath, destPath, copyOptions)
+				//copy registry from options for building src/dest path
+				srcPathRegistry := o.GetSrcRegistry()
+				destPathRegistry := o.GetDestRegistry()
+
+				if strings.HasPrefix(srcPathRegistry, BSLRoutePrefix) {
+					if o.Ut == nil {
+						return errors.New("udistribution transport not found")
+					}
+					o.Log.Info(fmt.Sprintf("[imagecopy] copying image from BSL registry: %s", o.Ut.Name()))
+					srcPath += o.Ut.Name() + "://"
+					srcPathRegistry = strings.TrimPrefix(srcPathRegistry, BSLRoutePrefix)
+				} else {
+					srcPath += dockerTransport
+				}
+				if strings.HasPrefix(o.DestRegistry, BSLRoutePrefix) {
+					if o.Ut == nil {
+						return errors.New("udistribution transport not found")
+					}
+					o.Log.Info(fmt.Sprintf("[imagecopy] copying image to BSL registry: %s", o.Ut.Name()))
+					destPath += o.Ut.Name() + "://"
+					destPathRegistry = strings.TrimPrefix(destPathRegistry, BSLRoutePrefix)
+				} else {
+					destPath += dockerTransport
+				}
+				srcPath += fmt.Sprintf("%s%s", srcPathRegistry, strings.TrimPrefix(dockerImageReference, o.InternalRegistryPath))
+				destPath += fmt.Sprintf("%s/%s/%s%s", destPathRegistry, o.DestNamespace, imageStream.Name, destTag)
+
+				// if src or dest registry is empty (ie. when using udistribution), remove extra '/'
+				srcPath = strings.Replace(srcPath, ":///", "://", -1)
+				destPath = strings.Replace(destPath, ":///", "://", -1)
+
+				o.Log.Info(fmt.Sprintf("[imagecopy] copying from: %s", srcPath))
+				o.Log.Info(fmt.Sprintf("[imagecopy] copying to: %s", destPath))
+
+				imgManifest, err := copyImage(o.Log, srcPath, destPath, o.CopyOptions)
 				if err != nil {
-					log.Info(fmt.Sprintf("[imagecopy] Error copying image: %v", err))
+					o.Log.Info(fmt.Sprintf("[imagecopy] Error copying image: %v", err))
 					return err
 				}
 				newDigest, err := manifest.Digest(imgManifest)
 				if err != nil {
-					log.Info(fmt.Sprintf("[imagecopy] Error computing image digest for manifest: %v", err))
+					o.Log.Info(fmt.Sprintf("[imagecopy] Error computing image digest for manifest: %v", err))
 					return err
 				}
-				log.V(4).Info(fmt.Sprintf("[imagecopy] src image digest: %s", tag.Items[i].Image))
-				if updateDigest && string(newDigest) != tag.Items[i].Image {
-					log.V(4).Info(fmt.Sprintf("[imagecopy] migration registry image digest: %s", newDigest))
+				o.Log.V(4).Info(fmt.Sprintf("[imagecopy] src image digest: %s", tag.Items[i].Image))
+				if o.UpdateDigest && string(newDigest) != tag.Items[i].Image {
+					o.Log.V(4).Info(fmt.Sprintf("[imagecopy] migration registry image digest: %s", newDigest))
 					imageStream.Status.Tags[tagIndex].Items[i].Image = string(newDigest)
 					digestSplit := strings.Split(dockerImageReference, "@")
 					// update sha in dockerImageRef found
@@ -90,16 +158,16 @@ func CopyLocalImageStreamImages(
 							"@" + string(newDigest)
 					}
 				}
-				log.V(4).Info(fmt.Sprintf("[imagecopy] manifest of copied image: %s", imgManifest))
+				o.Log.V(4).Info(fmt.Sprintf("[imagecopy] manifest of copied image: %s", imgManifest))
 			}
 		}
 	}
-	log.Info(fmt.Sprintf("[imagecopy] copied at least one local image: %t", localImageCopied))
-	log.Info(fmt.Sprintf("[imagecopy] copied at least one local image by tag: %t", localImageCopiedByTag))
+	o.Log.Info(fmt.Sprintf("[imagecopy] copied at least one local image: %t", localImageCopied))
+	o.Log.Info(fmt.Sprintf("[imagecopy] copied at least one local image by tag: %t", localImageCopiedByTag))
 	return nil
 }
 
-func copyImage(log logr.Logger,src, dest string, copyOptions *copy.Options) ([]byte, error) {
+func copyImage(log logr.Logger, src, dest string, copyOptions *copy.Options) ([]byte, error) {
 	policyContext, err := getPolicyContext()
 	if err != nil {
 		return []byte{}, fmt.Errorf("Error loading trust policy: %v", err)

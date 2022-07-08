@@ -1,35 +1,30 @@
 package imagestream
 
 import (
-	"context"
 	"errors"
+	"fmt"
 
 	"github.com/containers/image/v5/types"
-	"github.com/openshift/client-go/route/clientset/versioned/scheme"
-	routev1client "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
-	velero "github.com/vmware-tanzu/velero/pkg/apis/velero/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/runtime/serializer"
+	"github.com/kaovilai/udistribution/pkg/image/udistribution"
+	"github.com/konveyor/openshift-velero-plugin/velero-plugins/clients"
+	"github.com/konveyor/openshift-velero-plugin/velero-plugins/common"
+	"github.com/sirupsen/logrus"
+	corev1 "k8s.io/api/core/v1"
 	k8stypes "k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 )
 
 var (
-	internalRegistrySystemContextVar *types.SystemContext
-	oadpRegistryRoute *string
-	bslNameForBackup map[k8stypes.UID]string
+	internalRegistrySystemContextVar  *types.SystemContext
+	oadpRegistryRoute                 map[k8stypes.UID]*string
+	udistributionTransportForLocation map[k8stypes.UID]*udistribution.UdistributionTransport // unique transport per backup uid
 )
-	
 
-func internalRegistrySystemContext(uid k8stypes.UID) (*types.SystemContext, error) {
+func internalRegistrySystemContext() (*types.SystemContext, error) {
 	if internalRegistrySystemContextVar != nil {
 		return internalRegistrySystemContextVar, nil
 	}
 
-
-	config, err := rest.InClusterConfig()
+	config, err := clients.GetInClusterConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -58,80 +53,55 @@ func migrationRegistrySystemContext() (*types.SystemContext, error) {
 	return ctx, nil
 }
 
-// Takes Namesapce where the operator resides, name of the BackupStorageLocation and name of configMap as input and returns the Route of backup registry.
-func getOADPRegistryRoute(uid k8stypes.UID, namespace string, location string, configMap string) (string, error) {
-	if oadpRegistryRoute != nil {
-		return *oadpRegistryRoute, nil
+func GetUdistributionTransportForLocation(uid k8stypes.UID, location, namespace string, log logrus.FieldLogger) (*udistribution.UdistributionTransport, error) {
+	if ut, found := udistributionTransportForLocation[uid]; found && ut != nil {
+		log.Info("Got udistribution transport from cache")
+		return ut, nil
 	}
-
-
-	config, err := rest.InClusterConfig()
+	log.Info("Getting registry envs for udistribution transport")
+	envs, err := GetRegistryEnvsForLocation(location, namespace)
 	if err != nil {
-		return "cannot load in-cluster config", err
+		return nil, errors.New(fmt.Sprintf("errors getting registryenv: %v", err))
 	}
-	client, err := kubernetes.NewForConfig(config)
+	log.Info("Creating udistribution transport")
+	ut, err := udistribution.NewTransportFromNewConfig("", envs)
 	if err != nil {
-		return "could not create client", err
+		return nil, errors.New(fmt.Sprintf("errors creating new udistribution transport from config: %v", err))
 	}
-	cMap := client.CoreV1().ConfigMaps(namespace)
-	mapClient, err := cMap.Get(context.Background(), configMap, metav1.GetOptions{})
-	if err != nil {
-		return "failed to find registry configmap", err
+	log.Info("Got udistribution transport")
+	if udistributionTransportForLocation == nil {
+		udistributionTransportForLocation = make(map[k8stypes.UID]*udistribution.UdistributionTransport)
 	}
-	osClient, err := routev1client.NewForConfig(config)
-	if err != nil {
-		return "failed to generate route client", err
-	}
-	routeClient := osClient.Routes(namespace)
-	route, err := routeClient.Get(context.Background(), mapClient.Data[location], metav1.GetOptions{})
-	if err != nil {
-		return "failed to find OADP registry route", err
-	}
-
-	// save the registry hostname to a temporary file
-	oadpRegistryRoute = &route.Spec.Host
-	return route.Spec.Host, nil
+	udistributionTransportForLocation[uid] = ut // cache the transport
+	return ut, nil
 }
 
-// Takes Backup Name an Namespace where the operator resides and returns the name of the BackupStorageLocation
-func getBackupStorageLocationForBackup(uid k8stypes.UID, name string, namespace string) (string, error) {
-	if bslNameForBackup != nil {
-		return bslNameForBackup[uid], nil
-	} else {
-		bslNameForBackup = make(map[k8stypes.UID]string)
-	}
+func GetUdistributionKey(location, namespace string) string {
+	return fmt.Sprintf("%s-%s", namespace, location)
+}
 
-	config, err := rest.InClusterConfig()
-	crdConfig := *config
-	crdConfig.ContentConfig.GroupVersion = &schema.GroupVersion{Group: "velero.io", Version: "v1"}
-	crdConfig.APIPath = "/apis"
-	crdConfig.NegotiatedSerializer = serializer.NewCodecFactory(scheme.Scheme)
-	crdConfig.UserAgent = rest.DefaultKubernetesUserAgent()
-	result := velero.BackupList{}
-
+// Get Registry environment variables to create registry client
+// This should be called once per backup.
+func GetRegistryEnvsForLocation(location string, namespace string) ([]string, error) {
+	bsl, err := common.GetBackupStorageLocation(location, namespace)
 	if err != nil {
-		return "", err
-	}
-	client, err := rest.UnversionedRESTClientFor(&crdConfig)
-	if err != nil {
-		return "", err
+		return nil, errors.New(fmt.Sprintf("errors getting bsl: %v", err))
 	}
 
-	err = client.
-		Get().
-		Namespace(namespace).
-		Resource("backups").
-		Do(context.Background()).
-		Into(&result)
+	envVars, err := getRegistryEnvVars(bsl)
 	if err != nil {
-		return "", err
+		return nil, errors.New(fmt.Sprintf("errors getting registry env vars: %v", err))
 	}
+	return coreV1EnvVarArrToStringArr(envVars), nil
+}
 
-	for _, element := range result.Items {
-		if element.Name == name {
-			bslNameForBackup[uid] = element.Spec.StorageLocation
-			return element.Spec.StorageLocation, nil
-		}
+func coreV1EnvVarArrToStringArr(envVars []corev1.EnvVar) []string {
+	var envVarsStr []string
+	for _, envVar := range envVars {
+		envVarsStr = append(envVarsStr, coreV1EnvVarToString(envVar))
 	}
-	return "", errors.New("BackupStorageLocation not found")
+	return envVarsStr
+}
+func coreV1EnvVarToString(envVar corev1.EnvVar) string {
+	return fmt.Sprintf("%s=%s", envVar.Name, envVar.Value)
 }

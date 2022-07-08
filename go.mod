@@ -3,19 +3,29 @@ module github.com/konveyor/openshift-velero-plugin
 go 1.14
 
 require (
-	github.com/bombsimon/logrusr v1.0.0
-	github.com/containers/image/v5 v5.19.0
-	github.com/go-logr/logr v0.4.0
+	cloud.google.com/go v0.99.0 // indirect
+	github.com/bombsimon/logrusr/v3 v3.0.0
+	github.com/containers/image/v5 v5.21.1
+	github.com/fatih/color v1.13.0 // indirect
+	github.com/fsnotify/fsnotify v1.5.1 // indirect
+	github.com/go-logr/logr v1.2.3
+	github.com/hashicorp/go-hclog v1.0.0 // indirect
 	github.com/hashicorp/go-plugin v1.3.0 // indirect
-	github.com/openshift/api v0.0.0-20210105115604-44119421ec6b
+	github.com/kaovilai/udistribution v0.0.5
+	github.com/mattn/go-colorable v0.1.12 // indirect
+	github.com/mitchellh/mapstructure v1.4.3 // indirect
+	github.com/openshift/api v0.0.0-20210805075156-d8fab4513288
 	github.com/openshift/client-go v0.0.0-20210112165513-ebc401615f47
 	github.com/openshift/library-go v0.0.0-20200521120150-e4959e210d3a
+	github.com/openshift/oadp-operator v1.0.3
 	github.com/sirupsen/logrus v1.8.1
-	github.com/stretchr/testify v1.7.0
-	github.com/vmware-tanzu/velero v1.6.2
-	k8s.io/api v0.20.7
-	k8s.io/apimachinery v0.20.7
-	k8s.io/client-go v0.20.7
+	github.com/stretchr/testify v1.7.1
+	github.com/vmware-tanzu/velero v1.7.0
+	golang.org/x/mod v0.5.0 // indirect
+	google.golang.org/api v0.62.0 // indirect
+	k8s.io/api v0.22.5
+	k8s.io/apimachinery v0.22.5
+	k8s.io/client-go v0.22.5
 )
 
 // CVE-2021-41190
