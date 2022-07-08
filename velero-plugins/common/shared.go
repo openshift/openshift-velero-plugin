@@ -26,10 +26,11 @@ import (
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
 )
+
 var (
-	registryInfo *string
-	serverVersion *serverVersionStruct
-	backupMap map[types.UID]velero.Backup
+	registryInfo             *string
+	serverVersion            *serverVersionStruct
+	backupMap                map[types.UID]velero.Backup
 	backupStorageLocationMap map[types.UID]velero.BackupStorageLocation
 )
 
@@ -181,10 +182,8 @@ func GetVeleroV1Client() (*rest.RESTClient, error) {
 	return client, nil
 }
 
-// fetches backup for a given backup name
+// fetches backup for a given backup name and requester's uid
 func GetBackup(uid types.UID, name string, namespace string) (*velero.Backup, error) {
-	// this function is only used by pod/restore.go to check for backup.Spec.DefaultVolumesToRestic. We can cache this
-	// value in backupMap for performance.
 	if backupMap == nil {
 		backupMap = make(map[types.UID]velero.Backup)
 	} else {
@@ -233,17 +232,6 @@ func StringPtr(s string) *string {
 	return &s
 }
 
-func GetBackupStorageLocationForBackup(uid types.UID, name string, namespace string) (*velero.BackupStorageLocation, error) {
-	b, err := GetBackup(uid, name, namespace)
-	if err != nil {
-		return nil, err
-	}
-	if b.Spec.StorageLocation == "" {
-		return nil, errors.New("backup does not have a storage location")
-	}
-	return GetBackupStorageLocation(b.Spec.StorageLocation, namespace)
-}
-
 func GetBackupStorageLocation(name, namespace string) (*velero.BackupStorageLocation, error) {
 	client, err := GetVeleroV1Client()
 	if err != nil {
@@ -282,8 +270,7 @@ func GetSecretKeyForBackupStorageLocation(name, namespace string) (*corev1.Secre
 	} else {
 		// discover secret name from OADP default for storage location's plugin
 		provider := strings.TrimPrefix(bsl.Spec.Provider, "velero.io/")
-		if psf, found := credentials.PluginSpecificFields[v1alpha1.DefaultPlugin(provider)];
-			found && psf.IsCloudProvider {
+		if psf, found := credentials.PluginSpecificFields[v1alpha1.DefaultPlugin(provider)]; found && psf.IsCloudProvider {
 			sName = psf.SecretName
 			sKey = "cloud" // default key
 		}

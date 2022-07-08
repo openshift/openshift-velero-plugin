@@ -91,17 +91,6 @@ func getOADPRegistryRoute(uid k8stypes.UID, namespace string, location string, c
 	return route.Spec.Host, nil
 }
 
-// Takes Backup Name an Namespace where the operator resides and returns the name of the BackupStorageLocation
-func getBackupStorageLocationNameForBackup(uid k8stypes.UID, name string, namespace string) (string, error) {
-	b, err := common.GetBackup(uid, name, namespace)
-	if err != nil {
-		return "", err
-	} else if b == nil {
-		return "", errors.New("backup is nil")
-	}
-	return b.Spec.StorageLocation, nil
-}
-
 func GetUdistributionTransportForLocation(uid k8stypes.UID, location, namespace string, log logrus.FieldLogger) (*udistribution.UdistributionTransport, error) {
 	if ut, found := udistributionTransportForLocation[uid]; found && ut != nil {
 		log.Info("Got udistribution transport from cache")
