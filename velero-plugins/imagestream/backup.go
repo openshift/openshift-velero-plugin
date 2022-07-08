@@ -56,13 +56,8 @@ func (p *BackupPlugin) Execute(item runtime.Unstructured, backup *v1.Backup) (ru
 			p.Log.Info(fmt.Sprintf("[is-backup] migrationRegistry: %s)", fmt.Sprintf("%s%s", imagecopy.BSLRoutePrefix,  GetUdistributionKey(backup.Spec.StorageLocation, backup.Namespace))))
 			annotations[common.MigrationRegistry] = imagecopy.BSLRoutePrefix
 		} else {
-			backupRegistryRoute, err := getOADPRegistryRoute(backup.GetUID(), backup.Namespace, backup.Spec.StorageLocation, common.RegistryConfigMap)
-			if err != nil {
-				p.Log.Info(fmt.Sprintf("[is-backup] Error in getting route: %s, got %s. Assuming this is outside of OADP context.", err, backupRegistryRoute))
-				annotations[common.SkipImageCopy] = "true"
-			} else {
-				annotations[common.MigrationRegistry] = backupRegistryRoute
-			}
+			// if not using plugin registry, return immediately
+			return item, nil, nil
 		}
 	} else {
 		// if the current workflow is CAM then get migration registry from backup object and set the same on annotation to use in plugins.

@@ -56,13 +56,8 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 			p.Log.Info(fmt.Sprintf("[is-restore] migrationRegistry: %s)", fmt.Sprintf("%s%s", imagecopy.BSLRoutePrefix,  GetUdistributionKey(backupLocation.Spec.StorageLocation, backupLocation.Namespace))))
 			annotations[common.MigrationRegistry] = imagecopy.BSLRoutePrefix
 		} else {
-			tempRegistry, err := getOADPRegistryRoute(input.Restore.GetUID(), input.Restore.Namespace, backupLocation.Spec.StorageLocation, common.RegistryConfigMap)
-			if err != nil {
-				p.Log.Info(fmt.Sprintf("[is-restore] Error in getting route: %s, got %s. Assuming this is outside of OADP context.", err, tempRegistry))
-				annotations[common.SkipImageCopy] = "true"
-			} else {
-				annotations[common.MigrationRegistry] = tempRegistry
-			}
+			// if not using plugin registry, return immediately
+			return velero.NewRestoreItemActionExecuteOutput(input.Item).WithoutRestore(), nil
 		}
 		
 	} else {

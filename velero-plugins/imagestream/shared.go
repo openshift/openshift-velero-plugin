@@ -1,7 +1,6 @@
 package imagestream
 
 import (
-	"context"
 	"errors"
 	"fmt"
 
@@ -9,12 +8,9 @@ import (
 	"github.com/kaovilai/udistribution/pkg/image/udistribution"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/clients"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/common"
-	routev1client "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8stypes "k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/kubernetes"
 )
 
 var (
@@ -55,40 +51,6 @@ func migrationRegistrySystemContext() (*types.SystemContext, error) {
 		DockerDisableDestSchema1MIMETypes: true,
 	}
 	return ctx, nil
-}
-
-// Takes Namesapce where the operator resides, name of the BackupStorageLocation and name of configMap as input and returns the Route of backup registry.
-func getOADPRegistryRoute(uid k8stypes.UID, namespace string, location string, configMap string) (string, error) {
-	if route, found := oadpRegistryRoute[uid]; found && route != nil {
-		return *route, nil
-	}
-
-	config, err := clients.GetInClusterConfig()
-	if err != nil {
-		return "cannot load in-cluster config", err
-	}
-	client, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return "could not create client", err
-	}
-	cMap := client.CoreV1().ConfigMaps(namespace)
-	mapClient, err := cMap.Get(context.Background(), configMap, metav1.GetOptions{})
-	if err != nil {
-		return "failed to find registry configmap", err
-	}
-	osClient, err := routev1client.NewForConfig(config)
-	if err != nil {
-		return "failed to generate route client", err
-	}
-	routeClient := osClient.Routes(namespace)
-	route, err := routeClient.Get(context.Background(), mapClient.Data[location], metav1.GetOptions{})
-	if err != nil {
-		return "failed to find OADP registry route", err
-	}
-
-	// save the registry hostname to a temporary file
-	oadpRegistryRoute[uid] = &route.Spec.Host
-	return route.Spec.Host, nil
 }
 
 func GetUdistributionTransportForLocation(uid k8stypes.UID, location, namespace string, log logrus.FieldLogger) (*udistribution.UdistributionTransport, error) {
