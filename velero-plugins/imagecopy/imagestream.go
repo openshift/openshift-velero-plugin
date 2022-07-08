@@ -22,12 +22,12 @@ import (
 const (
 	EnvOpenShiftImagestreamBackup = "OPENSHIFT_IMAGESTREAM_BACKUP"
 	// Prefix to indicate use of plugin registry
-	BSLRoutePrefix				  = "bsl://"
+	BSLRoutePrefix = "bsl://"
 )
 
 // We expect usePluginRegistry ENV to be set once when container is started.
 // When true, we will use the plugin registry to copy images.
-var usePluginRegistry, _ =  strconv.ParseBool(os.Getenv(EnvOpenShiftImagestreamBackup))
+var usePluginRegistry, _ = strconv.ParseBool(os.Getenv(EnvOpenShiftImagestreamBackup))
 
 // use getter to avoid changing bool in other packages
 func UsePluginRegistry() bool {
@@ -37,13 +37,13 @@ func UsePluginRegistry() bool {
 // Using struct for options clarity when specifying options
 type CopyLocalImageStreamImagesOptions struct {
 	InternalRegistryPath string
-	SrcRegistry string
-	DestRegistry string
-	DestNamespace string
-	CopyOptions *copy.Options
-	Log logr.Logger
-	UpdateDigest bool
-	Ut *udistribution.UdistributionTransport
+	SrcRegistry          string
+	DestRegistry         string
+	DestNamespace        string
+	CopyOptions          *copy.Options
+	Log                  logr.Logger
+	UpdateDigest         bool
+	Ut                   *udistribution.UdistributionTransport
 }
 
 func (o CopyLocalImageStreamImagesOptions) GetSrcRegistry() string {
@@ -54,19 +54,20 @@ func (o CopyLocalImageStreamImagesOptions) GetDestRegistry() string {
 	return o.DestRegistry
 }
 
-
 // CopyLocalImageStreamImages copies all local images associated with the ImageStream
 // is: ImageStream resource that images are being copied for
-// internalRegistryPath: The internal registry path for the cluster in which is comes from, used to determine which images are local
-// srcRegistry: the registry to copy the images from
-// destRegistry: the registry to copy the images to
-// destNamespace: the namespace to copy to
-// log: the logger to log to
-// updateDigest: whether to update the input imageStream if the digest changes on pushing to the new registry
+// options: CopyLocalImageStreamImagesOptions struct contains options for this function.
+//   internalRegistryPath: The internal registry path for the cluster in which is comes from, used to determine which images are local
+//   srcRegistry: the registry to copy the images from
+//   destRegistry: the registry to copy the images to
+//   destNamespace: the namespace to copy to
+//   log: the logger to log to
+//   updateDigest: whether to update the input imageStream if the digest changes on pushing to the new registry
+//   ut: the udistribution transport to use
 func CopyLocalImageStreamImages(
 	imageStream imagev1API.ImageStream,
 	o CopyLocalImageStreamImagesOptions,
-	) error {
+) error {
 	localImageCopied := false
 	localImageCopiedByTag := false
 	for tagIndex, tag := range imageStream.Status.Tags {
@@ -99,9 +100,8 @@ func CopyLocalImageStreamImages(
 					destTag = ":" + tag.Tag
 				}
 				const dockerTransport = "docker://"
-				var (
-					srcPath = ""; destPath = ""
-				)
+				srcPath := ""
+				destPath := ""
 
 				//copy registry from options for building src/dest path
 				srcPathRegistry := o.GetSrcRegistry()
@@ -129,7 +129,7 @@ func CopyLocalImageStreamImages(
 				}
 				srcPath += fmt.Sprintf("%s%s", srcPathRegistry, strings.TrimPrefix(dockerImageReference, o.InternalRegistryPath))
 				destPath += fmt.Sprintf("%s/%s/%s%s", destPathRegistry, o.DestNamespace, imageStream.Name, destTag)
-				
+
 				// if src or dest registry is empty (ie. when using udistribution), remove extra '/'
 				srcPath = strings.Replace(srcPath, ":///", "://", -1)
 				destPath = strings.Replace(destPath, ":///", "://", -1)
@@ -167,7 +167,7 @@ func CopyLocalImageStreamImages(
 	return nil
 }
 
-func copyImage(log logr.Logger,src, dest string, copyOptions *copy.Options) ([]byte, error) {
+func copyImage(log logr.Logger, src, dest string, copyOptions *copy.Options) ([]byte, error) {
 	policyContext, err := getPolicyContext()
 	if err != nil {
 		return []byte{}, fmt.Errorf("Error loading trust policy: %v", err)
