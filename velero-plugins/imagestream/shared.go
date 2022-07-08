@@ -121,10 +121,6 @@ func GetUdistributionKey(location, namespace string) string {
 // Get Registry environment variables to create registry client
 // This should be called once per backup.
 func GetRegistryEnvsForLocation(location string, namespace string) ([]string, error) {
-	// secret, key, err := common.GetSecretKeyForBackupStorageLocation(location, namespace)
-	// if err != nil {
-	// 	return nil, errors.New(fmt.Sprintf("errors getting secret key for bsl: %v", err))
-	// }
 	bsl, err := common.GetBackupStorageLocation(location, namespace)
 	if err != nil {
 		return nil, errors.New(fmt.Sprintf("errors getting bsl: %v", err))
