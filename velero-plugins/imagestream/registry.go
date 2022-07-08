@@ -286,7 +286,6 @@ func getSecretNameAndKey(bslSpec *velerov1.BackupStorageLocationSpec, plugin oad
 	if _, ok := bslSpec.Config["credentialsFile"]; ok {
 		if secretName, secretKey, err :=
 			credentials.GetSecretNameKeyFromCredentialsFileConfigString(bslSpec.Config["credentialsFile"]); err == nil {
-			// r.Log.Info(fmt.Sprintf("credentialsFile secret: %s, key: %s", secretName, secretKey))
 			return secretName, secretKey
 		}
 	}
