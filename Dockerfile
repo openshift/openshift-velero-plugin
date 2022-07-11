@@ -15,10 +15,8 @@ FROM quay.io/konveyor/builder as builder
 ENV GOPATH=$APP_ROOT
 ENV BUILDTAGS containers_image_ostree_stub exclude_graphdriver_devicemapper exclude_graphdriver_btrfs containers_image_openpgp exclude_graphdriver_overlay
 ENV BIN velero-plugins
-RUN mkdir -p $APP_ROOT/src/github.com/konveyor/openshift-velero-plugin 
-COPY go.mod $APP_ROOT/src/github.com/konveyor/openshift-velero-plugin
-COPY go.sum $APP_ROOT/src/github.com/konveyor/openshift-velero-plugin
 WORKDIR $APP_ROOT/src/github.com/konveyor/openshift-velero-plugin
+COPY --chown=1001 go.mod go.sum $APP_ROOT/src/github.com/konveyor/openshift-velero-plugin/
 RUN go mod download
 COPY --chown=1001 . $APP_ROOT/src/github.com/konveyor/openshift-velero-plugin
 RUN go build -installsuffix "static" -tags "$BUILDTAGS" -o _output/$BIN ./$BIN
