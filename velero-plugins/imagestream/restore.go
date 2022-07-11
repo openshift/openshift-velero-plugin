@@ -57,7 +57,7 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 			annotations[common.MigrationRegistry] = imagecopy.BSLRoutePrefix
 		} else {
 			// if not using plugin registry, return immediately
-			return velero.NewRestoreItemActionExecuteOutput(input.Item).WithoutRestore(), nil
+			return velero.NewRestoreItemActionExecuteOutput(input.Item), nil
 		}
 		
 	} else {
