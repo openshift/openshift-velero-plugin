@@ -1,6 +1,7 @@
 package imagestream
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -10,7 +11,9 @@ import (
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/common"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8stypes "k8s.io/apimachinery/pkg/types"
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
 var (
@@ -92,16 +95,40 @@ func GetRegistryEnvsForLocation(location string, namespace string) ([]string, er
 	if err != nil {
 		return nil, errors.New(fmt.Sprintf("errors getting registry env vars: %v", err))
 	}
-	return coreV1EnvVarArrToStringArr(envVars), nil
+	return coreV1EnvVarArrToStringArr(envVars, bsl.Namespace), nil
 }
 
-func coreV1EnvVarArrToStringArr(envVars []corev1.EnvVar) []string {
+func coreV1EnvVarArrToStringArr(envVars []corev1.EnvVar, namespace string) []string {
 	var envVarsStr []string
 	for _, envVar := range envVars {
-		envVarsStr = append(envVarsStr, coreV1EnvVarToString(envVar))
+		envVarsStr = append(envVarsStr, coreV1EnvVarToString(envVar, namespace))
 	}
 	return envVarsStr
 }
-func coreV1EnvVarToString(envVar corev1.EnvVar) string {
+func coreV1EnvVarToString(envVar corev1.EnvVar, namespace string) string {
+	if envVar.ValueFrom != nil && envVar.ValueFrom.SecretKeyRef != nil {	
+		secretData, err := getSecretKeyRefData(envVar.ValueFrom.SecretKeyRef, namespace)
+		if err != nil {
+			return err.Error()
+		}
+		return fmt.Sprintf("%s=%s", envVar.Name, secretData)
+	}
 	return fmt.Sprintf("%s=%s", envVar.Name, envVar.Value)
+}
+
+// Get secret from reference and namespace and return decoded data
+func getSecretKeyRefData(secretKeyRef *corev1.SecretKeySelector, namespace string) (string, error) {
+	icc, err := clients.GetInClusterConfig()
+	if err != nil {
+		return "", err
+	}
+	cv1c, err := corev1client.NewForConfig(icc)
+	if err != nil {
+		return "", err
+	}
+	secret, err := cv1c.Secrets(namespace).Get(context.Background(), secretKeyRef.Name, metav1.GetOptions{})
+	if err != nil {
+		return "", err
+	}
+	return string(secret.Data[secretKeyRef.Key]), nil
 }
