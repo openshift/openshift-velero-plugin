@@ -1,4 +1,4 @@
-module github.com/konveyor/openshift-velero-plugin
+module github.com/konveyor/openshift-velero-pluginfff
 
 go 1.14
 
