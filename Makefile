@@ -45,8 +45,9 @@ _output/$(BIN): $(BIN)/*.go
 				 $(BUILD_IMAGE) \
 				 go build -installsuffix "static" -tags $(BUILDTAGS) -i -v -o _output/$(BIN) ./$(BIN)
 
+DOCKER_BUILD_ARGS ?= --platform=linux/amd64
 container:
-	docker build -t $(IMAGE) .
+	docker build -t $(IMAGE) . $(DOCKER_BUILD_ARGS)
 
 test:
 	go test -installsuffix "static" -tags $(BUILDTAGS) ./velero-plugins/...
