@@ -8,7 +8,9 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
+	"github.com/kaovilai/udistribution/pkg/image/udistribution"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/clients"
 	"github.com/openshift/client-go/route/clientset/versioned/scheme"
 	"github.com/openshift/library-go/pkg/image/reference"
@@ -28,12 +30,37 @@ import (
 )
 
 var (
-	registryInfo             *string
-	serverVersion            *serverVersionStruct
-	backupMap                map[types.UID]velero.Backup
-	backupStorageLocationMap map[types.UID]velero.BackupStorageLocation
+	registryInfo  *string
+	serverVersion *serverVersionStruct
+	BackupUidMap  map[types.UID]*CommonStruct
+	lastGarbageCollect time.Time
 )
+// common cache for backup UIDs
+type CommonStruct struct {
+	Backup *velero.Backup
+	Ut *udistribution.UdistributionTransport
+	lastAccessed time.Time
+}
 
+// JustAccessed marks the item as recently accessed and triggers garbage collection
+func (c *CommonStruct) JustAccessed() {
+	c.lastAccessed = time.Now()
+	GarbageCollectCommonStruct()
+}
+
+// GarbageCollectCommonStructs removes old entries from the cache
+func GarbageCollectCommonStruct(){
+	if lastGarbageCollect.Add(time.Minute).After(time.Now()) {
+		// do not run garbage collection more than once per minute
+		return
+	}
+	for k, _ := range BackupUidMap {
+		if BackupUidMap[k].lastAccessed.Add(time.Minute).Before(time.Now()) {
+			// remove old entries
+			delete(BackupUidMap, k)
+		}
+	}
+}
 type serverVersionStruct struct {
 	Major int
 	Minor int
@@ -184,12 +211,12 @@ func GetVeleroV1Client() (*rest.RESTClient, error) {
 
 // fetches backup for a given backup name and requester's uid
 func GetBackup(uid types.UID, name string, namespace string) (*velero.Backup, error) {
-	if backupMap == nil {
-		backupMap = make(map[types.UID]velero.Backup)
-	} else {
-		if backup, ok := backupMap[uid]; ok && backup.Name == name && backup.Namespace == namespace {
-			return &backup, nil
-		}
+	if BackupUidMap[uid] == nil {
+		BackupUidMap[uid] = &CommonStruct{}
+	}
+	BackupUidMap[uid].JustAccessed()
+	if BackupUidMap[uid].Backup != nil {
+		return BackupUidMap[uid].Backup, nil
 	}
 
 	if name == "" {
@@ -215,7 +242,8 @@ func GetBackup(uid types.UID, name string, namespace string) (*velero.Backup, er
 	if err != nil {
 		return nil, err
 	}
-	backupMap[uid] = result // save cache
+
+	BackupUidMap[uid].Backup = &result
 	return &result, nil
 }
 
