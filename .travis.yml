@@ -10,7 +10,6 @@ env:
   - DEFAULT_BRANCH: master
   - DOCKERFILE: Dockerfile
   - DOCKER_CLI_EXPERIMENTAL: enabled
-  - GOPROXY: https://goproxy.io,direct
 
 before_install:
 - |
