@@ -60,6 +60,7 @@ func GarbageCollectCommonStruct(){
 			delete(BackupUidMap, k)
 		}
 	}
+	lastGarbageCollect = time.Now()
 }
 type serverVersionStruct struct {
 	Major int
