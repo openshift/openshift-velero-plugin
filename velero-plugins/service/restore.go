@@ -2,10 +2,10 @@ package service
 
 import (
 	"encoding/json"
-
+	"github.com/chaitanyab2311/krm-fn-execution-lib/fn"
+	"github.com/ghodss/yaml"
 	"github.com/sirupsen/logrus"
 	"github.com/vmware-tanzu/velero/pkg/plugin/velero"
-	corev1API "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -23,22 +23,27 @@ func (p *RestorePlugin) AppliesTo() (velero.ResourceSelector, error) {
 
 // Execute action for the restore plugin for the service resource
 func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*velero.RestoreItemActionExecuteOutput, error) {
+
 	p.Log.Info("[service-restore] Entering Service restore plugin")
 
-	service := corev1API.Service{}
-	itemMarshal, _ := json.Marshal(input.Item)
-	json.Unmarshal(itemMarshal, &service)
-	p.Log.Infof("[service-restore] service: %s", service.Name)
+	inputfunc, _ := json.Marshal(input.Item)
 
-	// only clear ExternalIPs for LoadBalancer services
-	if service.Spec.Type == corev1API.ServiceTypeLoadBalancer {
-		p.Log.Infof("[service-restore] Clearing externalIPs for LoadBalancer service: %s", service.Name)
-		service.Spec.ExternalIPs = nil
+	p.Log.Info("[service-restore] Input to plugin: \n%s", string(inputfunc))
+
+	executeFn := fn.ExecuteFn{}
+	output, err := executeFn.Execute(inputfunc, "/data/fnconfigs/servicefnconfig.yaml")
+	if err != nil {
+		p.Log.Error(err)
 	}
 
+	p.Log.Info("[service-restore] Output of executable: \n%s", string(output))
+
 	var out map[string]interface{}
-	objrec, _ := json.Marshal(service)
+	objrec, err := yaml.YAMLToJSON(output)
 	json.Unmarshal(objrec, &out)
 
-	return velero.NewRestoreItemActionExecuteOutput(&unstructured.Unstructured{Object: out}), nil
+	obj := unstructured.Unstructured{}
+	err = obj.UnmarshalJSON(objrec)
+
+	return velero.NewRestoreItemActionExecuteOutput(&obj), nil
 }
