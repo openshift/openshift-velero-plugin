@@ -76,6 +76,16 @@ const (
 	PVOriginalReclaimPolicy   string = "migration.openshift.io/orig-reclaim-policy" // Original PersistentVolumeReclaimPolicy
 )
 
+// DC-related labels/annotations
+const (
+	DCPodDeploymentLabel       string = "deployment"                             // identifies associated RC
+	DCPodDeploymentConfigLabel string = "deploymentconfig"                       // identifies associated DC
+	DCPodDisconnectedLabel     string = "oadp.openshift.io/disconnected-from-dc" // pod had DC labels removed on restore
+	DCOriginalReplicas         string = "oadp.openshift.io/original-replicas"    // replicas value from backup
+	DCOriginalPaused           string = "oadp.openshift.io/original-paused"      // replicas value from backup
+	DCReplicasModifiedLabel    string = "oadp.openshift.io/replicas-modified"    // DC replicas modified on restore
+)
+
 // Configmap Name
 const RegistryConfigMap string = "oadp-registry-config"
 
