@@ -13,6 +13,7 @@ import (
 	"github.com/sirupsen/logrus"
 	velerov1 "github.com/vmware-tanzu/velero/pkg/apis/velero/v1"
 	"github.com/vmware-tanzu/velero/pkg/kuberesource"
+	"github.com/vmware-tanzu/velero/pkg/label"
 	"github.com/vmware-tanzu/velero/pkg/plugin/velero"
 	"github.com/vmware-tanzu/velero/pkg/util/collections"
 	corev1API "k8s.io/api/core/v1"
@@ -44,7 +45,7 @@ func (p *RestorePlugin) podHasRestoreHooks(pod corev1API.Pod, resources []velero
 	p.Log.Info("[pod-restore] pod has no restore hooks via annotations")
 	for _, restoreHookSpec := range resources {
 		p.Log.Infof("[pod-restore] hook spec: %v", restoreHookSpec)
-		if  len(restoreHookSpec.PostHooks) == 0 {
+		if len(restoreHookSpec.PostHooks) == 0 {
 			continue
 		}
 		//convert MatchLabels to labels.Selector
@@ -58,8 +59,8 @@ func (p *RestorePlugin) podHasRestoreHooks(pod corev1API.Pod, resources []velero
 			}
 		}
 		restoreHookSelector := common.ResourceHookSelector{
-			Namespaces: collections.NewIncludesExcludes().Includes(restoreHookSpec.IncludedNamespaces...).Excludes(restoreHookSpec.ExcludedNamespaces...),
-			Resources: collections.NewIncludesExcludes().Includes(restoreHookSpec.IncludedResources...).Excludes(restoreHookSpec.ExcludedResources...),
+			Namespaces:    collections.NewIncludesExcludes().Includes(restoreHookSpec.IncludedNamespaces...).Excludes(restoreHookSpec.ExcludedNamespaces...),
+			Resources:     collections.NewIncludesExcludes().Includes(restoreHookSpec.IncludedResources...).Excludes(restoreHookSpec.ExcludedResources...),
 			LabelSelector: restoreHookLabelSelector,
 		}
 		if restoreHookSelector.ApplicableTo(kuberesource.Pods, pod.Namespace, pod.Labels) {
@@ -116,9 +117,23 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 		}
 	}
 	// Check if pod has owner Refs and defaultVolumesToRestic flag as false/nil
-	if (len(ownerRefs) > 0 && pod.Annotations[common.ResticBackupAnnotation] == "" && (defaultVolumesToResticFlag == nil || !*defaultVolumesToResticFlag))   && !podHasRestoreHooks {
+	if (len(ownerRefs) > 0 && pod.Annotations[common.ResticBackupAnnotation] == "" && (defaultVolumesToResticFlag == nil || !*defaultVolumesToResticFlag)) && !podHasRestoreHooks {
 		p.Log.Infof("[pod-restore] skipping restore of pod %s, has owner references, no restic backup, and no restore hooks", pod.Name)
 		return velero.NewRestoreItemActionExecuteOutput(input.Item).WithoutRestore(), nil
+	}
+
+	// If pod has both "deployment" and "deploymentconfig" labels, it belongs to a DeploymentConfig
+	// If defaultVolumesToRestic, remove these labels so that the DC won't immediately delete the
+	// pod on restore, and add disconnected-from-dc label with restore name for post-restore cleanup
+	if pod.Labels != nil &&
+		pod.Labels[common.DCPodDeploymentLabel] != "" &&
+		pod.Labels[common.DCPodDeploymentConfigLabel] != "" &&
+		defaultVolumesToResticFlag != nil && *defaultVolumesToResticFlag {
+		delete(pod.Labels, common.DCPodDeploymentLabel)
+		delete(pod.Labels, common.DCPodDeploymentConfigLabel)
+		labelVal := label.GetValidName(input.Restore.Name)
+		pod.Labels[common.DCPodDisconnectedLabel] = labelVal
+		p.Log.Infof("[pod-restore] clearing deployment, deploymentconfig labels, setting disconnected-from-dc label to %s", labelVal)
 	}
 
 	backupRegistry, registry, err := common.GetSrcAndDestRegistryInfo(input.Item)
@@ -196,7 +211,7 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 				continue
 			}
 
-			if len(excludePVC) > 0 &&  contains(volume.Name){
+			if len(excludePVC) > 0 && contains(volume.Name) {
 				continue
 			}
 			pvcVolumes = append(pvcVolumes, volume)
