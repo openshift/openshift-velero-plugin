@@ -3,11 +3,9 @@ package route
 import (
 	"encoding/json"
 	"github.com/chaitanyab2311/krm-fn-execution-lib/fn"
-	"github.com/ghodss/yaml"
 	"github.com/sirupsen/logrus"
 	"github.com/vmware-tanzu/velero/pkg/plugin/velero"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"reflect"
 )
 
 // RestorePlugin is a restore item action plugin for Velero
@@ -24,35 +22,40 @@ func (p *RestorePlugin) AppliesTo() (velero.ResourceSelector, error) {
 
 // Execute fixes the route path on restore to use the target cluster's domain name
 func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*velero.RestoreItemActionExecuteOutput, error) {
+
 	p.Log.Info("[route-restore] Entering Route restore plugin")
 
-	inputfunc, _ := json.Marshal(input.Item)
+	marshalledinput, _ := json.Marshal(input.Item)
 
-	p.Log.Info("Input to plugin: \n%s", string(inputfunc))
-
-	executeFn := fn.ExecuteFn{}
-	output, err := executeFn.Execute(inputfunc, "/data/fnconfigs/routefnconfig.yaml")
-	if err != nil {
-		p.Log.Error(err)
+	//define functions that need to be passed to function runner
+	functions := []fn.Function{
+		{
+			Exec: "/data/executables/route",
+		},
 	}
 
-	p.Log.Info("Output of executable: \n%s", string(output))
+	//create a new function runner
+	//Working dir '/' cannot be used so we need to use Execution directory as /usr
+	runner := fn.NewRunner().
+			WithInput(marshalledinput).
+			WithFunctions(functions...).
+			WhereExecWorkingDir("/usr")
 
-	var out map[string]interface{}
-	objrec, err := yaml.YAMLToJSON(output)
-	json.Unmarshal(objrec, &out)
+	functionRunner, err := runner.Build()
+	if err != nil {
+		p.Log.Info("[route-restore] Error occured while building function runner")
+	}
 
-	annotations := out["spec"]
-	v := reflect.ValueOf(annotations)
-	i := v.Interface()
-	a := i.(map[string]interface{})
+	//Excecute the binary
+	output, err := functionRunner.Execute()
 
-	if a["host"] == "" {
-		p.Log.Info("Host empty")
-		obj := unstructured.Unstructured{}
-		err = obj.UnmarshalJSON(objrec)
+	//get the ouput resourcelist and parse host from it 
+	resource := output.Items[0].(*unstructured.Unstructured)
+	host,_,_ := unstructured.NestedString(resource.Object, "spec", "host")
 
-		return velero.NewRestoreItemActionExecuteOutput(&obj), nil
+	if host == "" {
+		p.Log.Info("[route-restore] Stripping src cluster host from Route")
+		return velero.NewRestoreItemActionExecuteOutput(resource), nil
 	}
 
 	p.Log.Info("[route-restore] Route has statically-defined host so leaving as-is")
