@@ -11,7 +11,7 @@ require (
 	github.com/go-logr/logr v1.2.3
 	github.com/hashicorp/go-hclog v1.0.0 // indirect
 	github.com/hashicorp/go-plugin v1.3.0 // indirect
-	github.com/kaovilai/udistribution v0.0.5
+	github.com/kaovilai/udistribution v0.0.7-oadp-1.1
 	github.com/mattn/go-colorable v0.1.12 // indirect
 	github.com/mitchellh/mapstructure v1.4.3 // indirect
 	github.com/openshift/api v0.0.0-20210805075156-d8fab4513288
