@@ -3,7 +3,6 @@ module github.com/konveyor/openshift-velero-plugin
 go 1.14
 
 require (
-	cloud.google.com/go v0.99.0 // indirect
 	github.com/bombsimon/logrusr/v3 v3.0.0
 	github.com/containers/image/v5 v5.21.1
 	github.com/fatih/color v1.13.0 // indirect
@@ -22,7 +21,6 @@ require (
 	github.com/stretchr/testify v1.7.1
 	github.com/vmware-tanzu/velero v1.7.0
 	golang.org/x/mod v0.5.0 // indirect
-	google.golang.org/api v0.62.0 // indirect
 	k8s.io/api v0.22.5
 	k8s.io/apimachinery v0.22.5
 	k8s.io/client-go v0.22.5
