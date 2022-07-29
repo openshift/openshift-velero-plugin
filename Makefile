@@ -21,7 +21,7 @@ BUILD_IMAGE ?= openshift/origin-release:golang-1.14
 IMAGE ?= docker.io/konveyor/openshift-velero-plugin
 
 ARCH ?= amd64
-BUILDTAGS ?= "containers_image_ostree_stub exclude_graphdriver_devicemapper exclude_graphdriver_btrfs containers_image_openpgp exclude_graphdriver_overlay include_gcs"
+BUILDTAGS ?= "containers_image_ostree_stub exclude_graphdriver_devicemapper exclude_graphdriver_btrfs containers_image_openpgp exclude_graphdriver_overlay include_gcs include_oss"
 
 all: $(addprefix build-, $(BINS))
 

@@ -13,7 +13,7 @@
 # limitations under the License.
 FROM quay.io/konveyor/builder as builder
 ENV GOPATH=$APP_ROOT
-ENV BUILDTAGS containers_image_ostree_stub exclude_graphdriver_devicemapper exclude_graphdriver_btrfs containers_image_openpgp exclude_graphdriver_overlay include_gcs
+ENV BUILDTAGS containers_image_ostree_stub exclude_graphdriver_devicemapper exclude_graphdriver_btrfs containers_image_openpgp exclude_graphdriver_overlay include_gcs include_oss
 ENV BIN velero-plugins
 COPY --chown=1001 . $APP_ROOT/src/github.com/konveyor/openshift-velero-plugin
 WORKDIR $APP_ROOT/src/github.com/konveyor/openshift-velero-plugin
