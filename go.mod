@@ -35,3 +35,6 @@ replace github.com/gogo/protobuf => github.com/gogo/protobuf v1.3.2
 replace bitbucket.org/ww/goautoneg v0.0.0-20120707110453-75cd24fc2f2c => github.com/markusthoemmes/goautoneg v0.0.0-20190713162725-c6008fefa5b1
 
 replace github.com/vmware-tanzu/velero => github.com/openshift/velero v0.10.2-0.20210728132925-bab294f5d24c
+
+// quickfix: GCS driver until https://github.com/distribution/distribution/pull/3702 is merged
+replace github.com/distribution/distribution/v3 => github.com/konveyor/distribution v0.0.0-20220729202420-aa6c4b213d75
