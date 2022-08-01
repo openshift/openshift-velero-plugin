@@ -18,8 +18,6 @@ import (
 
 var (
 	internalRegistrySystemContextVar  *types.SystemContext
-	oadpRegistryRoute                 map[k8stypes.UID]*string
-	udistributionTransportForLocation map[k8stypes.UID]*udistribution.UdistributionTransport // unique transport per backup uid
 )
 
 func internalRegistrySystemContext() (*types.SystemContext, error) {
@@ -57,9 +55,13 @@ func migrationRegistrySystemContext() (*types.SystemContext, error) {
 }
 
 func GetUdistributionTransportForLocation(uid k8stypes.UID, location, namespace string, log logrus.FieldLogger) (*udistribution.UdistributionTransport, error) {
-	if ut, found := udistributionTransportForLocation[uid]; found && ut != nil {
+	if common.BackupUidMap[uid] == nil {
+		common.BackupUidMap[uid] = &common.CommonStruct{}
+	}
+	common.BackupUidMap[uid].JustAccessed()
+	if common.BackupUidMap[uid].Ut != nil {
 		log.Info("Got udistribution transport from cache")
-		return ut, nil
+		return common.BackupUidMap[uid].Ut, nil
 	}
 	log.Info("Getting registry envs for udistribution transport")
 	envs, err := GetRegistryEnvsForLocation(location, namespace)
@@ -72,10 +74,7 @@ func GetUdistributionTransportForLocation(uid k8stypes.UID, location, namespace 
 		return nil, errors.New(fmt.Sprintf("errors creating new udistribution transport from config: %v", err))
 	}
 	log.Info("Got udistribution transport")
-	if udistributionTransportForLocation == nil {
-		udistributionTransportForLocation = make(map[k8stypes.UID]*udistribution.UdistributionTransport)
-	}
-	udistributionTransportForLocation[uid] = ut // cache the transport
+	common.BackupUidMap[uid].Ut = ut
 	return ut, nil
 }
 
