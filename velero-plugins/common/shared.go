@@ -212,6 +212,9 @@ func GetVeleroV1Client() (*rest.RESTClient, error) {
 
 // fetches backup for a given backup name and requester's uid
 func GetBackup(uid types.UID, name string, namespace string) (*velero.Backup, error) {
+	if BackupUidMap == nil {
+		BackupUidMap = make(map[types.UID]*CommonStruct)
+	}
 	if BackupUidMap[uid] == nil {
 		BackupUidMap[uid] = &CommonStruct{}
 	}
