@@ -55,6 +55,9 @@ func migrationRegistrySystemContext() (*types.SystemContext, error) {
 }
 
 func GetUdistributionTransportForLocation(uid k8stypes.UID, location, namespace string, log logrus.FieldLogger) (*udistribution.UdistributionTransport, error) {
+	if common.BackupUidMap == nil {
+		common.BackupUidMap = make(map[k8stypes.UID]*common.CommonStruct)
+	}
 	if common.BackupUidMap[uid] == nil {
 		common.BackupUidMap[uid] = &common.CommonStruct{}
 	}
