@@ -134,6 +134,11 @@ var cloudProviderEnvVarMap = map[string][]corev1.EnvVar{
 	},
 }
 
+const (
+	// Location to store secret if a file is needed
+	secretTmpPrefix = "/tmp/registry-"
+)
+
 type azureCredentials struct {
 	subscriptionID     string
 	tenantID           string
@@ -268,12 +273,23 @@ func getGCPRegistryEnvVars(bsl *velerov1.BackupStorageLocation, gcpEnvVars []cor
 
 		if gcpEnvVars[i].Name == RegistryStorageGCSKeyfile {
 			// check for secret name
-			_, secretKey := getSecretNameAndKey(&bsl.Spec, oadpv1alpha1.DefaultPluginGCP)
-			if _, ok := bsl.Spec.Config["credentialsFile"]; ok {
-				gcpEnvVars[i].Value = credentials.PluginSpecificFields[oadpv1alpha1.DefaultPluginGCP].BslMountPath + "/" + secretKey
-			} else {
-				gcpEnvVars[i].Value = credentials.PluginSpecificFields[oadpv1alpha1.DefaultPluginGCP].MountPath + "/" + secretKey
+			secretName, secretKey := getSecretNameAndKey(&bsl.Spec, oadpv1alpha1.DefaultPluginGCP)
+			// get secret value and save it to /tmp/registry-<secretName>
+
+			secretEnvVarSource := &corev1.SecretKeySelector{
+				LocalObjectReference: corev1.LocalObjectReference{Name: secretName},
+				Key:                  secretKey,
 			}
+			secretData, err := getSecretKeyRefData(secretEnvVarSource, bsl.Namespace)
+			if err != nil {
+				return nil, err
+			}
+			// write secret data to /tmp/registry-<secretName>
+			err = saveDataToFile(secretData, secretTmpPrefix + secretName)
+			if err != nil {
+				return nil, err
+			}
+			gcpEnvVars[i].Value = secretTmpPrefix + secretName
 		}
 	}
 	return gcpEnvVars, nil
