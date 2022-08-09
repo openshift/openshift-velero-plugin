@@ -285,11 +285,12 @@ func getGCPRegistryEnvVars(bsl *velerov1.BackupStorageLocation, gcpEnvVars []cor
 				return nil, err
 			}
 			// write secret data to /tmp/registry-<secretName>
-			err = saveDataToFile(secretData, secretTmpPrefix + secretName)
+			secretPath := secretTmpPrefix + secretName
+			err = saveDataToFile(secretData, secretPath)
 			if err != nil {
 				return nil, err
 			}
-			gcpEnvVars[i].Value = secretTmpPrefix + secretName
+			gcpEnvVars[i].Value = secretPath
 		}
 	}
 	return gcpEnvVars, nil
