@@ -18,7 +18,7 @@ import (
 )
 
 var (
-	internalRegistrySystemContextVar  *types.SystemContext
+	internalRegistrySystemContextVar *types.SystemContext
 )
 
 func internalRegistrySystemContext() (*types.SystemContext, error) {
@@ -109,7 +109,7 @@ func coreV1EnvVarArrToStringArr(envVars []corev1.EnvVar, namespace string) []str
 	return envVarsStr
 }
 func coreV1EnvVarToString(envVar corev1.EnvVar, namespace string) string {
-	if envVar.ValueFrom != nil && envVar.ValueFrom.SecretKeyRef != nil {	
+	if envVar.ValueFrom != nil && envVar.ValueFrom.SecretKeyRef != nil {
 		secretData, err := getSecretKeyRefData(envVar.ValueFrom.SecretKeyRef, namespace)
 		if err != nil {
 			return err.Error()
