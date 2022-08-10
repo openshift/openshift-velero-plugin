@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 
 	"github.com/containers/image/v5/types"
 	"github.com/kaovilai/udistribution/pkg/image/udistribution"
@@ -17,7 +18,7 @@ import (
 )
 
 var (
-	internalRegistrySystemContextVar  *types.SystemContext
+	internalRegistrySystemContextVar *types.SystemContext
 )
 
 func internalRegistrySystemContext() (*types.SystemContext, error) {
@@ -108,7 +109,7 @@ func coreV1EnvVarArrToStringArr(envVars []corev1.EnvVar, namespace string) []str
 	return envVarsStr
 }
 func coreV1EnvVarToString(envVar corev1.EnvVar, namespace string) string {
-	if envVar.ValueFrom != nil && envVar.ValueFrom.SecretKeyRef != nil {	
+	if envVar.ValueFrom != nil && envVar.ValueFrom.SecretKeyRef != nil {
 		secretData, err := getSecretKeyRefData(envVar.ValueFrom.SecretKeyRef, namespace)
 		if err != nil {
 			return err.Error()
@@ -119,18 +120,38 @@ func coreV1EnvVarToString(envVar corev1.EnvVar, namespace string) string {
 }
 
 // Get secret from reference and namespace and return decoded data
-func getSecretKeyRefData(secretKeyRef *corev1.SecretKeySelector, namespace string) (string, error) {
+func getSecretKeyRefData(secretKeyRef *corev1.SecretKeySelector, namespace string) ([]byte, error) {
 	icc, err := clients.GetInClusterConfig()
 	if err != nil {
-		return "", err
+		return []byte{}, err
 	}
 	cv1c, err := corev1client.NewForConfig(icc)
 	if err != nil {
-		return "", err
+		return []byte{}, err
 	}
 	secret, err := cv1c.Secrets(namespace).Get(context.Background(), secretKeyRef.Name, metav1.GetOptions{})
 	if err != nil {
-		return "", err
+		return []byte{}, err
 	}
-	return string(secret.Data[secretKeyRef.Key]), nil
+	return secret.Data[secretKeyRef.Key], nil
+}
+
+// writes data to file. If file exists, overwrites it.
+func saveDataToFile(data []byte, path string) error {
+	// delete path if it exists
+	if _, err := os.Stat(path); err == nil {
+		if err := os.Remove(path); err != nil {
+			return err
+		}
+	}
+	file, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	_, err = file.Write(data)
+	if err != nil {
+		return err
+	}
+	return nil
 }
