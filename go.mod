@@ -4,7 +4,6 @@ go 1.14
 
 require (
 	github.com/bombsimon/logrusr/v3 v3.0.0
-	github.com/containerd/imgcrypt v1.1.4
 	github.com/containers/image/v5 v5.21.1
 	github.com/fatih/color v1.13.0 // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
