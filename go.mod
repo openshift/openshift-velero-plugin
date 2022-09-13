@@ -38,3 +38,5 @@ replace github.com/vmware-tanzu/velero => github.com/openshift/velero v0.10.2-0.
 
 // quickfix: GCS driver until https://github.com/distribution/distribution/pull/3702 is merged
 replace github.com/distribution/distribution/v3 => github.com/konveyor/distribution v0.0.0-20220729202420-aa6c4b213d75
+
+replace github.com/containerd/imgcrypt => github.com/containerd/imgcrypt v1.1.4
