@@ -35,6 +35,7 @@ func main() {
 	veleroplugin.NewServer().
 		RegisterBackupItemAction("openshift.io/01-common-backup-plugin", newCommonBackupPlugin).
 		RegisterRestoreItemAction("openshift.io/01-common-restore-plugin", newCommonRestorePlugin).
+		RegisterRestoreItemAction("openshift.io/01-mtc-common-restore-plugin", newMTCCommonRestorePlugin).
 		RegisterBackupItemAction("openshift.io/02-serviceaccount-backup-plugin", newServiceAccountBackupPlugin).
 		RegisterRestoreItemAction("openshift.io/02-serviceaccount-restore-plugin", newServiceAccountRestorePlugin).
 		RegisterBackupItemAction("openshift.io/03-pv-backup-plugin", newPVBackupPlugin).
@@ -74,6 +75,10 @@ func newCommonBackupPlugin(logger logrus.FieldLogger) (interface{}, error) {
 
 func newCommonRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
 	return &common.RestorePlugin{Log: logger}, nil
+}
+
+func newMTCCommonRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
+	return &common.MTCRestorePlugin{Log: logger}, nil
 }
 
 func newBuildRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {

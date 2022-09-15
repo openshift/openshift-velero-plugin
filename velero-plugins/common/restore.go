@@ -67,26 +67,6 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	}
 	annotations[RestoreRegistryHostname] = registryHostname
 
-	if input.Restore.Labels[MigrationApplicationLabelKey] == MigrationApplicationLabelValue {
-
-		// Set migmigration and migplan labels on all resources, except ServiceAccounts
-		migMigrationLabel, exist := input.Restore.Labels[MigMigrationLabelKey]
-		if !exist {
-			p.Log.Info("migmigration label was not found on restore")
-		}
-		migPlanLabel, exist := input.Restore.Labels[MigPlanLabelKey]
-		if !exist {
-			p.Log.Info("migplan label was not found on restore")
-		}
-		labels := metadata.GetLabels()
-		if labels == nil {
-			labels = make(map[string]string)
-		}
-		labels[MigMigrationLabelKey] = migMigrationLabel
-		labels[MigPlanLabelKey] = migPlanLabel
-
-		metadata.SetLabels(labels)
-	}
 	metadata.SetAnnotations(annotations)
 
 	return velero.NewRestoreItemActionExecuteOutput(input.Item), nil
