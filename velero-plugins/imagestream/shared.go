@@ -2,9 +2,10 @@ package imagestream
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
+
+	"github.com/pkg/errors"
 
 	"github.com/containers/image/v5/types"
 	"github.com/kaovilai/udistribution/pkg/image/udistribution"

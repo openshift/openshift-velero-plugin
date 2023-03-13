@@ -1,7 +1,7 @@
 package imagestream
 
 import (
-	"errors"
+	"github.com/pkg/errors"
 
 	"github.com/openshift/oadp-operator/pkg/credentials"
 

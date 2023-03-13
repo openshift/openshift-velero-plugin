@@ -2,12 +2,13 @@ package imagecopy
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/containers/image/v5/copy"
 	"github.com/containers/image/v5/manifest"

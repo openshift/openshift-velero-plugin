@@ -2,8 +2,9 @@ package imagestream
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
+
+	"github.com/pkg/errors"
 
 	"github.com/bombsimon/logrusr/v3"
 	"github.com/containers/image/v5/copy"

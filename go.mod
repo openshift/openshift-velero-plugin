@@ -17,6 +17,7 @@ require (
 	github.com/openshift/client-go v0.0.0-20210112165513-ebc401615f47
 	github.com/openshift/library-go v0.0.0-20200521120150-e4959e210d3a
 	github.com/openshift/oadp-operator v1.0.3
+	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.8.1
 	github.com/stretchr/testify v1.7.1
 	github.com/vmware-tanzu/velero v1.7.0
