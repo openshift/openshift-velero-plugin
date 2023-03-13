@@ -72,7 +72,6 @@ const (
 	RelatedIsTagNsAnnotation  string = "migration.openshift.io/related-istag-ns"    // Related istag ns
 	RelatedIsTagAnnotation    string = "migration.openshift.io/related-istag"       // Related istag name
 	PVCSelectedNodeAnnotation string = "volume.kubernetes.io/selected-node"         // kubernetes PVC annotations
-	ResticBackupAnnotation    string = "backup.velero.io/backup-volumes"            // Restic annotations
 	PVOriginalReclaimPolicy   string = "migration.openshift.io/orig-reclaim-policy" // Original PersistentVolumeReclaimPolicy
 )
 

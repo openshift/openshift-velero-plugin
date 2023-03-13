@@ -15,6 +15,8 @@ import (
 	"github.com/vmware-tanzu/velero/pkg/kuberesource"
 	"github.com/vmware-tanzu/velero/pkg/label"
 	"github.com/vmware-tanzu/velero/pkg/plugin/velero"
+	"github.com/vmware-tanzu/velero/pkg/podvolume"
+	"github.com/vmware-tanzu/velero/pkg/util/boolptr"
 	"github.com/vmware-tanzu/velero/pkg/util/collections"
 	corev1API "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -100,11 +102,13 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 		p.Log.Infof("[pod-restore] could not fetch backup associated with the restore, got error: %s", err.Error())
 	}
 
-	var defaultVolumesToResticFlag *bool = nil
+	var defaultVolumesToFsBackup *bool = nil
 
 	if err == nil {
 		// check for default restic flag
-		defaultVolumesToResticFlag = backup.Spec.DefaultVolumesToRestic
+		if boolptr.IsSetToTrue(backup.Spec.DefaultVolumesToRestic) || boolptr.IsSetToTrue(backup.Spec.DefaultVolumesToFsBackup) {
+			*defaultVolumesToFsBackup = true
+		}
 	}
 
 	podHasRestoreHooks := false
@@ -116,8 +120,9 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 			return nil, err
 		}
 	}
+
 	// Check if pod has owner Refs and defaultVolumesToRestic flag as false/nil
-	if (len(ownerRefs) > 0 && pod.Annotations[common.ResticBackupAnnotation] == "" && (defaultVolumesToResticFlag == nil || !*defaultVolumesToResticFlag)) && !podHasRestoreHooks {
+	if (len(ownerRefs) > 0 && pod.Annotations[podvolume.VolumesToBackupAnnotation] == "" && (defaultVolumesToFsBackup == nil || !*defaultVolumesToFsBackup)) && !podHasRestoreHooks {
 		p.Log.Infof("[pod-restore] skipping restore of pod %s, has owner references, no restic backup, and no restore hooks", pod.Name)
 		return velero.NewRestoreItemActionExecuteOutput(input.Item).WithoutRestore(), nil
 	}
@@ -128,7 +133,7 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	if pod.Labels != nil &&
 		pod.Labels[common.DCPodDeploymentLabel] != "" &&
 		pod.Labels[common.DCPodDeploymentConfigLabel] != "" &&
-		defaultVolumesToResticFlag != nil && *defaultVolumesToResticFlag {
+		defaultVolumesToFsBackup != nil && *defaultVolumesToFsBackup {
 		delete(pod.Labels, common.DCPodDeploymentLabel)
 		delete(pod.Labels, common.DCPodDeploymentConfigLabel)
 		labelVal := label.GetValidName(input.Restore.Name)
