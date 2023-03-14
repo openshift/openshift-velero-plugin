@@ -22,6 +22,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/utils/pointer"
 )
 
 // RestorePlugin is a restore item action plugin for Velero
@@ -107,7 +108,7 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	if err == nil {
 		// check for default restic flag
 		if boolptr.IsSetToTrue(backup.Spec.DefaultVolumesToRestic) || boolptr.IsSetToTrue(backup.Spec.DefaultVolumesToFsBackup) {
-			*defaultVolumesToFsBackup = true
+			defaultVolumesToFsBackup = pointer.Bool(true)
 		}
 	}
 
