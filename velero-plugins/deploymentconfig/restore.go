@@ -9,7 +9,9 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/vmware-tanzu/velero/pkg/label"
 	"github.com/vmware-tanzu/velero/pkg/plugin/velero"
+	"github.com/vmware-tanzu/velero/pkg/util/boolptr"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/utils/pointer"
 )
 
 // RestorePlugin is a restore item action plugin for Velero
@@ -64,13 +66,15 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	if err != nil {
 		p.Log.Infof("[deploymentconfig-restore] could not fetch backup associated with the restore, got error: %s", err.Error())
 	}
-	var defaultVolumesToResticFlag *bool = nil
+	var defaultVolumesToFsBackup *bool = nil
 	if err == nil {
-		// check for default restic flag
-		defaultVolumesToResticFlag = backup.Spec.DefaultVolumesToRestic
+		// check for default fsbackup/restic flag
+		if boolptr.IsSetToTrue(backup.Spec.DefaultVolumesToRestic) || boolptr.IsSetToTrue(backup.Spec.DefaultVolumesToFsBackup) {
+			defaultVolumesToFsBackup = pointer.Bool(true)
+		}
 	}
 	if deploymentConfig.Spec.Replicas > 0 &&
-		defaultVolumesToResticFlag != nil && *defaultVolumesToResticFlag {
+		defaultVolumesToFsBackup != nil && *defaultVolumesToFsBackup {
 		if deploymentConfig.Annotations == nil {
 			deploymentConfig.Annotations = make(map[string]string)
 		}

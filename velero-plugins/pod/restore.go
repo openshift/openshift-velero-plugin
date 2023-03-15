@@ -106,7 +106,7 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	var defaultVolumesToFsBackup *bool = nil
 
 	if err == nil {
-		// check for default restic flag
+		// check for default fsbackup/restic flag
 		if boolptr.IsSetToTrue(backup.Spec.DefaultVolumesToRestic) || boolptr.IsSetToTrue(backup.Spec.DefaultVolumesToFsBackup) {
 			defaultVolumesToFsBackup = pointer.Bool(true)
 		}
