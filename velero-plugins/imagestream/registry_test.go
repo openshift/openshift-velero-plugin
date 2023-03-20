@@ -1,15 +1,22 @@
 package imagestream
 
 import (
+	"context"
+	"fmt"
 	"reflect"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/konveyor/openshift-velero-plugin/velero-plugins/clients"
 	oadpv1alpha1 "github.com/openshift/oadp-operator/api/v1alpha1"
+	"github.com/stretchr/testify/require"
 	velerov1 "github.com/vmware-tanzu/velero/pkg/apis/velero/v1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/envtest"
 )
 
 func getSchemeForFakeClientForRegistry() (*runtime.Scheme, error) {
@@ -625,6 +632,24 @@ func Test_getGCPRegistryEnvVars(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			testEnv := &envtest.Environment{}
+			cfg, err := testEnv.Start()
+			require.NoError(t, err)
+			defer testEnv.Stop()
+			// initialize clients using envtest config
+			cv1c, err := clients.CoreClientFromConfig(cfg)
+			require.NoError(t, err)
+			_, err = cv1c.Namespaces().Create(context.Background(), &corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: tt.secret.Namespace,
+				},
+			}, metav1.CreateOptions{})
+			if err != nil && !apierrors.IsAlreadyExists(err) {
+				err = nil
+			}
+			require.NoError(t, err)
+			_, err = cv1c.Secrets(tt.secret.Namespace).Create(context.Background(), tt.secret, metav1.CreateOptions{})
+			require.NoError(t, err)
 			tt.wantRegistryContainerEnvVar = []corev1.EnvVar{
 				{
 					Name:  RegistryStorageEnvVarKey,
@@ -636,19 +661,19 @@ func Test_getGCPRegistryEnvVars(t *testing.T) {
 				},
 				{
 					Name:  RegistryStorageGCSKeyfile,
-					Value: "/credentials-gcp/cloud",
+					Value: "/tmp/registry-cloud-credentials-gcp",
 				},
 			}
 
 			gotRegistryContainerEnvVar, gotErr := getGCPRegistryEnvVars(tt.bsl, testGCPEnvVar)
 
 			if (gotErr != nil) != tt.wantErr {
-				// ignore errors. this test originally called InClusterConfig which would fail in a test environment
-				// t.Errorf("ValidateBackupStorageLocations() gotErr = %v, wantErr %v", gotErr, tt.wantErr)
+				t.Errorf("getGCPRegistryEnvVars() gotErr = %v, wantErr %v", gotErr, tt.wantErr)
 				return
 			}
 
 			if !reflect.DeepEqual(tt.wantRegistryContainerEnvVar, gotRegistryContainerEnvVar) {
+				fmt.Printf("diff: %s", cmp.Diff(tt.wantRegistryContainerEnvVar, gotRegistryContainerEnvVar))
 				t.Errorf("expected registry container env var to be %#v, got %#v", tt.wantRegistryContainerEnvVar, gotRegistryContainerEnvVar)
 			}
 		})
