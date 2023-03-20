@@ -53,6 +53,15 @@ func CoreClient() (*corev1.CoreV1Client, error) {
 	return coreClient, coreClientError
 }
 
+func CoreClientFromConfig(config *rest.Config) (*corev1.CoreV1Client, error) {
+	client, err := corev1.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+	coreClient = client
+	return client, nil
+}
+
 func newCoreClient() (*corev1.CoreV1Client, error) {
 	config, err := GetInClusterConfig()
 	if err != nil {

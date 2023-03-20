@@ -49,10 +49,31 @@ DOCKER_BUILD_ARGS ?= --platform=linux/amd64
 container:
 	docker build -t $(IMAGE) . $(DOCKER_BUILD_ARGS)
 
-test:
-	go test -installsuffix "static" -tags $(BUILDTAGS) ./velero-plugins/...
+test: envtest
+	KUBEBUILDER_ASSETS=$(KUBEBUILDER_ASSETS) go test -installsuffix "static" -tags $(BUILDTAGS) ./velero-plugins/...
 
 ci: all test
 
 clean:
 	rm -rf .go _output
+
+GOPATH:=$(shell go env GOPATH)
+GOBIN:=$(GOPATH)/bin
+GOSRC:=$(GOPATH)/src
+#  if KUBEBUILDER_ASSETS contains space, escape it
+KUBEBUILDER_ASSETS=$(shell echo $(shell $(GOBIN)/setup-envtest use -p path) | sed 's/ /\\ /g')
+.PHONY: envtest
+# When debugging tests in vscode, this is example content of .vscode/settings.json
+# which is the output of `setup-envtest use -p path`
+# {
+#     "go.testEnvVars": {
+#         "KUBEBUILDER_ASSETS": "/Users/tiger/Library/Application Support/io.kubebuilder.envtest/k8s/1.26.1-darwin-arm64"
+#     }
+# }
+envtest: $(GOBIN)/setup-envtest
+	$(GOBIN)/setup-envtest use -p path
+
+$(GOBIN)/setup-envtest:
+	@echo Installing envtest tools
+	GOFLAGS= go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
+	@echo Installed envtest tools
