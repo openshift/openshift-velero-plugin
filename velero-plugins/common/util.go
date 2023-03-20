@@ -1,10 +1,12 @@
 package common
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
 
+	"github.com/konveyor/openshift-velero-plugin/velero-plugins/clients"
 	"github.com/sirupsen/logrus"
 	corev1API "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -122,12 +124,24 @@ func UpdatePullSecret(
 		if strings.HasPrefix(secretRef.Name, prefix) {
 			for _, secret := range secretList.Items {
 				if strings.HasPrefix(secret.Name, prefix) {
-					log.Info(fmt.Sprintf("[util] Found new dockercfg secret: %v", secret))
-					newSecret := corev1API.LocalObjectReference{Name: secret.Name}
-					return &newSecret, nil
+					// get serviceAccount uid
+					c1cc, err := clients.CoreClient()
+					if err != nil {
+						return nil, err
+					}
+					sa, err := c1cc.ServiceAccounts(secret.Namespace).Get(context.TODO(), secret.Annotations["kubernetes.io/service-account.name"], metav1.GetOptions{})
+					if err != nil {
+						return nil, err
+					}
+					// check if secret is associated with serviceAccount in dest cluster by comparing uids
+					if secret.Annotations["kubernetes.io/service-account.uid"] == string(sa.UID) {
+						log.Info(fmt.Sprintf("[util] Found new dockercfg secret: %v", secret))
+						newSecret := corev1API.LocalObjectReference{Name: secret.Name}
+						return &newSecret, nil
+					}
 				}
 			}
-			return nil, errors.New("Secret not found")
+			return nil, errors.New("secret not found")
 		}
 	}
 	return secretRef, nil
