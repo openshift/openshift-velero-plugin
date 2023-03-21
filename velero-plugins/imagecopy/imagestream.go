@@ -11,9 +11,8 @@ import (
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/signature"
 	"github.com/containers/image/v5/transports/alltransports"
-	"github.com/go-logr/logr"
 	imagev1API "github.com/openshift/api/image/v1"
-	//"github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 // CopyLocalImageStreamImages copies all local images associated with the ImageStream
@@ -31,7 +30,7 @@ func CopyLocalImageStreamImages(
 	destRegistry string,
 	destNamespace string,
 	copyOptions *copy.Options,
-	log logr.Logger,
+	log logrus.FieldLogger,
 	updateDigest bool) error {
 	localImageCopied := false
 	localImageCopiedByTag := false
@@ -79,9 +78,9 @@ func CopyLocalImageStreamImages(
 					log.Info(fmt.Sprintf("[imagecopy] Error computing image digest for manifest: %v", err))
 					return err
 				}
-				log.V(4).Info(fmt.Sprintf("[imagecopy] src image digest: %s", tag.Items[i].Image))
+				log.Info(fmt.Sprintf("[imagecopy] src image digest: %s", tag.Items[i].Image))
 				if updateDigest && string(newDigest) != tag.Items[i].Image {
-					log.V(4).Info(fmt.Sprintf("[imagecopy] migration registry image digest: %s", newDigest))
+					log.Info(fmt.Sprintf("[imagecopy] migration registry image digest: %s", newDigest))
 					imageStream.Status.Tags[tagIndex].Items[i].Image = string(newDigest)
 					digestSplit := strings.Split(dockerImageReference, "@")
 					// update sha in dockerImageRef found
@@ -90,7 +89,7 @@ func CopyLocalImageStreamImages(
 							"@" + string(newDigest)
 					}
 				}
-				log.V(4).Info(fmt.Sprintf("[imagecopy] manifest of copied image: %s", imgManifest))
+				log.Info(fmt.Sprintf("[imagecopy] manifest of copied image: %s", imgManifest))
 			}
 		}
 	}
@@ -99,7 +98,7 @@ func CopyLocalImageStreamImages(
 	return nil
 }
 
-func copyImage(log logr.Logger,src, dest string, copyOptions *copy.Options) ([]byte, error) {
+func copyImage(log logrus.FieldLogger,src, dest string, copyOptions *copy.Options) ([]byte, error) {
 	policyContext, err := getPolicyContext()
 	if err != nil {
 		return []byte{}, fmt.Errorf("Error loading trust policy: %v", err)
