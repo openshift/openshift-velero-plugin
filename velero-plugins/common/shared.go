@@ -25,7 +25,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/types"
-	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
 )
 
@@ -310,11 +309,7 @@ func GetSecretKeyForBackupStorageLocation(name, namespace string) (*corev1.Secre
 	if sName == "" {
 		return nil, "", errors.New("cannot get secret for a storage location without a credential")
 	}
-	icc, err := clients.GetInClusterConfig()
-	if err != nil {
-		return nil, "", err
-	}
-	cv1c, err := corev1client.NewForConfig(icc)
+	cv1c, err := clients.CoreClient()
 	if err != nil {
 		return nil, "", err
 	}
