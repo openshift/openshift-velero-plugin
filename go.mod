@@ -18,6 +18,7 @@ require (
 	k8s.io/apimachinery v0.25.6
 	k8s.io/client-go v0.25.6
 	k8s.io/utils v0.0.0-20220728103510-ee6ede2d64ed
+	sigs.k8s.io/controller-runtime v0.12.2
 )
 
 require (
@@ -194,7 +195,6 @@ require (
 	k8s.io/component-base v0.24.2 // indirect
 	k8s.io/klog/v2 v2.70.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20220803162953-67bda5d908f1 // indirect
-	sigs.k8s.io/controller-runtime v0.12.2 // indirect
 	sigs.k8s.io/json v0.0.0-20220713155537-f223a00ba0e2 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.3 // indirect
 	sigs.k8s.io/yaml v1.3.0 // indirect
@@ -208,7 +208,7 @@ replace github.com/gogo/protobuf => github.com/gogo/protobuf v1.3.2
 
 replace bitbucket.org/ww/goautoneg v0.0.0-20120707110453-75cd24fc2f2c => github.com/markusthoemmes/goautoneg v0.0.0-20190713162725-c6008fefa5b1
 
-replace github.com/vmware-tanzu/velero => github.com/openshift/velero v0.10.2-0.20230313143326-9741b1028da4
+replace github.com/vmware-tanzu/velero => github.com/openshift/velero v0.10.2-0.20230320194820-cd848ef1a58f
 
 // quickfix: GCS driver until https://github.com/distribution/distribution/pull/3702 is merged
 replace github.com/distribution/distribution/v3 => github.com/konveyor/distribution v0.0.0-20220729202420-aa6c4b213d75
