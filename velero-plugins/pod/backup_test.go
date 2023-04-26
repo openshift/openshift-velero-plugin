@@ -18,46 +18,52 @@ import (
 
 var (
 	regularPod = corev1API.Pod{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "regular-pod",
-				Namespace: "default",
-			},
-			Spec: corev1API.PodSpec{
-				Containers: []corev1API.Container{
-					{
-						Name:  "container-1",
-						Image: "image-1",
-					},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "regular-pod",
+			Namespace: "default",
+		},
+		Spec: corev1API.PodSpec{
+			Containers: []corev1API.Container{
+				{
+					Name:  "container-1",
+					Image: "image-1",
 				},
 			},
-		}
+		},
+	}
 	regularPodMap, _ = runtime.DefaultUnstructuredConverter.ToUnstructured(&regularPod)
-	buildPod = corev1API.Pod{	
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "build-pod",
-				Namespace: "default",
-				Labels: map[string]string{
-					"openshift.io/build.name": "build-1",
-				},
-				Annotations: map[string]string{
-					"openshift.io/build.name": "build-1",
+	buildPod         = corev1API.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "build-pod",
+			Namespace: "default",
+			Labels: map[string]string{
+				"openshift.io/build.name": "build-1",
+			},
+			Annotations: map[string]string{
+				"openshift.io/build.name": "build-1",
+			},
+		},
+		Spec: corev1API.PodSpec{
+			Containers: []corev1API.Container{
+				{
+					Name:  "container-1",
+					Image: "image-1",
 				},
 			},
-			Spec: corev1API.PodSpec{
-				Containers: []corev1API.Container{
-					{
-						Name:  "container-1",
-						Image: "image-1",
-					},
-				},
+			Volumes: []corev1API.Volume{
+				{Name: "buildworkdir", VolumeSource: corev1API.VolumeSource{EmptyDir: &corev1API.EmptyDirVolumeSource{}}},
+				{Name: "container-storage-root", VolumeSource: corev1API.VolumeSource{EmptyDir: &corev1API.EmptyDirVolumeSource{}}},
+				{Name: "container-storage-run", VolumeSource: corev1API.VolumeSource{EmptyDir: &corev1API.EmptyDirVolumeSource{}}},
+				{Name: "build-blob-cache", VolumeSource: corev1API.VolumeSource{EmptyDir: &corev1API.EmptyDirVolumeSource{}}},
 			},
-		}
+		},
+	}
 	buildPodMap, _ = runtime.DefaultUnstructuredConverter.ToUnstructured(&buildPod)
 )
 
 func annotatedBuildPodMap() map[string]interface{} {
 	annotatedBuildPod := buildPod.DeepCopy()
-	annotatedBuildPod.Annotations[restic.VolumesToExcludeAnnotation] += buildPodVolumesToExclude
+	annotatedBuildPod.Annotations[restic.VolumesToExcludeAnnotation] += "buildworkdir,container-storage-root,container-storage-run,build-blob-cache"
 	podMap, _ := runtime.DefaultUnstructuredConverter.ToUnstructured(&annotatedBuildPod)
 	return podMap
 }

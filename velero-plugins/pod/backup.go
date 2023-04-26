@@ -23,8 +23,6 @@ func (p *BackupPlugin) AppliesTo() (velero.ResourceSelector, error) {
 	}, nil
 }
 
-const buildPodVolumesToExclude = "buildworkdir,container-storage-root,build-blob-cache"
-
 // Execute copies local registry images into migration registry, if this is a build pod, we will skip volumes
 func (p *BackupPlugin) Execute(input runtime.Unstructured, backup *v1.Backup) (runtime.Unstructured, []velero.ResourceIdentifier, error) {
 	pod := corev1API.Pod{}
@@ -33,13 +31,10 @@ func (p *BackupPlugin) Execute(input runtime.Unstructured, backup *v1.Backup) (r
 	p.Log.Infof("[pod-backup] pod: %s", pod.Name)
 	// if pod is a build pod and it might already be completed.
 	// we still want build pods to be in the backup so skip volumes to avoid restic backup failure of a completed build pod
-	if (pod.Labels != nil && pod.Labels["openshift.io/build.name"] != "") || (pod.Annotations != nil && pod.Annotations["openshift.io/build.name"] != "") {
+	if isBuildPod(&pod) {
 		if pod.Annotations == nil || pod.Annotations[restic.VolumesToExcludeAnnotation] == "" {
 			p.Log.Infof("[pod-backup] pod: %s is a build pod, skipping volumes using annotations", pod.Name)
-			if pod.Annotations == nil {
-				pod.Annotations = make(map[string]string)
-			}
-			pod.Annotations[restic.VolumesToExcludeAnnotation] = buildPodVolumesToExclude
+			skipEmptyDirVolumes(&pod)
 		} else {
 			p.Log.Infof("[pod-backup] pod: %s is a build pod, already have skip volumes using annotations, left as is", pod.Name)
 		}
@@ -49,4 +44,29 @@ func (p *BackupPlugin) Execute(input runtime.Unstructured, backup *v1.Backup) (r
 	json.Unmarshal(objrec, &out)
 	input.SetUnstructuredContent(out)
 	return input, nil, nil
+}
+
+func skipEmptyDirVolumes(pod *corev1API.Pod) {
+	if pod.Annotations == nil {
+		pod.Annotations = make(map[string]string)
+	}
+	pod.Annotations[restic.VolumesToExcludeAnnotation] = ""
+	for i, volume := range pod.Spec.Volumes {
+		if volume.EmptyDir != nil {
+			pod.Annotations[restic.VolumesToExcludeAnnotation] += volume.Name
+			if i != len(pod.Spec.Volumes)-1 {
+				pod.Annotations[restic.VolumesToExcludeAnnotation] += ","
+			}
+		}
+	}
+}
+
+func isBuildPod(pod *corev1API.Pod) bool {
+	if pod.Labels != nil && pod.Labels["openshift.io/build.name"] != "" {
+		return true
+	}
+	if pod.Annotations != nil && pod.Annotations["openshift.io/build.name"] != "" {
+		return true
+	}
+	return false
 }
