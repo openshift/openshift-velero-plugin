@@ -229,9 +229,6 @@ require (
 	gopkg.in/go-jose/go-jose.v2 v2.6.1 // indirect
 )
 
-// CVE-2021-41190
-replace github.com/opencontainers/image-spec => github.com/opencontainers/image-spec v1.0.2-0.20211123152302-43a7dee1ec31
-
 // CVE-2021-3121
 replace github.com/gogo/protobuf => github.com/gogo/protobuf v1.3.2
 
@@ -241,4 +238,4 @@ replace github.com/vmware-tanzu/velero => github.com/openshift/velero v0.10.2-0.
 
 // openshift/docker-distribution release-4.14 branch which contain following unmerged distribution/distribution PRs:
 // - aws shared config support (sts assume role)
-replace github.com/distribution/distribution/v3 => github.com/openshift/docker-distribution/v3 v3.0.0-20230626115833-c7be7b49aed9
+replace github.com/distribution/distribution/v3 v3.0.0-20220729163034-26163d82560f => github.com/openshift/docker-distribution/v3 v3.0.0-20230626115833-c7be7b49aed9
