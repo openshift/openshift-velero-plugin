@@ -52,38 +52,9 @@ const (
 	ResourceGroup         = "resourceGroup"
 )
 
+// TODO: remove this map and just define them in each function
 // creating skeleton for provider based env var map
 var cloudProviderEnvVarMap = map[string][]corev1.EnvVar{
-	"aws": {
-		{
-			Name:  RegistryStorageEnvVarKey,
-			Value: S3,
-		},
-		{
-			Name:  RegistryStorageS3AccesskeyEnvVarKey,
-			Value: "",
-		},
-		{
-			Name:  RegistryStorageS3BucketEnvVarKey,
-			Value: "",
-		},
-		{
-			Name:  RegistryStorageS3RegionEnvVarKey,
-			Value: "",
-		},
-		{
-			Name:  RegistryStorageS3SecretkeyEnvVarKey,
-			Value: "",
-		},
-		{
-			Name:  RegistryStorageS3RegionendpointEnvVarKey,
-			Value: "",
-		},
-		{
-			Name:  RegistryStorageS3SkipverifyEnvVarKey,
-			Value: "",
-		},
-	},
 	"azure": {
 		{
 			Name:  RegistryStorageEnvVarKey,
@@ -154,7 +125,7 @@ func getRegistryEnvVars(bsl *velerov1.BackupStorageLocation) ([]corev1.EnvVar, e
 	var err error
 	switch provider {
 	case AWSProvider:
-		envVar, err = getAWSRegistryEnvVars(bsl, cloudProviderEnvVarMap[AWSProvider])
+		envVar, err = getAWSRegistryEnvVars(bsl)
 
 	case AzureProvider:
 		envVar, err = getAzureRegistryEnvVars(bsl, cloudProviderEnvVarMap[AzureProvider])
@@ -170,51 +141,54 @@ func getRegistryEnvVars(bsl *velerov1.BackupStorageLocation) ([]corev1.EnvVar, e
 	return envVar, nil
 }
 
-func getAWSRegistryEnvVars(bsl *velerov1.BackupStorageLocation, awsEnvVars []corev1.EnvVar) ([]corev1.EnvVar, error) {
-
+func getAWSRegistryEnvVars(bsl *velerov1.BackupStorageLocation) ([]corev1.EnvVar, error) {
+	// validation
+	bslSpecRegion, regionInConfig := bsl.Spec.Config[Region]
+	if !regionInConfig {
+		return nil, errors.New("region not found in backupstoragelocation spec")
+	}
 	// create secret data and fill up the values and return from here
-	for i := range awsEnvVars {
-		if awsEnvVars[i].Name == RegistryStorageS3AccesskeyEnvVarKey {
-			awsEnvVars[i].ValueFrom = &corev1.EnvVarSource{
+	awsEnvs := []corev1.EnvVar{
+		{
+			Name:  RegistryStorageEnvVarKey,
+			Value: S3,
+		},
+		{
+			Name: RegistryStorageS3AccesskeyEnvVarKey,
+			ValueFrom: &corev1.EnvVarSource{
 				SecretKeyRef: &corev1.SecretKeySelector{
 					LocalObjectReference: corev1.LocalObjectReference{Name: "oadp-" + bsl.Name + "-" + bsl.Spec.Provider + "-registry-secret"},
 					Key:                  "access_key",
 				},
-			}
-		}
-
-		if awsEnvVars[i].Name == RegistryStorageS3BucketEnvVarKey {
-			awsEnvVars[i].Value = bsl.Spec.StorageType.ObjectStorage.Bucket
-		}
-
-		if awsEnvVars[i].Name == RegistryStorageS3RegionEnvVarKey {
-			bslSpecRegion, regionInConfig := bsl.Spec.Config[Region]
-			if regionInConfig {
-				awsEnvVars[i].Value = bslSpecRegion
-			} else {
-				return nil, errors.New("region not found in backupstoragelocation spec")
-			}
-		}
-
-		if awsEnvVars[i].Name == RegistryStorageS3SecretkeyEnvVarKey {
-			awsEnvVars[i].ValueFrom = &corev1.EnvVarSource{
+			},
+		},
+		{
+			Name: RegistryStorageS3BucketEnvVarKey,
+			Value: bsl.Spec.StorageType.ObjectStorage.Bucket,
+		},
+		{
+			Name: RegistryStorageS3RegionEnvVarKey,
+			Value: bslSpecRegion,
+		},
+		{
+			Name: RegistryStorageS3SecretkeyEnvVarKey,
+			ValueFrom: &corev1.EnvVarSource{
 				SecretKeyRef: &corev1.SecretKeySelector{
 					LocalObjectReference: corev1.LocalObjectReference{Name: "oadp-" + bsl.Name + "-" + bsl.Spec.Provider + "-registry-secret"},
 					Key:                  "secret_key",
 				},
-			}
-		}
-
-		if awsEnvVars[i].Name == RegistryStorageS3RegionendpointEnvVarKey {
-			awsEnvVars[i].Value = bsl.Spec.Config[S3URL]
-		}
-
-		if awsEnvVars[i].Name == RegistryStorageS3SkipverifyEnvVarKey {
-			awsEnvVars[i].Value = bsl.Spec.Config[InsecureSkipTLSVerify]
-		}
-
+			},
+		},
+		{
+			Name: RegistryStorageS3RegionendpointEnvVarKey,
+			Value: bsl.Spec.Config[S3URL],
+		},
+		{
+			Name: RegistryStorageS3SkipverifyEnvVarKey,
+			Value: bsl.Spec.Config[InsecureSkipTLSVerify],
+		},
 	}
-	return awsEnvVars, nil
+	return awsEnvs, nil
 }
 
 func getAzureRegistryEnvVars(bsl *velerov1.BackupStorageLocation, azureEnvVars []corev1.EnvVar) ([]corev1.EnvVar, error) {

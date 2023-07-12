@@ -358,7 +358,7 @@ func Test_getAWSRegistryEnvVars(t *testing.T) {
 				}
 			}
 
-			gotRegistryContainerEnvVar, gotErr := getAWSRegistryEnvVars(tt.bsl, testAWSEnvVar)
+			gotRegistryContainerEnvVar, gotErr := getAWSRegistryEnvVars(tt.bsl)
 
 			if tt.matchProfile && (gotErr != nil) != tt.wantErr {
 				t.Errorf("ValidateBackupStorageLocations() gotErr = %v, wantErr %v", gotErr, tt.wantErr)
