@@ -861,8 +861,8 @@ github.com/julienschmidt/httprouter v1.2.0/go.mod h1:SYymIcj16QtmaHHD7aYtjjsJG7V
 github.com/julienschmidt/httprouter v1.3.0/go.mod h1:JR6WtHb+2LUe8TCKY3cZOxFyyO8IZAc4RVcycCCAKdM=
 github.com/kaovilai/udistribution v0.0.10-oadp-1.2 h1:WYW2AvZuTsYMPcfyouqiQUnMupRi7+4ITMp0yNsR8OI=
 github.com/kaovilai/udistribution v0.0.10-oadp-1.2/go.mod h1:W/8nkor8yNBNprkHpkVd22n8Vdbbd9scLK+JHCCO+E0=
-github.com/kaovilai/velero v1.6.1-0.20230711234837-eef3a4de9b80 h1:oFoorDynnuwwWslZ+KCSEFooFOx9O0/vhMIycbOtXD4=
-github.com/kaovilai/velero v1.6.1-0.20230711234837-eef3a4de9b80/go.mod h1:EBv9g8EJDkTr/5lwtn2cfOb7DIJUca7lXbnD8sM4Pxw=
+github.com/kaovilai/velero v1.6.1-0.20230718211252-5ae40c40288a h1:7Z1I+ANTUcBM3LxluLSEcYKAztMJ39Ub+rfln33p1jE=
+github.com/kaovilai/velero v1.6.1-0.20230718211252-5ae40c40288a/go.mod h1:EBv9g8EJDkTr/5lwtn2cfOb7DIJUca7lXbnD8sM4Pxw=
 github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0 h1:iQTw/8FWTuc7uiaSepXwyf3o52HaUYcV+Tu66S3F5GA=
 github.com/karrick/godirwalk v1.8.0/go.mod h1:H5KPZjojv4lE+QYImBI8xVtrBRgYrIVsaRPx4tDPEn4=
 github.com/karrick/godirwalk v1.10.3/go.mod h1:RoGL9dQei4vP9ilrpETWE8CLOZ1kiN0LhBygSwrAsHA=

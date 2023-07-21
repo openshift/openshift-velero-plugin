@@ -204,6 +204,8 @@ replace github.com/gogo/protobuf => github.com/gogo/protobuf v1.3.2
 replace bitbucket.org/ww/goautoneg v0.0.0-20120707110453-75cd24fc2f2c => github.com/markusthoemmes/goautoneg v0.0.0-20190713162725-c6008fefa5b1
 
 // replace github.com/vmware-tanzu/velero v1.11.0 => github.com/openshift/velero v0.10.2-0.20230320194820-cd848ef1a58f
-replace github.com/vmware-tanzu/velero v1.11.0 => github.com/kaovilai/velero v1.6.1-0.20230711234837-eef3a4de9b80 // TODO: remove when https://github.com/openshift/velero/pull/277 is merged
+// TODO: update when https://github.com/openshift/velero/pull/279 is merged
+// `go get github.com/kaovilai/velero@unkopia-openshift-for-plugins`
+replace github.com/vmware-tanzu/velero v1.11.0 => github.com/kaovilai/velero v1.6.1-0.20230718211252-5ae40c40288a
 
 replace github.com/distribution/distribution/v3 v3.0.0-20220729163034-26163d82560f => github.com/openshift/docker-distribution/v3 v3.0.0-20230626115833-c7be7b49aed9
