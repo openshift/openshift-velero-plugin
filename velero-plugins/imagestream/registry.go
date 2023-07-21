@@ -2,6 +2,8 @@ package imagestream
 
 import (
 	"errors"
+	"regexp"
+	"strings"
 
 	"github.com/openshift/oadp-operator/pkg/credentials"
 
@@ -13,14 +15,15 @@ import (
 // Registry Env var keys
 const (
 	// AWS registry env vars
-	RegistryStorageEnvVarKey                 = "REGISTRY_STORAGE"
-	RegistryStorageS3AccesskeyEnvVarKey      = "REGISTRY_STORAGE_S3_ACCESSKEY"
-	RegistryStorageS3BucketEnvVarKey         = "REGISTRY_STORAGE_S3_BUCKET"
-	RegistryStorageS3RegionEnvVarKey         = "REGISTRY_STORAGE_S3_REGION"
-	RegistryStorageS3SecretkeyEnvVarKey      = "REGISTRY_STORAGE_S3_SECRETKEY"
-	RegistryStorageS3RegionendpointEnvVarKey = "REGISTRY_STORAGE_S3_REGIONENDPOINT"
-	RegistryStorageS3RootdirectoryEnvVarKey  = "REGISTRY_STORAGE_S3_ROOTDIRECTORY"
-	RegistryStorageS3SkipverifyEnvVarKey     = "REGISTRY_STORAGE_S3_SKIPVERIFY"
+	RegistryStorageEnvVarKey                        = "REGISTRY_STORAGE"
+	RegistryStorageS3AccesskeyEnvVarKey             = "REGISTRY_STORAGE_S3_ACCESSKEY"
+	RegistryStorageS3BucketEnvVarKey                = "REGISTRY_STORAGE_S3_BUCKET"
+	RegistryStorageS3RegionEnvVarKey                = "REGISTRY_STORAGE_S3_REGION"
+	RegistryStorageS3SecretkeyEnvVarKey             = "REGISTRY_STORAGE_S3_SECRETKEY"
+	RegistryStorageS3CredentialsConfigPathEnvVarKey = "REGISTRY_STORAGE_S3_CREDENTIALSCONFIGPATH"
+	RegistryStorageS3RegionendpointEnvVarKey        = "REGISTRY_STORAGE_S3_REGIONENDPOINT"
+	RegistryStorageS3RootdirectoryEnvVarKey         = "REGISTRY_STORAGE_S3_ROOTDIRECTORY"
+	RegistryStorageS3SkipverifyEnvVarKey            = "REGISTRY_STORAGE_S3_SKIPVERIFY"
 	// Azure registry env vars
 	RegistryStorageAzureContainerEnvVarKey       = "REGISTRY_STORAGE_AZURE_CONTAINER"
 	RegistryStorageAzureAccountnameEnvVarKey     = "REGISTRY_STORAGE_AZURE_ACCOUNTNAME"
@@ -35,7 +38,7 @@ const (
 	RegistryStorageGCSRootdirectory = "REGISTRY_STORAGE_GCS_ROOTDIRECTORY"
 )
 
-// provider specific object storage
+// provider specific object storage config
 const (
 	S3                    = "s3"
 	Azure                 = "azure"
@@ -50,6 +53,12 @@ const (
 	InsecureSkipTLSVerify = "insecureSkipTLSVerify"
 	StorageAccount        = "storageAccount"
 	ResourceGroup         = "resourceGroup"
+	enableSharedConfig	= "enableSharedConfig"
+)
+
+// secret data keys
+const (
+	webIdentityTokenFile = "web_identity_token_file"
 )
 
 // TODO: remove this map and just define them in each function
@@ -120,25 +129,25 @@ type azureCredentials struct {
 }
 
 func getRegistryEnvVars(bsl *velerov1.BackupStorageLocation) ([]corev1.EnvVar, error) {
-	envVar := []corev1.EnvVar{}
+	var envVars []corev1.EnvVar
 	provider := bsl.Spec.Provider
 	var err error
 	switch provider {
 	case AWSProvider:
-		envVar, err = getAWSRegistryEnvVars(bsl)
+		envVars, err = getAWSRegistryEnvVars(bsl)
 
 	case AzureProvider:
-		envVar, err = getAzureRegistryEnvVars(bsl, cloudProviderEnvVarMap[AzureProvider])
+		envVars, err = getAzureRegistryEnvVars(bsl, cloudProviderEnvVarMap[AzureProvider])
 
 	case GCPProvider:
-		envVar, err = getGCPRegistryEnvVars(bsl, cloudProviderEnvVarMap[GCPProvider])
+		envVars, err = getGCPRegistryEnvVars(bsl, cloudProviderEnvVarMap[GCPProvider])
 	default:
 		return nil, errors.New("unsupported provider")
 	}
 	if err != nil {
 		return nil, err
 	}
-	return envVar, nil
+	return envVars, nil
 }
 
 func getAWSRegistryEnvVars(bsl *velerov1.BackupStorageLocation) ([]corev1.EnvVar, error) {
@@ -154,39 +163,66 @@ func getAWSRegistryEnvVars(bsl *velerov1.BackupStorageLocation) ([]corev1.EnvVar
 			Value: S3,
 		},
 		{
-			Name: RegistryStorageS3AccesskeyEnvVarKey,
-			ValueFrom: &corev1.EnvVarSource{
-				SecretKeyRef: &corev1.SecretKeySelector{
-					LocalObjectReference: corev1.LocalObjectReference{Name: "oadp-" + bsl.Name + "-" + bsl.Spec.Provider + "-registry-secret"},
-					Key:                  "access_key",
-				},
-			},
-		},
-		{
-			Name: RegistryStorageS3BucketEnvVarKey,
+			Name:  RegistryStorageS3BucketEnvVarKey,
 			Value: bsl.Spec.StorageType.ObjectStorage.Bucket,
 		},
 		{
-			Name: RegistryStorageS3RegionEnvVarKey,
+			Name:  RegistryStorageS3RegionEnvVarKey,
 			Value: bslSpecRegion,
 		},
 		{
-			Name: RegistryStorageS3SecretkeyEnvVarKey,
-			ValueFrom: &corev1.EnvVarSource{
-				SecretKeyRef: &corev1.SecretKeySelector{
-					LocalObjectReference: corev1.LocalObjectReference{Name: "oadp-" + bsl.Name + "-" + bsl.Spec.Provider + "-registry-secret"},
-					Key:                  "secret_key",
-				},
-			},
-		},
-		{
-			Name: RegistryStorageS3RegionendpointEnvVarKey,
+			Name:  RegistryStorageS3RegionendpointEnvVarKey,
 			Value: bsl.Spec.Config[S3URL],
 		},
 		{
-			Name: RegistryStorageS3SkipverifyEnvVarKey,
+			Name:  RegistryStorageS3SkipverifyEnvVarKey,
 			Value: bsl.Spec.Config[InsecureSkipTLSVerify],
 		},
+	}
+	// if credential is sts, then add sts specific env vars
+	if bsl.Spec.Config[enableSharedConfig] == "true" {
+		secretData, err := getSecretKeyRefData(bsl.Spec.Credential, bsl.Namespace)
+		if err != nil {
+			return nil, errors.Join(err, errors.New("error getting secret data from bsl for sts cred"))
+		}
+		// get web_identity_token_file from secret data
+		splitString := strings.Split(string(secretData), "\n")
+		RegExWebIdentity, err := regexp.Compile(webIdentityTokenFile)
+		if err != nil {
+			return nil, errors.Join(err, errors.New("error compiling regex for web_identity_token_file"))
+		}
+		tokenFilePath := "/init"
+		for _, line := range splitString {
+			if lineIsTokenFile := RegExWebIdentity.MatchString(line); lineIsTokenFile {
+				// split line by "="
+				tokenFilePath = strings.TrimSpace(strings.Split(line, "=")[1])
+				break
+			}
+		}
+		awsEnvs = append(awsEnvs, corev1.EnvVar{
+			Name:  RegistryStorageS3CredentialsConfigPathEnvVarKey,
+			Value: tokenFilePath,
+		})
+	} else {
+		awsEnvs = append(awsEnvs,
+			corev1.EnvVar {
+				Name: RegistryStorageS3AccesskeyEnvVarKey,
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{Name: "oadp-" + bsl.Name + "-" + bsl.Spec.Provider + "-registry-secret"},
+						Key:                  "access_key",
+					},
+				},
+			},
+			corev1.EnvVar {
+				Name: RegistryStorageS3SecretkeyEnvVarKey,
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{Name: "oadp-" + bsl.Name + "-" + bsl.Spec.Provider + "-registry-secret"},
+						Key:                  "secret_key",
+					},
+				},
+			})
 	}
 	return awsEnvs, nil
 }
