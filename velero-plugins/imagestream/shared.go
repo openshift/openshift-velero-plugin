@@ -70,12 +70,12 @@ func GetUdistributionTransportForLocation(uid k8stypes.UID, location, namespace 
 	log.Info("Getting registry envs for udistribution transport")
 	envs, err := GetRegistryEnvsForLocation(location, namespace)
 	if err != nil {
-		return nil, errors.New(fmt.Sprintf("errors getting registryenv: %v", err))
+		return nil, fmt.Errorf("errors getting registryenv: %v", err)
 	}
 	log.Info("Creating udistribution transport")
 	ut, err := udistribution.NewTransportFromNewConfig("", envs)
 	if err != nil {
-		return nil, errors.New(fmt.Sprintf("errors creating new udistribution transport from config: %v", err))
+		return nil, fmt.Errorf("errors creating new udistribution transport from config: %v", err)
 	}
 	log.Info("Got udistribution transport")
 	common.BackupUidMap[uid].Ut = ut
@@ -91,12 +91,12 @@ func GetUdistributionKey(location, namespace string) string {
 func GetRegistryEnvsForLocation(location string, namespace string) ([]string, error) {
 	bsl, err := common.GetBackupStorageLocation(location, namespace)
 	if err != nil {
-		return nil, errors.New(fmt.Sprintf("errors getting bsl: %v", err))
+		return nil, fmt.Errorf("errors getting bsl: %v", err)
 	}
 
 	envVars, err := getRegistryEnvVars(bsl)
 	if err != nil {
-		return nil, errors.New(fmt.Sprintf("errors getting registry env vars: %v", err))
+		return nil, fmt.Errorf("errors getting registry env vars: %v", err)
 	}
 	return coreV1EnvVarArrToStringArr(envVars, bsl.Namespace), nil
 }

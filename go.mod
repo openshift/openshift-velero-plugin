@@ -6,7 +6,7 @@ require (
 	github.com/bombsimon/logrusr/v3 v3.0.0
 	github.com/containers/image/v5 v5.26.1
 	github.com/go-logr/logr v1.2.4
-	github.com/google/go-cmp v0.5.9 // indirect
+	github.com/google/go-cmp v0.5.9
 	github.com/hashicorp/go-hclog v1.0.0 // indirect
 	github.com/kaovilai/udistribution v0.0.10-oadp-1.2
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
