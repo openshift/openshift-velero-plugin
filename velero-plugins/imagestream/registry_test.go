@@ -15,21 +15,20 @@ import (
 )
 
 const (
-	testProfile                 = "someProfile"
-	testAccessKey               = "someAccessKey"
-	testSecretAccessKey         = "someSecretAccessKey"
-	testStoragekey              = "someStorageKey"
-	testCloudName               = "someCloudName"
-	testBslProfile              = "bslProfile"
-	testBslAccessKey            = "bslAccessKey"
-	testBslSecretAccessKey      = "bslSecretAccessKey"
-	testBslRoleArn              = "bslRoleArn"
-	testBslWebIdentityTokenFile = "/var/run/secrets/openshift/serviceaccount/token"
-	testSubscriptionID          = "someSubscriptionID"
-	testTenantID                = "someTenantID"
-	testClientID                = "someClientID"
-	testClientSecret            = "someClientSecret"
-	testResourceGroup           = "someResourceGroup"
+	testProfile            = "someProfile"
+	testAccessKey          = "someAccessKey"
+	testSecretAccessKey    = "someSecretAccessKey"
+	testStoragekey         = "someStorageKey"
+	testCloudName          = "someCloudName"
+	testBslProfile         = "bslProfile"
+	testBslAccessKey       = "bslAccessKey"
+	testBslSecretAccessKey = "bslSecretAccessKey"
+	testBslRoleArn         = "bslRoleArn"
+	testSubscriptionID     = "someSubscriptionID"
+	testTenantID           = "someTenantID"
+	testClientID           = "someClientID"
+	testClientSecret       = "someClientSecret"
+	testResourceGroup      = "someResourceGroup"
 )
 
 var (
@@ -116,7 +115,7 @@ var (
 	}
 	awsStsRegistrySecretData = map[string][]byte{
 		"cloud": []byte(`role_arn=testBslRoleArn
-web_identity_token_file=`+testBslWebIdentityTokenFile+`
+web_identity_token_file=/var/run/secrets/some/path
 `),
 	}
 	azureRegistrySecretData = map[string][]byte{
@@ -206,8 +205,8 @@ func Test_getAWSRegistryEnvVars(t *testing.T) {
 						},
 					},
 					Config: map[string]string{
-						Region:  "aws-region",
-						Profile: "test-profile",
+						Region:             "aws-region",
+						Profile:            "test-profile",
 						enableSharedConfig: "true",
 					},
 					Credential: &corev1.SecretKeySelector{
@@ -245,7 +244,7 @@ func Test_getAWSRegistryEnvVars(t *testing.T) {
 					Name: RegistryStorageS3SkipverifyEnvVarKey,
 				},
 				{
-					Name: RegistryStorageS3CredentialsConfigPathEnvVarKey, Value: testBslWebIdentityTokenFile,
+					Name: RegistryStorageS3CredentialsConfigPathEnvVarKey, Value: "/tmp/credentials/test-ns/cloud-credentials-sts-cloud",
 				},
 			},
 
@@ -330,7 +329,7 @@ func Test_getAWSRegistryEnvVars(t *testing.T) {
 			matchProfile: false,
 		},
 	}
-	testEnv := & envtest.Environment{}
+	testEnv := &envtest.Environment{}
 	cfg, err := testEnv.Start()
 	if err != nil {
 		t.Fatal(err)

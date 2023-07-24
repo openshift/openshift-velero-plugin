@@ -2,8 +2,7 @@ package imagestream
 
 import (
 	"errors"
-	"regexp"
-	"strings"
+	"fmt"
 
 	"github.com/openshift/oadp-operator/pkg/credentials"
 
@@ -53,12 +52,18 @@ const (
 	InsecureSkipTLSVerify = "insecureSkipTLSVerify"
 	StorageAccount        = "storageAccount"
 	ResourceGroup         = "resourceGroup"
-	enableSharedConfig	= "enableSharedConfig"
+	enableSharedConfig    = "enableSharedConfig"
 )
 
 // secret data keys
 const (
 	webIdentityTokenFile = "web_identity_token_file"
+)
+
+// velero constants
+const (
+	// https://github.com/vmware-tanzu/velero/blob/5afe837f76aea4dd59b1bf2792e7802d4966f0a7/pkg/cmd/server/server.go#L110
+	defaultCredentialsDirectory = "/tmp/credentials"
 )
 
 // TODO: remove this map and just define them in each function
@@ -181,31 +186,13 @@ func getAWSRegistryEnvVars(bsl *velerov1.BackupStorageLocation) ([]corev1.EnvVar
 	}
 	// if credential is sts, then add sts specific env vars
 	if bsl.Spec.Config[enableSharedConfig] == "true" {
-		secretData, err := getSecretKeyRefData(bsl.Spec.Credential, bsl.Namespace)
-		if err != nil {
-			return nil, errors.Join(err, errors.New("error getting secret data from bsl for sts cred"))
-		}
-		// get web_identity_token_file from secret data
-		splitString := strings.Split(string(secretData), "\n")
-		RegExWebIdentity, err := regexp.Compile(webIdentityTokenFile)
-		if err != nil {
-			return nil, errors.Join(err, errors.New("error compiling regex for web_identity_token_file"))
-		}
-		tokenFilePath := "/init"
-		for _, line := range splitString {
-			if lineIsTokenFile := RegExWebIdentity.MatchString(line); lineIsTokenFile {
-				// split line by "="
-				tokenFilePath = strings.TrimSpace(strings.Split(line, "=")[1])
-				break
-			}
-		}
 		awsEnvs = append(awsEnvs, corev1.EnvVar{
 			Name:  RegistryStorageS3CredentialsConfigPathEnvVarKey,
-			Value: tokenFilePath,
+			Value: getBslSecretPath(bsl),
 		})
 	} else {
 		awsEnvs = append(awsEnvs,
-			corev1.EnvVar {
+			corev1.EnvVar{
 				Name: RegistryStorageS3AccesskeyEnvVarKey,
 				ValueFrom: &corev1.EnvVarSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
@@ -214,7 +201,7 @@ func getAWSRegistryEnvVars(bsl *velerov1.BackupStorageLocation) ([]corev1.EnvVar
 					},
 				},
 			},
-			corev1.EnvVar {
+			corev1.EnvVar{
 				Name: RegistryStorageS3SecretkeyEnvVarKey,
 				ValueFrom: &corev1.EnvVarSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
@@ -225,6 +212,15 @@ func getAWSRegistryEnvVars(bsl *velerov1.BackupStorageLocation) ([]corev1.EnvVar
 			})
 	}
 	return awsEnvs, nil
+}
+
+// return path to cloud credentials secret file as defined by
+// https://github.com/vmware-tanzu/velero/blob/5afe837f76aea4dd59b1bf2792e7802d4966f0a7/pkg/cmd/server/server.go#L334
+// https://github.com/vmware-tanzu/velero/blob/5afe837f76aea4dd59b1bf2792e7802d4966f0a7/internal/credentials/file_store.go#L50
+// https://github.com/vmware-tanzu/velero/blob/5afe837f76aea4dd59b1bf2792e7802d4966f0a7/internal/credentials/file_store.go#L72
+// This file is written by velero server on startup
+func getBslSecretPath(bsl *velerov1.BackupStorageLocation) string {
+	return fmt.Sprintf("%s/%s/%s-%s", defaultCredentialsDirectory, bsl.Namespace, bsl.Spec.Credential.LocalObjectReference.Name, bsl.Spec.Credential.Key)
 }
 
 func getAzureRegistryEnvVars(bsl *velerov1.BackupStorageLocation, azureEnvVars []corev1.EnvVar) ([]corev1.EnvVar, error) {
