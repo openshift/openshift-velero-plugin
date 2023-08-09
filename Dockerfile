@@ -19,7 +19,7 @@ WORKDIR $APP_ROOT/src/github.com/konveyor/openshift-velero-plugin
 COPY --chown=1001 go.mod go.sum $APP_ROOT/src/github.com/konveyor/openshift-velero-plugin/
 RUN go mod download
 COPY --chown=1001 . $APP_ROOT/src/github.com/konveyor/openshift-velero-plugin
-RUN go build -installsuffix "static" -tags "$BUILDTAGS" -o _output/$BIN ./$BIN
+RUN go build -buildvcs=false -installsuffix "static" -tags "$BUILDTAGS" -o _output/$BIN ./$BIN
 
 FROM registry.access.redhat.com/ubi8-minimal
 RUN mkdir /plugins
