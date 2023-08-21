@@ -861,8 +861,6 @@ github.com/julienschmidt/httprouter v1.2.0/go.mod h1:SYymIcj16QtmaHHD7aYtjjsJG7V
 github.com/julienschmidt/httprouter v1.3.0/go.mod h1:JR6WtHb+2LUe8TCKY3cZOxFyyO8IZAc4RVcycCCAKdM=
 github.com/kaovilai/udistribution v0.0.10-oadp-1.2 h1:WYW2AvZuTsYMPcfyouqiQUnMupRi7+4ITMp0yNsR8OI=
 github.com/kaovilai/udistribution v0.0.10-oadp-1.2/go.mod h1:W/8nkor8yNBNprkHpkVd22n8Vdbbd9scLK+JHCCO+E0=
-github.com/kaovilai/velero v1.6.1-0.20230718211252-5ae40c40288a h1:7Z1I+ANTUcBM3LxluLSEcYKAztMJ39Ub+rfln33p1jE=
-github.com/kaovilai/velero v1.6.1-0.20230718211252-5ae40c40288a/go.mod h1:EBv9g8EJDkTr/5lwtn2cfOb7DIJUca7lXbnD8sM4Pxw=
 github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0 h1:iQTw/8FWTuc7uiaSepXwyf3o52HaUYcV+Tu66S3F5GA=
 github.com/karrick/godirwalk v1.8.0/go.mod h1:H5KPZjojv4lE+QYImBI8xVtrBRgYrIVsaRPx4tDPEn4=
 github.com/karrick/godirwalk v1.10.3/go.mod h1:RoGL9dQei4vP9ilrpETWE8CLOZ1kiN0LhBygSwrAsHA=
@@ -1100,6 +1098,8 @@ github.com/openshift/library-go v0.0.0-20200521120150-e4959e210d3a h1:gQ//Tpad7i
 github.com/openshift/library-go v0.0.0-20200521120150-e4959e210d3a/go.mod h1:HM1nXsKTup/9rYnmXdYbbN+8Ux8Xp39odoqZ4qvSyBo=
 github.com/openshift/oadp-operator v1.0.3 h1:vdSRQiFJyya0NkFQciB2rh9rof9sEFgMHshQnhO4ijw=
 github.com/openshift/oadp-operator v1.0.3/go.mod h1:o2qGXFDtZQC+NWkRtKso5gFcmSYHjc0M+9V26t1/4DI=
+github.com/openshift/velero v0.10.2-0.20230821194959-a5301744afc5 h1:IERdSX5dqvXDO8JY7VpHYdfwoxd9X6oqsvDth/t4dGQ=
+github.com/openshift/velero v0.10.2-0.20230821194959-a5301744afc5/go.mod h1:SiE83gDzD++ovEALRMj78uwtG2oHJD/GGYypv0rC5yY=
 github.com/opentracing/opentracing-go v1.1.0/go.mod h1:UkNAQd3GIcIGf0SeVgPpRdFStlNbqXla1AfSYxPUl2o=
 github.com/operator-framework/api v0.10.0/go.mod h1:tV0BUNvly7szq28ZPBXhjp1Sqg5yHCOeX19ui9K4vjI=
 github.com/operator-framework/api v0.10.7/go.mod h1:PtQSNSuVrhSC6YE6JJJZv3nnZJc32osKX8FmFUZK05U=
