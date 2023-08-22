@@ -2,6 +2,7 @@ package imagestream
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/openshift/oadp-operator/pkg/credentials"
 
@@ -13,14 +14,15 @@ import (
 // Registry Env var keys
 const (
 	// AWS registry env vars
-	RegistryStorageEnvVarKey                 = "REGISTRY_STORAGE"
-	RegistryStorageS3AccesskeyEnvVarKey      = "REGISTRY_STORAGE_S3_ACCESSKEY"
-	RegistryStorageS3BucketEnvVarKey         = "REGISTRY_STORAGE_S3_BUCKET"
-	RegistryStorageS3RegionEnvVarKey         = "REGISTRY_STORAGE_S3_REGION"
-	RegistryStorageS3SecretkeyEnvVarKey      = "REGISTRY_STORAGE_S3_SECRETKEY"
-	RegistryStorageS3RegionendpointEnvVarKey = "REGISTRY_STORAGE_S3_REGIONENDPOINT"
-	RegistryStorageS3RootdirectoryEnvVarKey  = "REGISTRY_STORAGE_S3_ROOTDIRECTORY"
-	RegistryStorageS3SkipverifyEnvVarKey     = "REGISTRY_STORAGE_S3_SKIPVERIFY"
+	RegistryStorageEnvVarKey                        = "REGISTRY_STORAGE"
+	RegistryStorageS3AccesskeyEnvVarKey             = "REGISTRY_STORAGE_S3_ACCESSKEY"
+	RegistryStorageS3BucketEnvVarKey                = "REGISTRY_STORAGE_S3_BUCKET"
+	RegistryStorageS3RegionEnvVarKey                = "REGISTRY_STORAGE_S3_REGION"
+	RegistryStorageS3SecretkeyEnvVarKey             = "REGISTRY_STORAGE_S3_SECRETKEY"
+	RegistryStorageS3CredentialsConfigPathEnvVarKey = "REGISTRY_STORAGE_S3_CREDENTIALSCONFIGPATH"
+	RegistryStorageS3RegionendpointEnvVarKey        = "REGISTRY_STORAGE_S3_REGIONENDPOINT"
+	RegistryStorageS3RootdirectoryEnvVarKey         = "REGISTRY_STORAGE_S3_ROOTDIRECTORY"
+	RegistryStorageS3SkipverifyEnvVarKey            = "REGISTRY_STORAGE_S3_SKIPVERIFY"
 	// Azure registry env vars
 	RegistryStorageAzureContainerEnvVarKey       = "REGISTRY_STORAGE_AZURE_CONTAINER"
 	RegistryStorageAzureAccountnameEnvVarKey     = "REGISTRY_STORAGE_AZURE_ACCOUNTNAME"
@@ -35,7 +37,7 @@ const (
 	RegistryStorageGCSRootdirectory = "REGISTRY_STORAGE_GCS_ROOTDIRECTORY"
 )
 
-// provider specific object storage
+// provider specific object storage config
 const (
 	S3                    = "s3"
 	Azure                 = "azure"
@@ -50,40 +52,23 @@ const (
 	InsecureSkipTLSVerify = "insecureSkipTLSVerify"
 	StorageAccount        = "storageAccount"
 	ResourceGroup         = "resourceGroup"
+	enableSharedConfig    = "enableSharedConfig"
 )
 
+// secret data keys
+const (
+	webIdentityTokenFile = "web_identity_token_file"
+)
+
+// velero constants
+const (
+	// https://github.com/vmware-tanzu/velero/blob/5afe837f76aea4dd59b1bf2792e7802d4966f0a7/pkg/cmd/server/server.go#L110
+	defaultCredentialsDirectory = "/tmp/credentials"
+)
+
+// TODO: remove this map and just define them in each function
 // creating skeleton for provider based env var map
 var cloudProviderEnvVarMap = map[string][]corev1.EnvVar{
-	"aws": {
-		{
-			Name:  RegistryStorageEnvVarKey,
-			Value: S3,
-		},
-		{
-			Name:  RegistryStorageS3AccesskeyEnvVarKey,
-			Value: "",
-		},
-		{
-			Name:  RegistryStorageS3BucketEnvVarKey,
-			Value: "",
-		},
-		{
-			Name:  RegistryStorageS3RegionEnvVarKey,
-			Value: "",
-		},
-		{
-			Name:  RegistryStorageS3SecretkeyEnvVarKey,
-			Value: "",
-		},
-		{
-			Name:  RegistryStorageS3RegionendpointEnvVarKey,
-			Value: "",
-		},
-		{
-			Name:  RegistryStorageS3SkipverifyEnvVarKey,
-			Value: "",
-		},
-	},
 	"azure": {
 		{
 			Name:  RegistryStorageEnvVarKey,
@@ -149,72 +134,93 @@ type azureCredentials struct {
 }
 
 func getRegistryEnvVars(bsl *velerov1.BackupStorageLocation) ([]corev1.EnvVar, error) {
-	envVar := []corev1.EnvVar{}
+	var envVars []corev1.EnvVar
 	provider := bsl.Spec.Provider
 	var err error
 	switch provider {
 	case AWSProvider:
-		envVar, err = getAWSRegistryEnvVars(bsl, cloudProviderEnvVarMap[AWSProvider])
+		envVars, err = getAWSRegistryEnvVars(bsl)
 
 	case AzureProvider:
-		envVar, err = getAzureRegistryEnvVars(bsl, cloudProviderEnvVarMap[AzureProvider])
+		envVars, err = getAzureRegistryEnvVars(bsl, cloudProviderEnvVarMap[AzureProvider])
 
 	case GCPProvider:
-		envVar, err = getGCPRegistryEnvVars(bsl, cloudProviderEnvVarMap[GCPProvider])
+		envVars, err = getGCPRegistryEnvVars(bsl, cloudProviderEnvVarMap[GCPProvider])
 	default:
 		return nil, errors.New("unsupported provider")
 	}
 	if err != nil {
 		return nil, err
 	}
-	return envVar, nil
+	return envVars, nil
 }
 
-func getAWSRegistryEnvVars(bsl *velerov1.BackupStorageLocation, awsEnvVars []corev1.EnvVar) ([]corev1.EnvVar, error) {
-
-	// create secret data and fill up the values and return from here
-	for i := range awsEnvVars {
-		if awsEnvVars[i].Name == RegistryStorageS3AccesskeyEnvVarKey {
-			awsEnvVars[i].ValueFrom = &corev1.EnvVarSource{
-				SecretKeyRef: &corev1.SecretKeySelector{
-					LocalObjectReference: corev1.LocalObjectReference{Name: "oadp-" + bsl.Name + "-" + bsl.Spec.Provider + "-registry-secret"},
-					Key:                  "access_key",
-				},
-			}
-		}
-
-		if awsEnvVars[i].Name == RegistryStorageS3BucketEnvVarKey {
-			awsEnvVars[i].Value = bsl.Spec.StorageType.ObjectStorage.Bucket
-		}
-
-		if awsEnvVars[i].Name == RegistryStorageS3RegionEnvVarKey {
-			bslSpecRegion, regionInConfig := bsl.Spec.Config[Region]
-			if regionInConfig {
-				awsEnvVars[i].Value = bslSpecRegion
-			} else {
-				return nil, errors.New("region not found in backupstoragelocation spec")
-			}
-		}
-
-		if awsEnvVars[i].Name == RegistryStorageS3SecretkeyEnvVarKey {
-			awsEnvVars[i].ValueFrom = &corev1.EnvVarSource{
-				SecretKeyRef: &corev1.SecretKeySelector{
-					LocalObjectReference: corev1.LocalObjectReference{Name: "oadp-" + bsl.Name + "-" + bsl.Spec.Provider + "-registry-secret"},
-					Key:                  "secret_key",
-				},
-			}
-		}
-
-		if awsEnvVars[i].Name == RegistryStorageS3RegionendpointEnvVarKey {
-			awsEnvVars[i].Value = bsl.Spec.Config[S3URL]
-		}
-
-		if awsEnvVars[i].Name == RegistryStorageS3SkipverifyEnvVarKey {
-			awsEnvVars[i].Value = bsl.Spec.Config[InsecureSkipTLSVerify]
-		}
-
+func getAWSRegistryEnvVars(bsl *velerov1.BackupStorageLocation) ([]corev1.EnvVar, error) {
+	// validation
+	bslSpecRegion, regionInConfig := bsl.Spec.Config[Region]
+	if !regionInConfig {
+		return nil, errors.New("region not found in backupstoragelocation spec")
 	}
-	return awsEnvVars, nil
+	// create secret data and fill up the values and return from here
+	awsEnvs := []corev1.EnvVar{
+		{
+			Name:  RegistryStorageEnvVarKey,
+			Value: S3,
+		},
+		{
+			Name:  RegistryStorageS3BucketEnvVarKey,
+			Value: bsl.Spec.StorageType.ObjectStorage.Bucket,
+		},
+		{
+			Name:  RegistryStorageS3RegionEnvVarKey,
+			Value: bslSpecRegion,
+		},
+		{
+			Name:  RegistryStorageS3RegionendpointEnvVarKey,
+			Value: bsl.Spec.Config[S3URL],
+		},
+		{
+			Name:  RegistryStorageS3SkipverifyEnvVarKey,
+			Value: bsl.Spec.Config[InsecureSkipTLSVerify],
+		},
+	}
+	// if credential is sts, then add sts specific env vars
+	if bsl.Spec.Config[enableSharedConfig] == "true" {
+		awsEnvs = append(awsEnvs, corev1.EnvVar{
+			Name:  RegistryStorageS3CredentialsConfigPathEnvVarKey,
+			Value: getBslSecretPath(bsl),
+		})
+	} else {
+		awsEnvs = append(awsEnvs,
+			corev1.EnvVar{
+				Name: RegistryStorageS3AccesskeyEnvVarKey,
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{Name: "oadp-" + bsl.Name + "-" + bsl.Spec.Provider + "-registry-secret"},
+						Key:                  "access_key",
+					},
+				},
+			},
+			corev1.EnvVar{
+				Name: RegistryStorageS3SecretkeyEnvVarKey,
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{Name: "oadp-" + bsl.Name + "-" + bsl.Spec.Provider + "-registry-secret"},
+						Key:                  "secret_key",
+					},
+				},
+			})
+	}
+	return awsEnvs, nil
+}
+
+// return path to cloud credentials secret file as defined by
+// https://github.com/vmware-tanzu/velero/blob/5afe837f76aea4dd59b1bf2792e7802d4966f0a7/pkg/cmd/server/server.go#L334
+// https://github.com/vmware-tanzu/velero/blob/5afe837f76aea4dd59b1bf2792e7802d4966f0a7/internal/credentials/file_store.go#L50
+// https://github.com/vmware-tanzu/velero/blob/5afe837f76aea4dd59b1bf2792e7802d4966f0a7/internal/credentials/file_store.go#L72
+// This file is written by velero server on startup
+func getBslSecretPath(bsl *velerov1.BackupStorageLocation) string {
+	return fmt.Sprintf("%s/%s/%s-%s", defaultCredentialsDirectory, bsl.Namespace, bsl.Spec.Credential.LocalObjectReference.Name, bsl.Spec.Credential.Key)
 }
 
 func getAzureRegistryEnvVars(bsl *velerov1.BackupStorageLocation, azureEnvVars []corev1.EnvVar) ([]corev1.EnvVar, error) {
