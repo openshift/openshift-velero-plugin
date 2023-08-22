@@ -34,6 +34,10 @@ var buildClientError error
 
 var inClusterConfig *rest.Config
 
+func SetInClusterConfig(config *rest.Config) {
+	inClusterConfig = config
+}
+
 func GetInClusterConfig() (*rest.Config, error) {
 	if inClusterConfig != nil {
 		return inClusterConfig, nil

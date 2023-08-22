@@ -1,30 +1,18 @@
 package imagestream
 
 import (
+	"context"
 	"reflect"
 	"testing"
 
-	oadpv1alpha1 "github.com/openshift/oadp-operator/api/v1alpha1"
+	"github.com/google/go-cmp/cmp"
+	"github.com/konveyor/openshift-velero-plugin/velero-plugins/clients"
 	velerov1 "github.com/vmware-tanzu/velero/pkg/apis/velero/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/kubernetes/scheme"
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
+	"sigs.k8s.io/controller-runtime/pkg/envtest"
 )
-
-func getSchemeForFakeClientForRegistry() (*runtime.Scheme, error) {
-	err := oadpv1alpha1.AddToScheme(scheme.Scheme)
-	if err != nil {
-		return nil, err
-	}
-
-	err = velerov1.AddToScheme(scheme.Scheme)
-	if err != nil {
-		return nil, err
-	}
-
-	return scheme.Scheme, nil
-}
 
 const (
 	testProfile            = "someProfile"
@@ -35,6 +23,7 @@ const (
 	testBslProfile         = "bslProfile"
 	testBslAccessKey       = "bslAccessKey"
 	testBslSecretAccessKey = "bslSecretAccessKey"
+	testBslRoleArn         = "bslRoleArn"
 	testSubscriptionID     = "someSubscriptionID"
 	testTenantID           = "someTenantID"
 	testClientID           = "someClientID"
@@ -124,6 +113,11 @@ var (
 		"access_key": []byte(testBslAccessKey),
 		"secret_key": []byte(testBslSecretAccessKey),
 	}
+	awsStsRegistrySecretData = map[string][]byte{
+		"cloud": []byte(`role_arn=testBslRoleArn
+web_identity_token_file=/var/run/secrets/some/path
+`),
+	}
 	azureRegistrySecretData = map[string][]byte{
 		"client_id_key":       []byte(""),
 		"client_secret_key":   []byte(""),
@@ -195,7 +189,68 @@ func Test_getAWSRegistryEnvVars(t *testing.T) {
 			},
 			wantProfile:  "test-profile",
 			matchProfile: true,
-		}, {
+		},
+		{
+			name: "given aws sts bsl, appropriate env var for the container are returned",
+			bsl: &velerov1.BackupStorageLocation{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-bsl",
+					Namespace: "test-ns",
+				},
+				Spec: velerov1.BackupStorageLocationSpec{
+					Provider: AWSProvider,
+					StorageType: velerov1.StorageType{
+						ObjectStorage: &velerov1.ObjectStorageLocation{
+							Bucket: "aws-bucket",
+						},
+					},
+					Config: map[string]string{
+						Region:             "aws-region",
+						Profile:            "test-profile",
+						enableSharedConfig: "true",
+					},
+					Credential: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: "cloud-credentials-sts",
+						},
+						Key: "cloud",
+					},
+				},
+			},
+			secret: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "cloud-credentials-sts",
+					Namespace: "test-ns",
+				},
+				Data: awsStsRegistrySecretData,
+			},
+			wantProfile: "test-profile",
+			wantRegistryContainerEnvVar: []corev1.EnvVar{
+				{
+					Name:  RegistryStorageEnvVarKey,
+					Value: S3,
+				},
+				{
+					Name:  RegistryStorageS3BucketEnvVarKey,
+					Value: "aws-bucket",
+				},
+				{
+					Name: RegistryStorageS3RegionEnvVarKey, Value: "aws-region",
+				},
+				{
+					Name: RegistryStorageS3RegionendpointEnvVarKey,
+				},
+				{
+					Name: RegistryStorageS3SkipverifyEnvVarKey,
+				},
+				{
+					Name: RegistryStorageS3CredentialsConfigPathEnvVarKey, Value: "/tmp/credentials/test-ns/cloud-credentials-sts-cloud",
+				},
+			},
+
+			matchProfile: true,
+		},
+		{
 			name: "given aws profile in bsl, appropriate env var for the container are returned",
 			bsl: &velerov1.BackupStorageLocation{
 				ObjectMeta: metav1.ObjectMeta{
@@ -233,7 +288,8 @@ func Test_getAWSRegistryEnvVars(t *testing.T) {
 			},
 			wantProfile:  testBslProfile,
 			matchProfile: true,
-		}, {
+		},
+		{
 			name: "given missing aws profile in bsl, env var should not match",
 			bsl: &velerov1.BackupStorageLocation{
 				ObjectMeta: metav1.ObjectMeta{
@@ -273,53 +329,67 @@ func Test_getAWSRegistryEnvVars(t *testing.T) {
 			matchProfile: false,
 		},
 	}
+	testEnv := &envtest.Environment{}
+	cfg, err := testEnv.Start()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer testEnv.Stop()
+	clients.SetInClusterConfig(cfg)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.wantRegistryContainerEnvVar = []corev1.EnvVar{
-				{
-					Name:  RegistryStorageEnvVarKey,
-					Value: S3,
-				},
-				{
-					Name: RegistryStorageS3AccesskeyEnvVarKey,
-					ValueFrom: &corev1.EnvVarSource{
-						SecretKeyRef: &corev1.SecretKeySelector{
-							LocalObjectReference: corev1.LocalObjectReference{Name: "oadp-" + tt.bsl.Name + "-" + tt.bsl.Spec.Provider + "-registry-secret"},
-							Key:                  "access_key",
-						},
-					},
-				},
-				{
-					Name:  RegistryStorageS3BucketEnvVarKey,
-					Value: "aws-bucket",
-				},
-				{
-					Name:  RegistryStorageS3RegionEnvVarKey,
-					Value: "aws-region",
-				},
-				{
-					Name: RegistryStorageS3SecretkeyEnvVarKey,
-					ValueFrom: &corev1.EnvVarSource{
-						SecretKeyRef: &corev1.SecretKeySelector{
-							LocalObjectReference: corev1.LocalObjectReference{Name: "oadp-" + tt.bsl.Name + "-" + tt.bsl.Spec.Provider + "-registry-secret"},
-							Key:                  "secret_key",
-						},
-					},
-				},
-				{
-					Name:  RegistryStorageS3RegionendpointEnvVarKey,
-					Value: "https://sr-url-aws-domain.com",
-				},
-				{
-					Name:  RegistryStorageS3SkipverifyEnvVarKey,
-					Value: "false",
-				},
+			cv1c, err := corev1client.NewForConfig(cfg)
+			if err != nil {
+				t.Fatal(err)
 			}
-			if tt.wantProfile == testBslProfile {
+			if tt.secret != nil {
+				cv1c.Namespaces().Create(context.Background(), &corev1.Namespace{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: tt.secret.Namespace,
+					},
+				}, metav1.CreateOptions{})
+				cv1c.Secrets(tt.secret.Namespace).Create(context.Background(), tt.secret, metav1.CreateOptions{})
+			}
+			if tt.registrySecret != nil {
+				cv1c.Namespaces().Create(context.Background(), &corev1.Namespace{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: tt.registrySecret.Namespace,
+					},
+				}, metav1.CreateOptions{})
+				cv1c.Secrets(tt.registrySecret.Namespace).Create(context.Background(), tt.registrySecret, metav1.CreateOptions{})
+			}
+			defer func() {
+				// envtest quirks is we cannot cleanup via namespace deletion
+				// https://github.com/kubernetes-sigs/controller-runtime/issues/880#issuecomment-615517902
+				// so delete the secret
+				if tt.secret != nil {
+					cv1c.Secrets(tt.secret.Namespace).Delete(context.Background(), tt.secret.Name, metav1.DeleteOptions{})
+				}
+				if tt.registrySecret != nil {
+					cv1c.Secrets(tt.registrySecret.Namespace).Delete(context.Background(), tt.registrySecret.Name, metav1.DeleteOptions{})
+				}
+			}()
+			if tt.wantRegistryContainerEnvVar == nil {
 				tt.wantRegistryContainerEnvVar = []corev1.EnvVar{
 					{
 						Name:  RegistryStorageEnvVarKey,
 						Value: S3,
+					},
+					{
+						Name:  RegistryStorageS3BucketEnvVarKey,
+						Value: "aws-bucket",
+					},
+					{
+						Name:  RegistryStorageS3RegionEnvVarKey,
+						Value: "aws-region",
+					},
+					{
+						Name:  RegistryStorageS3RegionendpointEnvVarKey,
+						Value: "https://sr-url-aws-domain.com",
+					},
+					{
+						Name:  RegistryStorageS3SkipverifyEnvVarKey,
+						Value: "false",
 					},
 					{
 						Name: RegistryStorageS3AccesskeyEnvVarKey,
@@ -331,12 +401,46 @@ func Test_getAWSRegistryEnvVars(t *testing.T) {
 						},
 					},
 					{
+						Name: RegistryStorageS3SecretkeyEnvVarKey,
+						ValueFrom: &corev1.EnvVarSource{
+							SecretKeyRef: &corev1.SecretKeySelector{
+								LocalObjectReference: corev1.LocalObjectReference{Name: "oadp-" + tt.bsl.Name + "-" + tt.bsl.Spec.Provider + "-registry-secret"},
+								Key:                  "secret_key",
+							},
+						},
+					},
+				}
+			}
+			if tt.wantProfile == testBslProfile {
+				tt.wantRegistryContainerEnvVar = []corev1.EnvVar{
+					{
+						Name:  RegistryStorageEnvVarKey,
+						Value: S3,
+					},
+					{
 						Name:  RegistryStorageS3BucketEnvVarKey,
 						Value: "aws-bucket",
 					},
 					{
 						Name:  RegistryStorageS3RegionEnvVarKey,
 						Value: "aws-region",
+					},
+					{
+						Name:  RegistryStorageS3RegionendpointEnvVarKey,
+						Value: "https://sr-url-aws-domain.com",
+					},
+					{
+						Name:  RegistryStorageS3SkipverifyEnvVarKey,
+						Value: "false",
+					},
+					{
+						Name: RegistryStorageS3AccesskeyEnvVarKey,
+						ValueFrom: &corev1.EnvVarSource{
+							SecretKeyRef: &corev1.SecretKeySelector{
+								LocalObjectReference: corev1.LocalObjectReference{Name: "oadp-" + tt.bsl.Name + "-" + tt.bsl.Spec.Provider + "-registry-secret"},
+								Key:                  "access_key",
+							},
+						},
 					},
 					{
 						Name: RegistryStorageS3SecretkeyEnvVarKey,
@@ -347,18 +451,10 @@ func Test_getAWSRegistryEnvVars(t *testing.T) {
 							},
 						},
 					},
-					{
-						Name:  RegistryStorageS3RegionendpointEnvVarKey,
-						Value: "https://sr-url-aws-domain.com",
-					},
-					{
-						Name:  RegistryStorageS3SkipverifyEnvVarKey,
-						Value: "false",
-					},
 				}
 			}
 
-			gotRegistryContainerEnvVar, gotErr := getAWSRegistryEnvVars(tt.bsl, testAWSEnvVar)
+			gotRegistryContainerEnvVar, gotErr := getAWSRegistryEnvVars(tt.bsl)
 
 			if tt.matchProfile && (gotErr != nil) != tt.wantErr {
 				t.Errorf("ValidateBackupStorageLocations() gotErr = %v, wantErr %v", gotErr, tt.wantErr)
@@ -366,7 +462,7 @@ func Test_getAWSRegistryEnvVars(t *testing.T) {
 			}
 
 			if tt.matchProfile && !reflect.DeepEqual(tt.wantRegistryContainerEnvVar, gotRegistryContainerEnvVar) {
-				t.Errorf("expected registry container env var to be %#v, got %#v", tt.wantRegistryContainerEnvVar, gotRegistryContainerEnvVar)
+				t.Errorf("expected registry container env var has diff %s", cmp.Diff(tt.wantRegistryContainerEnvVar, gotRegistryContainerEnvVar))
 			}
 		})
 	}
@@ -463,7 +559,6 @@ func Test_getAzureRegistryEnvVars(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-
 			tt.wantRegistryContainerEnvVar = []corev1.EnvVar{
 				{
 					Name:  RegistryStorageEnvVarKey,
