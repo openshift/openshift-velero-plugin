@@ -77,12 +77,16 @@ const (
 
 // DC-related labels/annotations
 const (
-	DCPodDeploymentLabel       string = "deployment"                             // identifies associated RC
-	DCPodDeploymentConfigLabel string = "deploymentconfig"                       // identifies associated DC
-	DCPodDisconnectedLabel     string = "oadp.openshift.io/disconnected-from-dc" // pod had DC labels removed on restore
-	DCOriginalReplicas         string = "oadp.openshift.io/original-replicas"    // replicas value from backup
-	DCOriginalPaused           string = "oadp.openshift.io/original-paused"      // replicas value from backup
-	DCReplicasModifiedLabel    string = "oadp.openshift.io/replicas-modified"    // DC replicas modified on restore
+	DCPodDeploymentLabel       string = "deployment"                              // identifies associated RC
+	DCPodDeploymentConfigLabel string = "deploymentconfig"                        // identifies associated DC
+	DCPodDisconnectedLabel     string = "oadp.openshift.io/disconnected-from-dc"  // pod had DC labels removed on restore
+	DCOriginalReplicas         string = "oadp.openshift.io/original-replicas"     // replicas value from backup
+	DCOriginalPaused           string = "oadp.openshift.io/original-paused"       // replicas value from backup
+	DCReplicasModifiedLabel    string = "oadp.openshift.io/replicas-modified"     // DC replicas modified on restore
+	DCIncludesDMFix            string = "oadp.openshift.io/includes-dm-dc-fix"    // Set on pods and DCs to indicate that the datamover backup fix is applied
+	DCHasPodRestoreHooks       string = "oadp.openshift.io/has-pod-restore-hooks" // True if DC pods have restore hooks defined on them
+	DCPodsHaveVolumes          string = "oadp.openshift.io/pods-have-volumes"     // True if DC pods have volumes to restore
+	DCPodLabels                string = "oadp.openshift.io/pod-labels"            // labels from DC pod
 )
 
 // Configmap Name

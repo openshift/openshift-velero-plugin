@@ -5,12 +5,14 @@ import (
 	"strconv"
 
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/common"
+	"github.com/konveyor/openshift-velero-plugin/velero-plugins/pod"
 	appsv1API "github.com/openshift/api/apps/v1"
 	"github.com/sirupsen/logrus"
 	"github.com/vmware-tanzu/velero/pkg/label"
 	"github.com/vmware-tanzu/velero/pkg/plugin/velero"
 	"github.com/vmware-tanzu/velero/pkg/util/boolptr"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/utils/pointer"
 )
 
@@ -58,23 +60,41 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 		}
 	}
 
-	// Set replicas to 0 if defaultVolumesToRestic is true
-
-	// get backup associated with the restore
-	backupName := input.Restore.Spec.BackupName
-	backup, err := common.GetBackup(input.Restore.GetUID(), backupName, input.Restore.Namespace)
-	if err != nil {
-		p.Log.Infof("[deploymentconfig-restore] could not fetch backup associated with the restore, got error: %s", err.Error())
-	}
-	var defaultVolumesToFsBackup *bool = nil
-	if err == nil {
-		// check for default fsbackup/restic flag
-		if boolptr.IsSetToTrue(backup.Spec.DefaultVolumesToRestic) || boolptr.IsSetToTrue(backup.Spec.DefaultVolumesToFsBackup) {
-			defaultVolumesToFsBackup = pointer.Bool(true)
+	// Set replicas to 0 if restoring pods
+	// This is because the pods are being restored with the DC labels removed to prevent the DC from
+	// killing them and launching new pods on restore. If replicas isn't set to 0 here, then the DC
+	// will launch another application pod here. The dc post-restore script will restore original
+	// replicas and delete the disconnected pods if run after restore.
+	disconnectIfDC := false
+	if deploymentConfig.Annotations != nil && len(deploymentConfig.Annotations[common.DCIncludesDMFix]) > 0 {
+		hasVolumes, ok := deploymentConfig.Annotations[common.DCPodsHaveVolumes]
+		if ok && hasVolumes == "true" {
+			disconnectIfDC = true
+		} else {
+			hasPodRestoreHooks, ok := deploymentConfig.Annotations[common.DCHasPodRestoreHooks]
+			if (ok && hasPodRestoreHooks == "true") {
+				disconnectIfDC = true
+			} else {
+				podLabels, _ := labels.ConvertSelectorToLabelsMap(deploymentConfig.Annotations[common.DCPodLabels])
+				disconnectIfDC, _ = pod.RestoreHasRestoreHooks(input.Restore, deploymentConfig.Namespace, podLabels, p.Log)
+			}
 		}
+	} else {
+		// get backup associated with the restore
+		backup, err := common.GetBackup(input.Restore.GetUID(), input.Restore.Spec.BackupName, input.Restore.Namespace)
+		if err != nil {
+			p.Log.Infof("[deploymentconfig-restore] could not fetch backup associated with the restore, got error: %s", err.Error())
+		}
+		var defaultVolumesToFsBackup *bool = nil
+		if err == nil {
+			// check for default fsbackup/restic flag
+			if boolptr.IsSetToTrue(backup.Spec.DefaultVolumesToRestic) || boolptr.IsSetToTrue(backup.Spec.DefaultVolumesToFsBackup) {
+				defaultVolumesToFsBackup = pointer.Bool(true)
+			}
+		}
+		disconnectIfDC = defaultVolumesToFsBackup != nil && *defaultVolumesToFsBackup
 	}
-	if deploymentConfig.Spec.Replicas > 0 &&
-		defaultVolumesToFsBackup != nil && *defaultVolumesToFsBackup {
+	if deploymentConfig.Spec.Replicas > 0 && disconnectIfDC {
 		if deploymentConfig.Annotations == nil {
 			deploymentConfig.Annotations = make(map[string]string)
 		}
