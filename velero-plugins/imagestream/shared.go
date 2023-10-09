@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 
 	"github.com/containers/image/v5/types"
 	"github.com/kaovilai/udistribution/pkg/image/udistribution"
@@ -134,24 +133,4 @@ func getSecretKeyRefData(secretKeyRef *corev1.SecretKeySelector, namespace strin
 		return []byte{}, err
 	}
 	return secret.Data[secretKeyRef.Key], nil
-}
-
-// writes data to file. If file exists, overwrites it.
-func saveDataToFile(data []byte, path string) error {
-	// delete path if it exists
-	if _, err := os.Stat(path); err == nil {
-		if err := os.Remove(path); err != nil {
-			return err
-		}
-	}
-	file, err := os.Create(path)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-	_, err = file.Write(data)
-	if err != nil {
-		return err
-	}
-	return nil
 }

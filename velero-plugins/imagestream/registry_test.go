@@ -731,11 +731,11 @@ func Test_getGCPRegistryEnvVars(t *testing.T) {
 				},
 				{
 					Name:  RegistryStorageGCSKeyfile,
-					Value: "/credentials-gcp/cloud",
+					Value: "/tmp/credentials/test-ns/cloud-credentials-gcp-cloud",
 				},
 			}
 
-			gotRegistryContainerEnvVar, gotErr := getGCPRegistryEnvVars(tt.bsl, testGCPEnvVar)
+			gotRegistryContainerEnvVar, gotErr := getGCPRegistryEnvVars(tt.bsl)
 
 			if (gotErr != nil) != tt.wantErr {
 				// ignore errors. this test originally called InClusterConfig which would fail in a test environment
