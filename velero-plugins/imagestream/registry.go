@@ -4,9 +4,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/openshift/oadp-operator/pkg/credentials"
-
 	oadpv1alpha1 "github.com/openshift/oadp-operator/api/v1alpha1"
+	oadpCreds "github.com/openshift/oadp-operator/pkg/credentials"
 	velerov1 "github.com/vmware-tanzu/velero/pkg/apis/velero/v1"
 	corev1 "k8s.io/api/core/v1"
 )
@@ -55,11 +54,6 @@ const (
 	enableSharedConfig    = "enableSharedConfig"
 )
 
-// secret data keys
-const (
-	webIdentityTokenFile = "web_identity_token_file"
-)
-
 // velero constants
 const (
 	// https://github.com/vmware-tanzu/velero/blob/5afe837f76aea4dd59b1bf2792e7802d4966f0a7/pkg/cmd/server/server.go#L110
@@ -103,26 +97,7 @@ var cloudProviderEnvVarMap = map[string][]corev1.EnvVar{
 			Value: "",
 		},
 	},
-	"gcp": {
-		{
-			Name:  RegistryStorageEnvVarKey,
-			Value: GCS,
-		},
-		{
-			Name:  RegistryStorageGCSBucket,
-			Value: "",
-		},
-		{
-			Name:  RegistryStorageGCSKeyfile,
-			Value: "",
-		},
-	},
 }
-
-const (
-	// Location to store secret if a file is needed
-	secretTmpPrefix = "/tmp/registry-"
-)
 
 type azureCredentials struct {
 	subscriptionID     string
@@ -145,7 +120,7 @@ func getRegistryEnvVars(bsl *velerov1.BackupStorageLocation) ([]corev1.EnvVar, e
 		envVars, err = getAzureRegistryEnvVars(bsl, cloudProviderEnvVarMap[AzureProvider])
 
 	case GCPProvider:
-		envVars, err = getGCPRegistryEnvVars(bsl, cloudProviderEnvVarMap[GCPProvider])
+		envVars, err = getGCPRegistryEnvVars(bsl)
 	default:
 		return nil, errors.New("unsupported provider")
 	}
@@ -220,7 +195,19 @@ func getAWSRegistryEnvVars(bsl *velerov1.BackupStorageLocation) ([]corev1.EnvVar
 // https://github.com/vmware-tanzu/velero/blob/5afe837f76aea4dd59b1bf2792e7802d4966f0a7/internal/credentials/file_store.go#L72
 // This file is written by velero server on startup
 func getBslSecretPath(bsl *velerov1.BackupStorageLocation) string {
-	return fmt.Sprintf("%s/%s/%s-%s", defaultCredentialsDirectory, bsl.Namespace, bsl.Spec.Credential.LocalObjectReference.Name, bsl.Spec.Credential.Key)
+	var secretName, secretKey string
+	if bsl.Spec.Credential != nil {
+		secretName = bsl.Spec.Credential.LocalObjectReference.Name
+		secretKey = bsl.Spec.Credential.Key
+	}
+	// if secretName or secretKey is not set, inherit from OADP defaults for each provider
+	if bsl.Spec.Credential == nil || secretName == "" {
+		secretName = oadpCreds.PluginSpecificFields[oadpv1alpha1.DefaultPlugin(bsl.Spec.Provider)].SecretName
+	}
+	if bsl.Spec.Credential == nil || secretKey == "" {
+		secretKey = oadpCreds.PluginSpecificFields[oadpv1alpha1.DefaultPlugin(bsl.Spec.Provider)].PluginSecretKey
+	}
+	return fmt.Sprintf("%s/%s/%s-%s", defaultCredentialsDirectory, bsl.Namespace, secretName, secretKey)
 }
 
 func getAzureRegistryEnvVars(bsl *velerov1.BackupStorageLocation, azureEnvVars []corev1.EnvVar) ([]corev1.EnvVar, error) {
@@ -271,57 +258,20 @@ func getAzureRegistryEnvVars(bsl *velerov1.BackupStorageLocation, azureEnvVars [
 	return azureEnvVars, nil
 }
 
-func getGCPRegistryEnvVars(bsl *velerov1.BackupStorageLocation, gcpEnvVars []corev1.EnvVar) ([]corev1.EnvVar, error) {
-	for i := range gcpEnvVars {
-		if gcpEnvVars[i].Name == RegistryStorageGCSBucket {
-			gcpEnvVars[i].Value = bsl.Spec.StorageType.ObjectStorage.Bucket
-		}
-
-		if gcpEnvVars[i].Name == RegistryStorageGCSKeyfile {
-			// check for secret name
-			secretName, secretKey := getSecretNameAndKey(&bsl.Spec, oadpv1alpha1.DefaultPluginGCP)
-			// get secret value and save it to /tmp/registry-<secretName>
-
-			secretEnvVarSource := &corev1.SecretKeySelector{
-				LocalObjectReference: corev1.LocalObjectReference{Name: secretName},
-				Key:                  secretKey,
-			}
-			secretData, err := getSecretKeyRefData(secretEnvVarSource, bsl.Namespace)
-			if err != nil {
-				return nil, err
-			}
-			// write secret data to /tmp/registry-<secretName>
-			secretPath := secretTmpPrefix + secretName
-			err = saveDataToFile(secretData, secretPath)
-			if err != nil {
-				return nil, err
-			}
-			gcpEnvVars[i].Value = secretPath
-		}
+func getGCPRegistryEnvVars(bsl *velerov1.BackupStorageLocation) ([]corev1.EnvVar, error) {
+	gcpEnvVars := []corev1.EnvVar{
+		{
+			Name:  RegistryStorageEnvVarKey,
+			Value: GCS,
+		},
+		{
+			Name:  RegistryStorageGCSBucket,
+			Value: bsl.Spec.StorageType.ObjectStorage.Bucket,
+		},
+		{
+			Name:  RegistryStorageGCSKeyfile,
+			Value: getBslSecretPath(bsl),
+		},
 	}
 	return gcpEnvVars, nil
-}
-
-func getSecretNameAndKey(bslSpec *velerov1.BackupStorageLocationSpec, plugin oadpv1alpha1.DefaultPlugin) (string, string) {
-	// Assume default values unless user has overriden them
-	secretName := credentials.PluginSpecificFields[plugin].SecretName
-	secretKey := credentials.PluginSpecificFields[plugin].PluginSecretKey
-	if _, ok := bslSpec.Config["credentialsFile"]; ok {
-		if secretName, secretKey, err :=
-			credentials.GetSecretNameKeyFromCredentialsFileConfigString(bslSpec.Config["credentialsFile"]); err == nil {
-			return secretName, secretKey
-		}
-	}
-	// check if user specified the Credential Name and Key
-	credential := bslSpec.Credential
-	if credential != nil {
-		if len(credential.Name) > 0 {
-			secretName = credential.Name
-		}
-		if len(credential.Key) > 0 {
-			secretKey = credential.Key
-		}
-	}
-
-	return secretName, secretKey
 }
