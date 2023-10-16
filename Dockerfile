@@ -17,7 +17,7 @@ ENV BUILDTAGS containers_image_ostree_stub exclude_graphdriver_devicemapper excl
 ENV BIN velero-plugins
 COPY --chown=1001 . $APP_ROOT/src/github.com/konveyor/openshift-velero-plugin
 WORKDIR $APP_ROOT/src/github.com/konveyor/openshift-velero-plugin
-RUN go build -buildcvs=false -installsuffix "static" -tags "$BUILDTAGS" -o _output/$BIN ./$BIN
+RUN go build -buildvcs=false -installsuffix "static" -tags "$BUILDTAGS" -o _output/$BIN ./$BIN
 
 FROM registry.access.redhat.com/ubi8-minimal
 RUN mkdir /plugins
