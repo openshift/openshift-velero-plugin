@@ -16,7 +16,7 @@ require (
 	github.com/openshift/oadp-operator v1.0.3
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.8.4
-	github.com/vmware-tanzu/velero v1.11.0
+	github.com/vmware-tanzu/velero v1.12.0
 	k8s.io/api v0.26.3
 	k8s.io/apimachinery v0.26.3
 	k8s.io/client-go v0.26.1
@@ -203,6 +203,6 @@ replace github.com/gogo/protobuf => github.com/gogo/protobuf v1.3.2
 
 replace bitbucket.org/ww/goautoneg v0.0.0-20120707110453-75cd24fc2f2c => github.com/markusthoemmes/goautoneg v0.0.0-20190713162725-c6008fefa5b1
 
-replace github.com/vmware-tanzu/velero v1.11.0 => github.com/openshift/velero v0.10.2-0.20230821194959-a5301744afc5
+replace github.com/vmware-tanzu/velero => github.com/openshift/velero v0.10.2-0.20230927152659-2a19a7bf1ac3
 
 replace github.com/distribution/distribution/v3 v3.0.0-20220729163034-26163d82560f => github.com/openshift/docker-distribution/v3 v3.0.0-20230626115833-c7be7b49aed9

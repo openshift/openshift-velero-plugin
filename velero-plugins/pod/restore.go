@@ -15,6 +15,7 @@ import (
 	"github.com/vmware-tanzu/velero/pkg/kuberesource"
 	"github.com/vmware-tanzu/velero/pkg/label"
 	"github.com/vmware-tanzu/velero/pkg/plugin/velero"
+	"github.com/vmware-tanzu/velero/pkg/util/podvolume"
 	"github.com/vmware-tanzu/velero/pkg/util/boolptr"
 	"github.com/vmware-tanzu/velero/pkg/util/collections"
 	corev1API "k8s.io/api/core/v1"
@@ -36,17 +37,41 @@ func (p *RestorePlugin) AppliesTo() (velero.ResourceSelector, error) {
 	}, nil
 }
 
+// Check if pod has volumes to back up
+func PodHasVolumesToBackUp(pod corev1API.Pod) bool {
+	// always pass in true for defaultVolumesToFsBackup because we just want to know whether there
+	// are any volumes to back up at all. This func filters out volumes not to back up and then
+	// splits the list between fs backup and snapshot. If false is passed in, only fs backup files
+	// are returned
+	vols, optedOutVols := podvolume.GetVolumesByPod(&pod, true)
+	return len(vols) > 0 || len(optedOutVols) > 0
+}
+
 // Check if pod has restore hooks via pod annotations or via restore hook rules
-func (p *RestorePlugin) podHasRestoreHooks(pod corev1API.Pod, resources []velerov1.RestoreResourceHookSpec) (bool, error) {
+func PodHasRestoreHooks(pod corev1API.Pod, restore *velerov1.Restore, log logrus.FieldLogger) (bool, error) {
+	if PodHasRestoreHookAnnotations(pod, log) {
+		return true, nil
+	}
+	return RestoreHasRestoreHooks(restore, pod.Namespace, pod.Labels, log)
+}
+
+func PodHasRestoreHookAnnotations(pod corev1API.Pod, log logrus.FieldLogger) bool {
+	if pod.Annotations == nil {
+		return false
+	}
 	_, postRestoreHookDefined := pod.Annotations[common.PostRestoreHookAnnotation]
 	_, initContainerRestoreHookDefined := pod.Annotations[common.InitContainerRestoreHookAnnotation]
 	if postRestoreHookDefined || initContainerRestoreHookDefined {
-		p.Log.Info("[pod-restore] pod has restore hooks via annotations")
-		return true, nil
+		log.Info("[pod-restore] pod has restore hooks via annotations")
+		return true
 	}
-	p.Log.Info("[pod-restore] pod has no restore hooks via annotations")
-	for _, restoreHookSpec := range resources {
-		p.Log.Infof("[pod-restore] hook spec: %v", restoreHookSpec)
+	log.Info("[pod-restore] pod has no restore hooks via annotations")
+	return false
+}
+
+func RestoreHasRestoreHooks(restore *velerov1.Restore, namespace string, podLabels map[string]string, log logrus.FieldLogger) (bool, error) {
+	for _, restoreHookSpec := range restore.Spec.Hooks.Resources {
+		log.Infof("[pod-restore] hook spec: %v", restoreHookSpec)
 		if len(restoreHookSpec.PostHooks) == 0 {
 			continue
 		}
@@ -56,7 +81,7 @@ func (p *RestorePlugin) podHasRestoreHooks(pod corev1API.Pod, resources []velero
 		if restoreHookSpec.LabelSelector != nil {
 			restoreHookLabelSelector, err = metav1.LabelSelectorAsSelector(restoreHookSpec.LabelSelector)
 			if err != nil {
-				p.Log.Errorf("[pod-restore] restore hook labelSelector conversion error: %v", err)
+				log.Errorf("[pod-restore] restore hook labelSelector conversion error: %v", err)
 				return false, err
 			}
 		}
@@ -65,11 +90,11 @@ func (p *RestorePlugin) podHasRestoreHooks(pod corev1API.Pod, resources []velero
 			Resources:     collections.NewIncludesExcludes().Includes(restoreHookSpec.IncludedResources...).Excludes(restoreHookSpec.ExcludedResources...),
 			LabelSelector: restoreHookLabelSelector,
 		}
-		if restoreHookSelector.ApplicableTo(kuberesource.Pods, pod.Namespace, pod.Labels) {
+		if restoreHookSelector.ApplicableTo(kuberesource.Pods, namespace, podLabels) {
 			return true, nil
 		}
 	}
-	p.Log.Info("[pod-restore] pod has no restore hooks")
+	log.Info("[pod-restore] pod has no restore hooks")
 	return false, nil
 }
 
@@ -114,26 +139,38 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	podHasRestoreHooks := false
 	p.Log.Info("[pod-restore] checking if pod has restore hooks")
 	if input.Restore.Spec.Hooks.Resources != nil {
-		podHasRestoreHooks, err = p.podHasRestoreHooks(pod, input.Restore.Spec.Hooks.Resources)
+		podHasRestoreHooks, err = PodHasRestoreHooks(pod, input.Restore, p.Log)
 		if err != nil {
 			p.Log.Errorf("[pod-restore] checking if pod has restore hooks failed, got error: %s", err.Error())
 			return nil, err
 		}
 	}
 
+	p.Log.Info("[pod-restore] checking if pod has volumes to back up")
+	podHasVolumesToBackUp := PodHasVolumesToBackUp(pod)
+
 	// Check if pod has owner Refs and defaultVolumesToRestic flag as false/nil
-	if (len(ownerRefs) > 0 && pod.Annotations["backup.velero.io/backup-volumes-excludes"] == "" && (defaultVolumesToFsBackup == nil || !*defaultVolumesToFsBackup)) && !podHasRestoreHooks {
-		p.Log.Infof("[pod-restore] skipping restore of pod %s, has owner references, no restic backup, and no restore hooks", pod.Name)
+	if len(ownerRefs) > 0 && !podHasVolumesToBackUp && !podHasRestoreHooks {
+		p.Log.Infof("[pod-restore] skipping restore of pod %s, has owner references, no volumes to back up, and no restore hooks", pod.Name)
 		return velero.NewRestoreItemActionExecuteOutput(input.Item).WithoutRestore(), nil
 	}
 
 	// If pod has both "deployment" and "deploymentconfig" labels, it belongs to a DeploymentConfig
-	// If defaultVolumesToRestic, remove these labels so that the DC won't immediately delete the
-	// pod on restore, and add disconnected-from-dc label with restore name for post-restore cleanup
+	// As needed (see below for conditions, as it depends on when backup was taken) remove these labels
+	// so that the DC won't immediately delete the pod on restore, and add disconnected-from-dc label
+	// with restore name for post-restore cleanup
+	disconnectIfDC := false
+	// For backups made with OADP 1.3 or later, base this on the presence of any volumes to back up or restore hooks
+	if pod.Annotations != nil && len(pod.Annotations[common.DCIncludesDMFix]) > 0 {
+		disconnectIfDC = podHasRestoreHooks || podHasVolumesToBackUp
+	// For backups made with OADP 1.2 or earlier, use only the defaultVolumesToRestic flag
+	} else {
+		disconnectIfDC = defaultVolumesToFsBackup != nil && *defaultVolumesToFsBackup
+	}
 	if pod.Labels != nil &&
 		pod.Labels[common.DCPodDeploymentLabel] != "" &&
 		pod.Labels[common.DCPodDeploymentConfigLabel] != "" &&
-		defaultVolumesToFsBackup != nil && *defaultVolumesToFsBackup {
+		disconnectIfDC {
 		delete(pod.Labels, common.DCPodDeploymentLabel)
 		delete(pod.Labels, common.DCPodDeploymentConfigLabel)
 		labelVal := label.GetValidName(input.Restore.Name)

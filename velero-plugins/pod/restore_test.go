@@ -16,7 +16,7 @@ func TestRestorePlugin_podHasRestoreHooks(t *testing.T) {
 	}
 	type args struct {
 		pod       corev1API.Pod
-		resources []velerov1.RestoreResourceHookSpec
+		restore   velerov1.Restore
 	}
 	tests := []struct {
 		name    string
@@ -33,7 +33,13 @@ func TestRestorePlugin_podHasRestoreHooks(t *testing.T) {
 						Annotations: map[string]string{},
 					},
 				},
-				resources: []velerov1.RestoreResourceHookSpec{},
+				restore: velerov1.Restore{
+					Spec: velerov1.RestoreSpec{
+						Hooks: velerov1.RestoreHooks{
+							Resources: []velerov1.RestoreResourceHookSpec{},
+						},
+					},
+				},
 			},
 			want:    false,
 			wantErr: false,
@@ -51,7 +57,13 @@ func TestRestorePlugin_podHasRestoreHooks(t *testing.T) {
 						},
 					},
 				},
-				resources: []velerov1.RestoreResourceHookSpec{},
+				restore: velerov1.Restore{
+					Spec: velerov1.RestoreSpec{
+						Hooks: velerov1.RestoreHooks{
+							Resources: []velerov1.RestoreResourceHookSpec{},
+						},
+					},
+				},
 			},
 			want:    true,
 			wantErr: false,
@@ -69,7 +81,13 @@ func TestRestorePlugin_podHasRestoreHooks(t *testing.T) {
 						},
 					},
 				},
-				resources: []velerov1.RestoreResourceHookSpec{},
+				restore: velerov1.Restore{
+					Spec: velerov1.RestoreSpec{
+						Hooks: velerov1.RestoreHooks{
+							Resources: []velerov1.RestoreResourceHookSpec{},
+						},
+					},
+				},
 			},
 			want:    true,
 			wantErr: false,
@@ -83,14 +101,20 @@ func TestRestorePlugin_podHasRestoreHooks(t *testing.T) {
 				pod: corev1API.Pod{
 					ObjectMeta: metav1.ObjectMeta{Name: "pod-1", Namespace: "ns-1"},
 				},
-				resources: []velerov1.RestoreResourceHookSpec{
-					{
-						Name:               "hook1",
-						IncludedNamespaces: []string{"ns-1"},
-						PostHooks: []velerov1.RestoreResourceHook{
-							{
-								Exec: &velerov1.ExecRestoreHook{
-									Command: []string{"echo", "hello"},
+				restore: velerov1.Restore{
+					Spec: velerov1.RestoreSpec{
+						Hooks: velerov1.RestoreHooks{
+							Resources: []velerov1.RestoreResourceHookSpec{
+								{
+									Name:               "hook1",
+									IncludedNamespaces: []string{"ns-1"},
+									PostHooks: []velerov1.RestoreResourceHook{
+										{
+											Exec: &velerov1.ExecRestoreHook{
+												Command: []string{"echo", "hello"},
+											},
+										},
+									},
 								},
 							},
 						},
@@ -109,10 +133,16 @@ func TestRestorePlugin_podHasRestoreHooks(t *testing.T) {
 				pod: corev1API.Pod{
 					ObjectMeta: metav1.ObjectMeta{Name: "pod-1", Namespace: "ns-1"},
 				},
-				resources: []velerov1.RestoreResourceHookSpec{
-					{
-						Name:               "hook1",
-						IncludedNamespaces: []string{"ns-1"},
+				restore: velerov1.Restore{
+					Spec: velerov1.RestoreSpec{
+						Hooks: velerov1.RestoreHooks{
+							Resources: []velerov1.RestoreResourceHookSpec{
+								{
+									Name:               "hook1",
+									IncludedNamespaces: []string{"ns-1"},
+								},
+							},
+						},
 					},
 				},
 			},
@@ -128,7 +158,7 @@ func TestRestorePlugin_podHasRestoreHooks(t *testing.T) {
 			p := &RestorePlugin{
 				Log: tt.fields.Log,
 			}
-			got, err := p.podHasRestoreHooks(tt.args.pod, tt.args.resources)
+			got, err := PodHasRestoreHooks(tt.args.pod, &tt.args.restore, p.Log)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RestorePlugin.podHasRestoreHooks() error = %v, wantErr %v", err, tt.wantErr)
 				return
