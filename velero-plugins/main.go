@@ -44,9 +44,9 @@ func main() {
 		RegisterRestoreItemActionV2("openshift.io/04-imagestreamtag-restore-plugin", newImageStreamTagRestorePlugin).
 		RegisterRestoreItemAction("openshift.io/05-route-restore-plugin", newRouteRestorePlugin).
 		RegisterRestoreItemAction("openshift.io/06-build-restore-plugin", newBuildRestorePlugin).
-		RegisterRestoreItemAction("openshift.io/07-pod-backup-plugin", newPodBackupPlugin).
+		RegisterBackupItemAction("openshift.io/07-pod-backup-plugin", newPodBackupPlugin).
 		RegisterRestoreItemAction("openshift.io/07-pod-restore-plugin", newPodRestorePlugin).
-		RegisterRestoreItemAction("openshift.io/08-deploymentconfig-backup-plugin", newDeploymentConfigBackupPlugin).
+		RegisterBackupItemAction("openshift.io/08-deploymentconfig-backup-plugin", newDeploymentConfigBackupPlugin).
 		RegisterRestoreItemAction("openshift.io/08-deploymentconfig-restore-plugin", newDeploymentConfigRestorePlugin).
 		RegisterBackupItemAction("openshift.io/09-replicationcontroller-backup-plugin", newReplicationControllerBackupPlugin).
 		RegisterRestoreItemAction("openshift.io/09-replicationcontroller-restore-plugin", newReplicationControllerRestorePlugin).
