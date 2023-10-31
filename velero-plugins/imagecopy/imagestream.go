@@ -14,7 +14,7 @@ import (
 	"github.com/containers/image/v5/signature"
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/go-logr/logr"
-	"github.com/kaovilai/udistribution/pkg/image/udistribution"
+	"github.com/migtools/udistribution/pkg/image/udistribution"
 	imagev1API "github.com/openshift/api/image/v1"
 	//"github.com/sirupsen/logrus"
 )
