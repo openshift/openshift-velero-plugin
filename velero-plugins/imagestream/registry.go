@@ -1,11 +1,11 @@
 package imagestream
 
 import (
-	"errors"
 	"fmt"
 
 	oadpv1alpha1 "github.com/openshift/oadp-operator/api/v1alpha1"
 	oadpCreds "github.com/openshift/oadp-operator/pkg/credentials"
+	"github.com/pkg/errors"
 	velerov1 "github.com/vmware-tanzu/velero/pkg/apis/velero/v1"
 	corev1 "k8s.io/api/core/v1"
 )
@@ -131,6 +131,14 @@ func getRegistryEnvVars(bsl *velerov1.BackupStorageLocation) ([]corev1.EnvVar, e
 }
 
 func getAWSRegistryEnvVars(bsl *velerov1.BackupStorageLocation) ([]corev1.EnvVar, error) {
+	// if region is not set in bsl, then get it from bucket
+	if bsl.Spec.Config[S3URL] == ""  && bsl.Spec.Config[Region] == "" {
+		var err error
+		bsl.Spec.Config[Region], err = GetBucketRegion(bsl.Spec.StorageType.ObjectStorage.Bucket)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to get bucket region")
+		}
+	}
 	// validation
 	bslSpecRegion, regionInConfig := bsl.Spec.Config[Region]
 	if !regionInConfig {
