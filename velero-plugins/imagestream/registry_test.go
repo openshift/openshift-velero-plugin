@@ -191,6 +191,82 @@ func Test_getAWSRegistryEnvVars(t *testing.T) {
 			matchProfile: true,
 		},
 		{
+			name: "given aws bsl without region, appropriate env var for the container with region are returned",
+			bsl: &velerov1.BackupStorageLocation{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-bsl",
+					Namespace: "test-ns",
+				},
+				Spec: velerov1.BackupStorageLocationSpec{
+					Provider: AWSProvider,
+					StorageType: velerov1.StorageType{
+						ObjectStorage: &velerov1.ObjectStorageLocation{
+							Bucket: "tkaovila-aug30-velero-bsl",
+						},
+					},
+					Config: map[string]string{
+						Profile:               "test-profile",
+					},
+				},
+			},
+			secret: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "cloud-credentials",
+					Namespace: "test-ns",
+				},
+				Data: secretData,
+			},
+			registrySecret: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "oadp-test-bsl-aws-registry-secret",
+					Namespace: "test-ns",
+				},
+				Data: awsRegistrySecretData,
+			},
+			wantRegistryContainerEnvVar: []corev1.EnvVar{
+				{
+					Name:  RegistryStorageEnvVarKey,
+					Value: S3,
+				},
+				{
+					Name:  RegistryStorageS3BucketEnvVarKey,
+					Value: "tkaovila-aug30-velero-bsl",
+				},
+				{
+					Name:  RegistryStorageS3RegionEnvVarKey,
+					Value: "us-east-1",
+				},
+				{
+					Name:  RegistryStorageS3RegionendpointEnvVarKey,
+					Value: "",
+				},
+				{
+					Name:  RegistryStorageS3SkipverifyEnvVarKey,
+					Value: "",
+				},
+				{
+					Name: RegistryStorageS3AccesskeyEnvVarKey,
+					ValueFrom: &corev1.EnvVarSource{
+						SecretKeyRef: &corev1.SecretKeySelector{
+							LocalObjectReference: corev1.LocalObjectReference{Name: "oadp-test-bsl-aws-registry-secret"},
+							Key:                  "access_key",
+						},
+					},
+				},
+				{
+					Name: RegistryStorageS3SecretkeyEnvVarKey,
+					ValueFrom: &corev1.EnvVarSource{
+						SecretKeyRef: &corev1.SecretKeySelector{
+							LocalObjectReference: corev1.LocalObjectReference{Name: "oadp-test-bsl-aws-registry-secret"},
+							Key:                  "secret_key",
+						},
+					},
+				},
+			},
+			wantProfile:  "test-profile",
+			matchProfile: true,
+		},
+		{
 			name: "given aws sts bsl, appropriate env var for the container are returned",
 			bsl: &velerov1.BackupStorageLocation{
 				ObjectMeta: metav1.ObjectMeta{
