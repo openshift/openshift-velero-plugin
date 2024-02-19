@@ -7,9 +7,9 @@ import (
 
 	"github.com/bombsimon/logrusr/v3"
 	"github.com/containers/image/v5/copy"
-	"github.com/kaovilai/udistribution/pkg/image/udistribution"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/common"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/imagecopy"
+	"github.com/migtools/udistribution/pkg/image/udistribution"
 	imagev1API "github.com/openshift/api/image/v1"
 	"github.com/sirupsen/logrus"
 	v1 "github.com/vmware-tanzu/velero/pkg/apis/velero/v1"

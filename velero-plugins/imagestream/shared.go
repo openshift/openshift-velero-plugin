@@ -6,9 +6,9 @@ import (
 	"fmt"
 
 	"github.com/containers/image/v5/types"
-	"github.com/kaovilai/udistribution/pkg/image/udistribution"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/clients"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/common"
+	"github.com/migtools/udistribution/pkg/image/udistribution"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
