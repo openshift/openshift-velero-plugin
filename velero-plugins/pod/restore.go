@@ -15,9 +15,9 @@ import (
 	"github.com/vmware-tanzu/velero/pkg/kuberesource"
 	"github.com/vmware-tanzu/velero/pkg/label"
 	"github.com/vmware-tanzu/velero/pkg/plugin/velero"
-	"github.com/vmware-tanzu/velero/pkg/util/podvolume"
 	"github.com/vmware-tanzu/velero/pkg/util/boolptr"
 	"github.com/vmware-tanzu/velero/pkg/util/collections"
+	"github.com/vmware-tanzu/velero/pkg/util/podvolume"
 	corev1API "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -163,7 +163,7 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	// For backups made with OADP 1.3 or later, base this on the presence of any volumes to back up or restore hooks
 	if pod.Annotations != nil && len(pod.Annotations[common.DCIncludesDMFix]) > 0 {
 		disconnectIfDC = podHasRestoreHooks || podHasVolumesToBackUp
-	// For backups made with OADP 1.2 or earlier, use only the defaultVolumesToRestic flag
+		// For backups made with OADP 1.2 or earlier, use only the defaultVolumesToRestic flag
 	} else {
 		disconnectIfDC = defaultVolumesToFsBackup != nil && *defaultVolumesToFsBackup
 	}
@@ -194,42 +194,54 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	if input.Restore.Spec.NamespaceMapping[destNamespace] != "" {
 		destNamespace = input.Restore.Spec.NamespaceMapping[destNamespace]
 	}
-	secretList, err := client.Secrets(destNamespace).List(context.Background(), metav1.ListOptions{})
-	if err != nil {
-		return nil, err
-	}
+
+	var secretList *corev1API.SecretList
 	nameSpace, err := client.Namespaces().Get(context.Background(), destNamespace, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
-	for true {
-		flag := 0
-		for _, secret := range secretList.Items {
-			if strings.HasPrefix(secret.Name, "default-dockercfg-") {
-				p.Log.Info(fmt.Sprintf("[pod-restore] Found new dockercfg secret: %v", secret))
-				flag = 1
+
+	// We follow `func needsDockercfgSecret(serviceAccount *v1.ServiceAccount) bool {` logic
+	// to decide if we need to wait for the secret to be created where the service account checked is "default"
+	// https://github.com/openshift/openshift-controller-manager/blob/master/pkg/serviceaccounts/controllers/create_dockercfg_secrets.go#L304
+
+	// Get the default service account
+	sa, err := client.ServiceAccounts(destNamespace).Get(context.Background(), "default", metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	// Checks if SA.Secrets and SA.ImagePullSecrets contains a secret name prefixed with "default-dockercfg-"
+	needDockerSecret := needsDockercfgSecret(sa)
+	if needDockerSecret {
+		for {
+			secretList, err = client.Secrets(destNamespace).List(context.Background(), metav1.ListOptions{})
+			if err != nil {
+				return nil, err
+			}
+			flag := 0
+			for _, secret := range secretList.Items {
+				if strings.HasPrefix(secret.Name, "default-dockercfg-") {
+					p.Log.Info(fmt.Sprintf("[pod-restore] Found new dockercfg secret: %v", secret))
+					flag = 1
+					break
+				}
+			}
+			if flag == 1 {
+				p.Log.Info("[pod-restore] the dockercfg secret is created")
 				break
 			}
+			if time.Since(nameSpace.CreationTimestamp.Time) >= 5*time.Minute {
+				return nil, errors.New("default-dockercfg- Secret is not getting created within 5 minutes, exiting")
+			}
+			time.Sleep(time.Second)
 		}
-		if flag == 1 {
-			p.Log.Info(fmt.Sprintf("[pod-restore] the secret is created"))
-			break
+		for n, secret := range pod.Spec.ImagePullSecrets {
+			newSecret, err := common.UpdatePullSecret(&secret, secretList, p.Log)
+			if err != nil {
+				return nil, err
+			}
+			pod.Spec.ImagePullSecrets[n] = *newSecret
 		}
-		if time.Now().Sub(nameSpace.CreationTimestamp.Time) >= 5*time.Minute {
-			return nil, errors.New("Secret is not getting created")
-		}
-		time.Sleep(time.Second)
-		secretList, err = client.Secrets(destNamespace).List(context.Background(), metav1.ListOptions{})
-		if err != nil {
-			return nil, err
-		}
-	}
-	for n, secret := range pod.Spec.ImagePullSecrets {
-		newSecret, err := common.UpdatePullSecret(&secret, secretList, p.Log)
-		if err != nil {
-			return nil, err
-		}
-		pod.Spec.ImagePullSecrets[n] = *newSecret
 	}
 	// if this is a stage pod and there's a stage pod image found
 	destStagePodImage := input.Restore.Annotations[common.StagePodImageAnnotation]
