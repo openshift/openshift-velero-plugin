@@ -8,7 +8,7 @@ require (
 	github.com/go-logr/logr v1.2.4
 	github.com/google/go-cmp v0.6.0
 	github.com/hashicorp/go-hclog v1.0.0 // indirect
-	github.com/migtools/udistribution v0.0.12-oadp-1.2
+	github.com/migtools/udistribution v0.0.13-oadp-1.3
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/openshift/api v0.0.0-20230807132801-600991d550ac
 	github.com/openshift/client-go v0.0.0-20230503144108-75015d2347cb
@@ -47,7 +47,7 @@ require (
 	github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01 // indirect
 	github.com/containers/ocicrypt v1.1.7 // indirect
 	github.com/containers/storage v1.48.0 // indirect
-	github.com/cyphar/filepath-securejoin v0.2.3 // indirect
+	github.com/cyphar/filepath-securejoin v0.2.4 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/denverdino/aliyungo v0.0.0-20190125010748-a747050bb1ba // indirect
 	github.com/distribution/distribution/v3 v3.0.0-20230511163743-f7717b7855ca // indirect
@@ -108,7 +108,7 @@ require (
 	github.com/oklog/run v1.0.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.0-rc4 // indirect
-	github.com/opencontainers/runc v1.1.7 // indirect
+	github.com/opencontainers/runc v1.1.12 // indirect
 	github.com/opencontainers/runtime-spec v1.1.0-rc.3 // indirect
 	github.com/opencontainers/selinux v1.11.0 // indirect
 	github.com/ostreedev/ostree-go v0.0.0-20210805093236-719684c64e4f // indirect
