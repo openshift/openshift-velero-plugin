@@ -3,7 +3,9 @@ package clients
 import (
 	ocpappsv1 "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
 	buildv1 "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
+	ocpconfigv1 "github.com/openshift/client-go/config/clientset/versioned/typed/config/v1"
 	imagev1 "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
+	ocpirconfigv1 "github.com/openshift/client-go/imageregistry/clientset/versioned/typed/imageregistry/v1"
 	routev1 "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
 	"k8s.io/client-go/discovery"
 	appsv1 "k8s.io/client-go/kubernetes/typed/apps/v1"
@@ -19,6 +21,13 @@ var appsClientError error
 
 var ocpAppsClient *ocpappsv1.AppsV1Client
 var ocpAppsClientError error
+
+var ocpConfigClient *ocpconfigv1.ConfigV1Client
+var ocpConfigClientError error
+
+// ImageRegistry
+var ocpIRConfigClient *ocpirconfigv1.ImageregistryV1Client
+var ocpIRConfigClientError error
 
 var imageClient *imagev1.ImageV1Client
 var imageClientError error
@@ -192,6 +201,44 @@ func newOCPAppsClient() (*ocpappsv1.AppsV1Client, error) {
 		return nil, err
 	}
 	client, err := ocpappsv1.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+	return client, nil
+}
+
+func OCPConfigClient() (*ocpconfigv1.ConfigV1Client, error) {
+	if ocpConfigClient == nil && ocpConfigClientError == nil {
+		ocpConfigClient, ocpConfigClientError = newOCPConfigClient()
+	}
+	return ocpConfigClient, ocpConfigClientError
+}
+
+func newOCPConfigClient() (*ocpconfigv1.ConfigV1Client, error) {
+	config, err := GetInClusterConfig()
+	if err != nil {
+		return nil, err
+	}
+	client, err := ocpconfigv1.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+	return client, nil
+}
+
+func OCPImageRegistryConfigClient() (*ocpirconfigv1.ImageregistryV1Client, error) {
+	if ocpIRConfigClient == nil && ocpIRConfigClientError == nil {
+		ocpIRConfigClient, ocpIRConfigClientError = newOCPImageRegistryConfigClient()
+	}
+	return ocpIRConfigClient, ocpIRConfigClientError
+}
+
+func newOCPImageRegistryConfigClient() (*ocpirconfigv1.ImageregistryV1Client, error) {
+	config, err := GetInClusterConfig()
+	if err != nil {
+		return nil, err
+	}
+	client, err := ocpirconfigv1.NewForConfig(config)
 	if err != nil {
 		return nil, err
 	}

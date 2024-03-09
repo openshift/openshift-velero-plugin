@@ -10,6 +10,7 @@ import (
 
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/clients"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/common"
+	"github.com/konveyor/openshift-velero-plugin/velero-plugins/util/openshift"
 	"github.com/sirupsen/logrus"
 	velerov1 "github.com/vmware-tanzu/velero/pkg/apis/velero/v1"
 	"github.com/vmware-tanzu/velero/pkg/kuberesource"
@@ -206,13 +207,20 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	// https://github.com/openshift/openshift-controller-manager/blob/master/pkg/serviceaccounts/controllers/create_dockercfg_secrets.go#L304
 
 	// Get the default service account
-	sa, err := client.ServiceAccounts(destNamespace).Get(context.Background(), "default", metav1.GetOptions{})
+	// sa, err := client.ServiceAccounts(destNamespace).Get(context.Background(), "default", metav1.GetOptions{})
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	ocpRegistryHasReplicas, err := openshift.ImageRegistryHasReplicas()
 	if err != nil {
 		return nil, err
 	}
+
 	// Checks if SA.Secrets and SA.ImagePullSecrets contains a secret name prefixed with "default-dockercfg-"
-	needDockerSecret := needsDockercfgSecret(sa)
-	if needDockerSecret {
+	// needDockerSecret := needsDockercfgSecret(sa)
+	// if needDockerSecret {
+	if ocpRegistryHasReplicas {
 		for {
 			secretList, err = client.Secrets(destNamespace).List(context.Background(), metav1.ListOptions{})
 			if err != nil {
