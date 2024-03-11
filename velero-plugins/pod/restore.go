@@ -149,7 +149,7 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 		}
 	}
 
-	p.Log.Info("[pod-restore] checking if pod has volumes to back up")
+	p.Log.Info("[pod-restore] checking if pod has volumes that were backed up")
 	podHasVolumesToBackUp := PodHasVolumesToBackUp(pod)
 
 	// Check if pod has owner Refs and defaultVolumesToRestic flag as false/nil
