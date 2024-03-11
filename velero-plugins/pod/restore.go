@@ -15,9 +15,9 @@ import (
 	"github.com/vmware-tanzu/velero/pkg/kuberesource"
 	"github.com/vmware-tanzu/velero/pkg/label"
 	"github.com/vmware-tanzu/velero/pkg/plugin/velero"
-	"github.com/vmware-tanzu/velero/pkg/util/podvolume"
 	"github.com/vmware-tanzu/velero/pkg/util/boolptr"
 	"github.com/vmware-tanzu/velero/pkg/util/collections"
+	"github.com/vmware-tanzu/velero/pkg/util/podvolume"
 	corev1API "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -146,7 +146,7 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 		}
 	}
 
-	p.Log.Info("[pod-restore] checking if pod has volumes to back up")
+	p.Log.Info("[pod-restore] checking if pod has volumes that were backed up")
 	podHasVolumesToBackUp := PodHasVolumesToBackUp(pod)
 
 	// Check if pod has owner Refs and defaultVolumesToRestic flag as false/nil
@@ -163,7 +163,7 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	// For backups made with OADP 1.3 or later, base this on the presence of any volumes to back up or restore hooks
 	if pod.Annotations != nil && len(pod.Annotations[common.DCIncludesDMFix]) > 0 {
 		disconnectIfDC = podHasRestoreHooks || podHasVolumesToBackUp
-	// For backups made with OADP 1.2 or earlier, use only the defaultVolumesToRestic flag
+		// For backups made with OADP 1.2 or earlier, use only the defaultVolumesToRestic flag
 	} else {
 		disconnectIfDC = defaultVolumesToFsBackup != nil && *defaultVolumesToFsBackup
 	}
