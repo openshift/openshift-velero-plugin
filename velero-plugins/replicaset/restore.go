@@ -38,27 +38,6 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	common.SwapContainerImageRefs(replicaSet.Spec.Template.Spec.Containers, backupRegistry, registry, p.Log, input.Restore.Spec.NamespaceMapping)
 	common.SwapContainerImageRefs(replicaSet.Spec.Template.Spec.InitContainers, backupRegistry, registry, p.Log, input.Restore.Spec.NamespaceMapping)
 
-	ownerRefs, err := common.GetOwnerReferences(input.ItemFromBackup)
-	if err != nil {
-		return nil, err
-	}
-
-	annotations := replicaSet.Annotations
-
-	// Don't restore ReplicaSet if owned by Deployment and the deployment was not paused
-	for i := range ownerRefs {
-		ref := ownerRefs[i]
-		if ref.Kind == "Deployment" {
-			if _, ok := annotations[common.PausedOwnerRef]; ok {
-				delete(annotations, common.PausedOwnerRef)
-				replicaSet.Annotations = annotations
-				continue
-			}
-			p.Log.Infof("[replicaset-restore] skipping restore of ReplicaSet %s, belongs to Deployment", replicaSet.Name)
-			return velero.NewRestoreItemActionExecuteOutput(input.Item).WithoutRestore(), nil
-		}
-	}
-
 	var out map[string]interface{}
 	objrec, _ := json.Marshal(replicaSet)
 	json.Unmarshal(objrec, &out)
