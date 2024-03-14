@@ -15,8 +15,8 @@ func TestRestorePlugin_podHasRestoreHooks(t *testing.T) {
 		Log logrus.FieldLogger
 	}
 	type args struct {
-		pod       corev1API.Pod
-		restore   velerov1.Restore
+		pod     corev1API.Pod
+		restore velerov1.Restore
 	}
 	tests := []struct {
 		name    string
