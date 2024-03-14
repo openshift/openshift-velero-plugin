@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -202,25 +203,28 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 		return nil, err
 	}
 
-	// We follow `func needsDockercfgSecret(serviceAccount *v1.ServiceAccount) bool {` logic
-	// to decide if we need to wait for the secret to be created where the service account checked is "default"
-	// https://github.com/openshift/openshift-controller-manager/blob/master/pkg/serviceaccounts/controllers/create_dockercfg_secrets.go#L304
-
-	// Get the default service account
-	// sa, err := client.ServiceAccounts(destNamespace).Get(context.Background(), "default", metav1.GetOptions{})
-	// if err != nil {
-	// 	return nil, err
-	// }
+	// We check for the existence of OpenShift Image Registry replicas to determine whether ImageRegsitry Cluster capabilities are enabled 
+	// Additionally we also need to check OCP version 
+	// Based on the above 2 things we determine whether to skip waiting for docker secret i.e.  if image resgistry is not enabled and OCP cluster is below 4.15
 
 	ocpRegistryHasReplicas, err := openshift.ImageRegistryHasReplicas()
 	if err != nil {
 		return nil, err
 	}
 
-	// Checks if SA.Secrets and SA.ImagePullSecrets contains a secret name prefixed with "default-dockercfg-"
-	// needDockerSecret := needsDockercfgSecret(sa)
-	// if needDockerSecret {
-	if ocpRegistryHasReplicas {
+	ocpVersion, err := openshift.GetClusterVersion()
+	if err != nil {
+		return nil, err
+	}
+
+	_, minorVersion, _, err := common.ParseOCPVersion(ocpVersion.Status.Desired.Version)
+	if err != nil {
+		return nil, err
+	}
+
+	minorVersionInt, _ := strconv.Atoi(minorVersion)
+
+	if ocpRegistryHasReplicas && minorVersionInt >= 15 {
 		for {
 			secretList, err = client.Secrets(destNamespace).List(context.Background(), metav1.ListOptions{})
 			if err != nil {
