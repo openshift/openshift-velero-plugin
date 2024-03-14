@@ -324,3 +324,21 @@ func GetSecretKeyForBackupStorageLocation(name, namespace string) (*corev1.Secre
 	}
 	return secret, sKey, nil
 }
+
+func ParseOCPVersion(versionString string)(string, string, string, error) {
+	
+	// Split the version string by the dot separator
+    versionParts := strings.Split(versionString, ".")
+    
+    // Ensure that we have at least 3 parts
+    if len(versionParts) >= 3 {
+        // Extract X, Y, and Z versions
+        xVersion := versionParts[0]
+        yVersion := versionParts[1]
+        zVersion := versionParts[2]
+
+		return xVersion, yVersion, zVersion, nil
+        
+    }
+	return "", "", "", errors.New("unable to parse OCP Version")
+}
