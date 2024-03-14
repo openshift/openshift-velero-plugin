@@ -29,7 +29,10 @@ import (
 
 // RestorePlugin is a restore item action plugin for Velero
 type RestorePlugin struct {
-	Log logrus.FieldLogger
+	Log                    logrus.FieldLogger
+	OCPVersion             string
+	OCPRegistryHasReplicas bool
+	UpdatedForRestore      map[string]bool
 }
 
 // AppliesTo returns a velero.ResourceSelector that applies to pods
@@ -203,28 +206,30 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 		return nil, err
 	}
 
+	if !p.UpdatedForRestore[input.Restore.Name] {
+		err := p.UpdateOCPDetails()
+		if err != nil {
+			return nil, err
+		}
+		if p.UpdatedForRestore == nil {
+			p.UpdatedForRestore = make(map[string]bool)
+		}
+		p.UpdatedForRestore[input.Restore.Name] = true
+	}
+
 	// We check for the existence of OpenShift Image Registry replicas to determine whether ImageRegsitry Cluster capabilities are enabled 
 	// Additionally we also need to check OCP version 
 	// Based on the above 2 things we determine whether to skip waiting for docker secret i.e.  if image resgistry is not enabled and OCP cluster is below 4.15
 
-	ocpRegistryHasReplicas, err := openshift.ImageRegistryHasReplicas()
+	majorVersion, minorVersion, _, err := common.ParseOCPVersion(p.OCPVersion)
 	if err != nil {
 		return nil, err
 	}
 
-	ocpVersion, err := openshift.GetClusterVersion()
-	if err != nil {
-		return nil, err
-	}
-
-	_, minorVersion, _, err := common.ParseOCPVersion(ocpVersion.Status.Desired.Version)
-	if err != nil {
-		return nil, err
-	}
-
+	majorVersionInt, _ := strconv.Atoi(majorVersion)
 	minorVersionInt, _ := strconv.Atoi(minorVersion)
 
-	if ocpRegistryHasReplicas && minorVersionInt >= 15 {
+	if p.OCPRegistryHasReplicas && (majorVersionInt == 4 && minorVersionInt >= 15 || majorVersionInt > 4) {
 		for {
 			secretList, err = client.Secrets(destNamespace).List(context.Background(), metav1.ListOptions{})
 			if err != nil {
@@ -311,4 +316,43 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	json.Unmarshal(objrec, &out)
 
 	return velero.NewRestoreItemActionExecuteOutput(&unstructured.Unstructured{Object: out}), nil
+}
+
+// Updates the OCP Image registry existence information
+func (p *RestorePlugin) UpdateOCPRegistryReplicas() error {
+	ocpRegistryHasReplicas, err := openshift.ImageRegistryHasReplicas()
+	if err != nil {
+		return err
+	}
+
+	p.OCPRegistryHasReplicas = ocpRegistryHasReplicas
+
+	return nil
+}
+
+// Update OCP version information
+func (p *RestorePlugin) UpdateOCPVersion() error {
+	ocpVersion, err := openshift.GetClusterVersion()
+	if err != nil {
+		return err
+	}
+
+	p.OCPVersion = ocpVersion.Status.Desired.Version
+
+	return nil
+}
+
+// Update OCP cluster details 
+func (p *RestorePlugin) UpdateOCPDetails() error {
+	err := p.UpdateOCPRegistryReplicas()
+	if err != nil {
+		return err
+	}
+
+	err = p.UpdateOCPVersion()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
