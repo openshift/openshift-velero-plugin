@@ -304,15 +304,6 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	return velero.NewRestoreItemActionExecuteOutput(&unstructured.Unstructured{Object: out}), nil
 }
 
-// checks the OCP Image registry existence
-func (p *RestorePlugin) DoRegistryReplicasExist() (bool, error) {
-	ocpRegistryHasReplicas, err := openshift.ImageRegistryHasReplicas()
-	if err != nil {
-		return false, err
-	}
-	return ocpRegistryHasReplicas, nil
-}
-
 // Fetches OCP version information
 func (p *RestorePlugin) GetOCPVersion() (int, int, error) {
 	ocpVersion, err := openshift.GetClusterVersion()
@@ -333,7 +324,7 @@ func (p *RestorePlugin) GetOCPVersion() (int, int, error) {
 
 // Update OCP cluster details
 func (p *RestorePlugin) UpdateWaitForPullSecrets() (bool, error) {
-	registryReplicasExist, err := p.DoRegistryReplicasExist()
+	imageRegistryEnabled, err := openshift.ImageRegistryCapabilityEnabled()
 	if err != nil {
 		return false, err
 	}
@@ -343,7 +334,7 @@ func (p *RestorePlugin) UpdateWaitForPullSecrets() (bool, error) {
 		return false, err
 	}
 
-	if !registryReplicasExist && (majorVersionInt == 4 && minorVersionInt >= 15 || majorVersionInt > 4) {
+	if !imageRegistryEnabled && (majorVersionInt == 4 && minorVersionInt >= 15 || majorVersionInt > 4) {
 		return false, nil
 	}
 
