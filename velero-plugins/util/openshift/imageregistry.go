@@ -1,7 +1,12 @@
 package openshift
 
 import (
+	"context"
+	"github.com/konveyor/openshift-velero-plugin/velero-plugins/clients"
 	configv1 "github.com/openshift/api/config/v1"
+	v1 "github.com/openshift/api/imageregistry/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // If you disable the ImageRegistry capability or if you disable the integrated OpenShift image registry in the Cluster Image Registry Operator’s configuration,
@@ -29,4 +34,27 @@ func ImageRegistryCapabilityEnabled() (bool, error) {
 		}
 	}
 	return false, nil
+}
+
+func ImageRegistryHasReplicas() (bool, error) {
+	c, err := GetImageRegistryConfig()
+	if err != nil {
+		if k8serrors.IsNotFound(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	return c.Status.ReadyReplicas > 0, nil
+}
+
+// https://github.com/openshift/cluster-image-registry-operator/blob/48875d3ccb4595be9d3bec563d1fda2eb940cecf/pkg/defaults/defaults.go#L19
+// avoiding indirect imports and version conflicts
+const ImageRegistryResourceName = "cluster"
+
+func GetImageRegistryConfig() (*v1.Config, error) {
+	client, err := clients.OCPImageRegistryConfigClient()
+	if err != nil {
+		return nil, err
+	}
+	return client.Configs().Get(context.Background(), ImageRegistryResourceName, metav1.GetOptions{})
 }
