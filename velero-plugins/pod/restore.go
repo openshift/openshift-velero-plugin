@@ -212,9 +212,9 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 
 		p.WaitForPullSecrets = &wait
 	}
-	// We check whether ImageRegistry Cluster capabilities are enabled or not
+	// We check whether ImageRegistry Cluster capabilities are enabled or not alongside this we check for the existence of image registry replicas
 	// Additionally we also need to check OCP version
-	// Based on the above 2 things we determine whether to skip waiting for docker secret i.e.  if image registry is not enabled and OCP cluster is above 4.15
+	// Based on the above things we determine whether to skip waiting for docker secret i.e.  if image registry is not enabled and image registry replicas are zero along-with OCP cluster is above 4.15
 	if *p.WaitForPullSecrets {
 		for {
 			secretList, err = client.Secrets(destNamespace).List(context.Background(), metav1.ListOptions{})
@@ -304,6 +304,15 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	return velero.NewRestoreItemActionExecuteOutput(&unstructured.Unstructured{Object: out}), nil
 }
 
+// checks the OCP Image registry existence
+func (p *RestorePlugin) DoRegistryReplicasExist() (bool, error) {
+	ocpRegistryHasReplicas, err := openshift.ImageRegistryHasReplicas()
+	if err != nil {
+		return false, err
+	}
+	return ocpRegistryHasReplicas, nil
+}
+
 // Fetches OCP version information
 func (p *RestorePlugin) GetOCPVersion() (int, int, error) {
 	ocpVersion, err := openshift.GetClusterVersion()
@@ -329,12 +338,17 @@ func (p *RestorePlugin) UpdateWaitForPullSecrets() (bool, error) {
 		return false, err
 	}
 
+	registryReplicasExist, err := p.DoRegistryReplicasExist()
+	if err != nil {
+		return false, err
+	}
+
 	majorVersionInt, minorVersionInt, err := p.GetOCPVersion()
 	if err != nil {
 		return false, err
 	}
 
-	if !imageRegistryEnabled && (majorVersionInt == 4 && minorVersionInt >= 15 || majorVersionInt > 4) {
+	if !(imageRegistryEnabled && registryReplicasExist) && (majorVersionInt == 4 && minorVersionInt >= 15 || majorVersionInt > 4) {
 		return false, nil
 	}
 
