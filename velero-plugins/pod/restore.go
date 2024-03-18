@@ -212,9 +212,9 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 
 		p.WaitForPullSecrets = &wait
 	}
-	// We check for the existence of OpenShift Image Registry replicas to determine whether ImageRegistry Cluster capabilities are enabled
+	// We check whether ImageRegistry Cluster capabilities are enabled or not alongside this we check for the existence of image registry replicas
 	// Additionally we also need to check OCP version
-	// Based on the above 2 things we determine whether to skip waiting for docker secret i.e.  if image registry is not enabled and OCP cluster is above 4.15
+	// Based on the above things we determine whether to skip waiting for docker secret i.e.  if image registry is not enabled and image registry replicas are zero along-with OCP cluster is above 4.15
 	if *p.WaitForPullSecrets {
 		for {
 			secretList, err = client.Secrets(destNamespace).List(context.Background(), metav1.ListOptions{})
@@ -333,6 +333,11 @@ func (p *RestorePlugin) GetOCPVersion() (int, int, error) {
 
 // Update OCP cluster details
 func (p *RestorePlugin) UpdateWaitForPullSecrets() (bool, error) {
+	imageRegistryEnabled, err := openshift.ImageRegistryCapabilityEnabled()
+	if err != nil {
+		return false, err
+	}
+
 	registryReplicasExist, err := p.DoRegistryReplicasExist()
 	if err != nil {
 		return false, err
@@ -343,7 +348,7 @@ func (p *RestorePlugin) UpdateWaitForPullSecrets() (bool, error) {
 		return false, err
 	}
 
-	if !registryReplicasExist && (majorVersionInt == 4 && minorVersionInt >= 15 || majorVersionInt > 4) {
+	if !(imageRegistryEnabled && registryReplicasExist) && (majorVersionInt == 4 && minorVersionInt >= 15 || majorVersionInt > 4) {
 		return false, nil
 	}
 

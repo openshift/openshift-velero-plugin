@@ -2,7 +2,6 @@ package openshift
 
 import (
 	"context"
-
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/clients"
 	configv1 "github.com/openshift/api/config/v1"
 	v1 "github.com/openshift/api/imageregistry/v1"
@@ -15,6 +14,7 @@ import (
 // https://docs.openshift.com/container-platform/4.15/installing/cluster-capabilities.html#additional-resources_cluster-capabilities:~:text=If%20you%20disable%20the%20ImageRegistry%20capability%20or%20if%20you%20disable%20the%20integrated%20OpenShift%20image%20registry%20in%20the%20Cluster%20Image%20Registry%20Operator%E2%80%99s%20configuration%2C%20the%20service%20account%20token%20secret%20and%20image%20pull%20secret%20are%20not%20generated%20for%20each%20service%20account.
 
 var imageRegistryCapabilityEnabled bool
+
 func ImageRegistryCapabilityEnabled() (bool, error) {
 	// Cache the result of the image registry capability check, once enabled, it should not change
 	// Cluster administrators cannot disable a cluster capability after it is enabled.
