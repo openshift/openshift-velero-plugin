@@ -2,9 +2,11 @@ package openshift
 
 import (
 	"context"
+
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/clients"
 	configv1 "github.com/openshift/api/config/v1"
 	v1 "github.com/openshift/api/imageregistry/v1"
+	operatorv1 "github.com/openshift/api/operator/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -36,7 +38,7 @@ func ImageRegistryCapabilityEnabled() (bool, error) {
 	return false, nil
 }
 
-func ImageRegistryHasReplicas() (bool, error) {
+func ImageRegistryConfigIsNotRemoved() (bool, error) {
 	c, err := GetImageRegistryConfig()
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
@@ -44,7 +46,7 @@ func ImageRegistryHasReplicas() (bool, error) {
 		}
 		return false, err
 	}
-	return c.Status.ReadyReplicas > 0, nil
+	return c.Spec.ManagementState != operatorv1.Removed, nil
 }
 
 // https://github.com/openshift/cluster-image-registry-operator/blob/48875d3ccb4595be9d3bec563d1fda2eb940cecf/pkg/defaults/defaults.go#L19
