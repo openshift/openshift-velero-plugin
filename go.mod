@@ -9,7 +9,7 @@ require (
 	github.com/openshift/api v0.0.0-20210105115604-44119421ec6b
 	github.com/openshift/client-go v0.0.0-20210112165513-ebc401615f47
 	github.com/openshift/library-go v0.0.0-20200521120150-e4959e210d3a
-	github.com/sirupsen/logrus v1.8.1
+	github.com/sirupsen/logrus v1.9.0
 	github.com/stretchr/testify v1.7.0
 	github.com/vmware-tanzu/velero v1.6.2
 	k8s.io/api v0.20.7
@@ -24,12 +24,12 @@ require (
 	github.com/VividCortex/ewma v1.2.0 // indirect
 	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
-	github.com/cespare/xxhash/v2 v2.1.2 // indirect
+	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/containerd/cgroups v1.0.3 // indirect
 	github.com/containerd/containerd v1.5.9 // indirect
 	github.com/containerd/stargz-snapshotter/estargz v0.10.1 // indirect
 	github.com/containers/libtrust v0.0.0-20190913040956-14b96171aa3b // indirect
-	github.com/containers/ocicrypt v1.1.2 // indirect
+	github.com/containers/ocicrypt v1.1.10 // indirect
 	github.com/containers/storage v1.38.0 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.3 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
@@ -41,10 +41,11 @@ require (
 	github.com/docker/go-units v0.4.0 // indirect
 	github.com/fatih/color v1.13.0 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
+	github.com/go-jose/go-jose/v3 v3.0.3 // indirect
 	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
-	github.com/golang/protobuf v1.5.2 // indirect
+	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/go-intervals v0.0.2 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/uuid v1.3.0 // indirect
@@ -65,7 +66,7 @@ require (
 	github.com/mattn/go-runewidth v0.0.13 // indirect
 	github.com/mattn/go-shellwords v1.0.12 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
-	github.com/miekg/pkcs11 v1.0.3 // indirect
+	github.com/miekg/pkcs11 v1.1.1 // indirect
 	github.com/mistifyio/go-zfs v2.1.2-0.20190413222219-f784269be439+incompatible // indirect
 	github.com/mitchellh/go-testing-interface v1.0.0 // indirect
 	github.com/moby/sys/mountinfo v0.5.0 // indirect
@@ -98,22 +99,21 @@ require (
 	go.etcd.io/bbolt v1.3.6 // indirect
 	go.mozilla.org/pkcs7 v0.0.0-20200128120323-432b2356ecb1 // indirect
 	go.opencensus.io v0.23.0 // indirect
-	golang.org/x/crypto v0.14.0 // indirect
+	golang.org/x/crypto v0.19.0 // indirect
 	golang.org/x/net v0.17.0 // indirect
-	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8 // indirect
-	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
-	golang.org/x/sys v0.13.0 // indirect
-	golang.org/x/term v0.13.0 // indirect
-	golang.org/x/text v0.13.0 // indirect
+	golang.org/x/oauth2 v0.7.0 // indirect
+	golang.org/x/sync v0.1.0 // indirect
+	golang.org/x/sys v0.17.0 // indirect
+	golang.org/x/term v0.17.0 // indirect
+	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e // indirect
 	google.golang.org/appengine v1.6.7 // indirect
-	google.golang.org/genproto v0.0.0-20211208223120-3a66f561d7aa // indirect
-	google.golang.org/grpc v1.42.0 // indirect
-	google.golang.org/protobuf v1.27.1 // indirect
+	google.golang.org/genproto v0.0.0-20230410155749-daa745c078e1 // indirect
+	google.golang.org/grpc v1.56.3 // indirect
+	google.golang.org/protobuf v1.30.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
-	gopkg.in/square/go-jose.v2 v2.5.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
+	gopkg.in/yaml.v3 v3.0.0 // indirect
 	k8s.io/klog/v2 v2.4.0 // indirect
 	k8s.io/utils v0.0.0-20201110183641-67b214c5f920 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.0.3 // indirect
@@ -131,3 +131,10 @@ replace bitbucket.org/ww/goautoneg v0.0.0-20120707110453-75cd24fc2f2c => github.
 replace github.com/vmware-tanzu/velero => github.com/openshift/velero v0.10.2-0.20210728132925-bab294f5d24c
 
 replace github.com/containerd/containerd => github.com/containerd/containerd v1.5.18
+
+// maintain v0.20.7
+replace (
+	k8s.io/api => k8s.io/api v0.20.7
+	k8s.io/apimachinery => k8s.io/apimachinery v0.20.7
+	k8s.io/client-go => k8s.io/client-go v0.20.7
+)
