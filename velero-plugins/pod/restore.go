@@ -120,6 +120,7 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 
 	ownerRefs, err := common.GetOwnerReferences(input.ItemFromBackup)
 	if err != nil {
+		p.Log.Infof("[pod-restore] pod: %s, GetOwnerReferences failed with err %s", pod.Name, err.Error())
 		return nil, err
 	}
 
@@ -183,6 +184,7 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 
 	backupRegistry, registry, err := common.GetSrcAndDestRegistryInfo(input.Item)
 	if err != nil {
+		p.Log.Infof("[pod-restore] pod: %s, GetSrcAndDestRegistryInfo failed with err %s", pod.Name, err.Error())
 		return nil, err
 	}
 	common.SwapContainerImageRefs(pod.Spec.Containers, backupRegistry, registry, p.Log, input.Restore.Spec.NamespaceMapping)
@@ -191,6 +193,7 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	// update PullSecrets
 	client, err := clients.CoreClient()
 	if err != nil {
+		p.Log.Infof("[pod-restore] pod: %s, CoreClient() failed with err %s", pod.Name, err.Error())
 		return nil, err
 	}
 	destNamespace := podUnmodified.Namespace
@@ -201,12 +204,14 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	var secretList *corev1API.SecretList
 	nameSpace, err := client.Namespaces().Get(context.Background(), destNamespace, metav1.GetOptions{})
 	if err != nil {
+		p.Log.Infof("[pod-restore] pod: %s, client.Namespaces().Get() for namespace %s failed with err %s", pod.Name, destNamespace, err.Error())
 		return nil, err
 	}
 
 	if p.WaitForPullSecrets == nil {
 		wait, err := p.UpdateWaitForPullSecrets()
 		if err != nil {
+			p.Log.Infof("[pod-restore] pod: %s, UpdateWaitForPullSecrets() failed with err %s", pod.Name, err.Error())
 			return nil, err
 		}
 
@@ -219,6 +224,7 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 		for {
 			secretList, err = client.Secrets(destNamespace).List(context.Background(), metav1.ListOptions{})
 			if err != nil {
+				p.Log.Infof("[pod-restore] pod: %s, Secrets(ns).List() failed for ns %s with err %s", pod.Name, destNamespace, err.Error())
 				return nil, err
 			}
 			flag := 0
@@ -241,6 +247,7 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 		for n, secret := range pod.Spec.ImagePullSecrets {
 			newSecret, err := common.UpdatePullSecret(&secret, secretList, p.Log)
 			if err != nil {
+				p.Log.Infof("[pod-restore] pod: %s, UpdatePullSecret() failed with err %s", pod.Name, err.Error())
 				return nil, err
 			}
 			pod.Spec.ImagePullSecrets[n] = *newSecret
@@ -308,11 +315,13 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 func (p *RestorePlugin) GetOCPVersion() (int, int, error) {
 	ocpVersion, err := openshift.GetClusterVersion()
 	if err != nil {
+		p.Log.Infof("[pod-restore] GetClusterVersion() failed with err %s", err.Error())
 		return 0, 0, err
 	}
 
 	majorVersion, minorVersion, _, err := common.ParseOCPVersion(ocpVersion.Status.Desired.Version)
 	if err != nil {
+		p.Log.Infof("[pod-restore] ParseOCPVersion() failed with err %s", err.Error())
 		return 0, 0, err
 	}
 
@@ -326,16 +335,19 @@ func (p *RestorePlugin) GetOCPVersion() (int, int, error) {
 func (p *RestorePlugin) UpdateWaitForPullSecrets() (bool, error) {
 	imageRegistryEnabled, err := openshift.ImageRegistryCapabilityEnabled()
 	if err != nil {
+		p.Log.Infof("[pod-restore] ImageRegistryCapabilityEnabled() failed with err %s", err.Error())
 		return false, err
 	}
 
 	imageRegistryConfigIsNotRemoved, err := openshift.ImageRegistryConfigIsNotRemoved()
 	if err != nil {
+		p.Log.Infof("[pod-restore] ImageRegistryConfigIsNotRemoved() failed with err %s", err.Error())
 		return false, err
 	}
 
 	majorVersionInt, minorVersionInt, err := p.GetOCPVersion()
 	if err != nil {
+		p.Log.Infof("[pod-restore] GetOCPVersion() failed with err %s", err.Error())
 		return false, err
 	}
 

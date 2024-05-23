@@ -50,6 +50,7 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 
 	metadata, annotations, err := getMetadataAndAnnotations(input.Item)
 	if err != nil {
+		p.Log.Infof("[common-restore] common restore plugin getMetadataAndAnnotations() failed with err %s", err.Error())
 		return nil, err
 	}
 	name := metadata.GetName()
@@ -57,12 +58,14 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 
 	major, minor, err := GetServerVersion()
 	if err != nil {
+		p.Log.Infof("[common-restore] common restore plugin GetServerVersion() failed with err %s", err.Error())
 		return nil, err
 	}
 
 	annotations[RestoreServerVersion] = fmt.Sprintf("%v.%v", major, minor)
 	registryHostname, err := GetRegistryInfo(p.Log)
 	if err != nil {
+		p.Log.Infof("[common-restore] common restore plugin GetRegistryInfo() failed with err %s", err.Error())
 		return nil, err
 	}
 	annotations[RestoreRegistryHostname] = registryHostname
