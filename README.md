@@ -204,7 +204,7 @@ time="2020-07-29T18:51:03Z" level=info msg="[common-restore] Entering common res
 
 ### Image Stream
 #### Backup Plugin 
-- Retrive internal registry and migration registry from annotaions.
+- Retrive internal registry and migration registry from annotations.
 - For all the tags check imagestream has any associated imagestreamtags so that we know we need to restore the tags as well.
 - For all the Items in al the tags, fetch `dockerImageReference`, constructs source and destination path from `dockerImageReference` and `migrationRegistry`. Fetches all the images referenced by namespace from internal image registry of openshift, `image-registry.openshift-image-registry.svc:5000/`,  and push the same to to defined docker registry, `oadp-default-aws-registry-route-oadp-operator.apps.<route>`.
 
