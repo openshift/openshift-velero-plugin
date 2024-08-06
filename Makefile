@@ -23,6 +23,9 @@ IMAGE ?= docker.io/konveyor/openshift-velero-plugin
 ARCH ?= amd64
 BUILDTAGS ?= "containers_image_ostree_stub exclude_graphdriver_devicemapper exclude_graphdriver_btrfs containers_image_openpgp exclude_graphdriver_overlay include_gcs include_oss"
 
+CLUSTER_OS = $(shell $(OC_CLI) get node -o jsonpath='{.items[0].status.nodeInfo.operatingSystem}' 2> /dev/null)
+CLUSTER_ARCH = $(shell $(OC_CLI) get node -o jsonpath='{.items[0].status.nodeInfo.architecture}' 2> /dev/null)
+
 all: $(addprefix build-, $(BINS))
 
 build-%:
@@ -46,6 +49,9 @@ _output/$(BIN): $(BIN)/*.go
 				 go build -installsuffix "static" -tags $(BUILDTAGS) -i -v -o _output/$(BIN) ./$(BIN)
 
 DOCKER_BUILD_ARGS ?= --platform=linux/amd64
+ifneq ($(CLUSTER_OS),)
+	DOCKER_BUILD_ARGS = --platform=$(CLUSTER_OS)/$(CLUSTER_ARCH)
+endif
 container:
 	docker build -t $(IMAGE) . $(DOCKER_BUILD_ARGS)
 
