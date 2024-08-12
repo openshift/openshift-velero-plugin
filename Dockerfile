@@ -11,10 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-FROM quay.io/konveyor/builder:ubi9-latest AS builder
+FROM --platform=$BUILDPLATFORM quay.io/konveyor/builder:ubi9-latest AS builder
+ARG BUILDPLATFORM
 ARG TARGETOS
 ARG TARGETARCH
-
 ENV GOPATH=$APP_ROOT
 ENV BUILDTAGS containers_image_ostree_stub exclude_graphdriver_devicemapper exclude_graphdriver_btrfs containers_image_openpgp exclude_graphdriver_overlay include_gcs include_oss
 ENV BIN velero-plugins
