@@ -25,7 +25,8 @@ const (
 	MigrationApplicationLabelKey   string = "app.kubernetes.io/part-of"
 	MigrationApplicationLabelValue string = "openshift-migration"
 )
-
+// Skip buildconfig configmap restore
+const SkipBuildConfigConfigMapRestore string = "oadp.openshift.io/skip-buildconfig-configmap-restore"
 const SkipImageCopy string = "openshift.io/skip-image-copy"
 const DisableImageCopy string = "migration.openshift.io/disable-image-copy"
 
