@@ -109,10 +109,14 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	itemMarshal, _ := json.Marshal(input.Item)
 	json.Unmarshal(itemMarshal, &pod)
 	p.Log.Infof("[pod-restore] pod: %s", pod.Name)
-
 	podUnmodified := corev1API.Pod{}
 	itemMarshal, _ = json.Marshal(input.ItemFromBackup)
 	json.Unmarshal(itemMarshal, &podUnmodified)
+	if openshift.PodIsBuildPod(&podUnmodified) {
+		// skip restore of build pods
+		p.Log.Info("[pod-restore] Skipping restore of build pod, will be created by build controller if needed")
+		return velero.NewRestoreItemActionExecuteOutput(input.Item).WithoutRestore(), nil
+	}
 
 	// ISSUE-61 : removing the node selectors from pods
 	// to avoid pod being `unschedulable` on destination
