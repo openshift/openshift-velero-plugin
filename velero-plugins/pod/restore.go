@@ -46,7 +46,7 @@ func PodHasVolumesToBackUp(pod corev1API.Pod) bool {
 	// are any volumes to back up at all. This func filters out volumes not to back up and then
 	// splits the list between fs backup and snapshot. If false is passed in, only fs backup files
 	// are returned
-	vols, optedOutVols := podvolume.GetVolumesByPod(&pod, true)
+	vols, optedOutVols := podvolume.GetVolumesByPod(&pod, true, false, nil)
 	return len(vols) > 0 || len(optedOutVols) > 0
 }
 

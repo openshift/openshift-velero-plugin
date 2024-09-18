@@ -38,6 +38,7 @@ func main() {
 		RegisterRestoreItemAction("openshift.io/01-common-restore-plugin", newCommonRestorePlugin).
 		RegisterBackupItemAction("openshift.io/02-serviceaccount-backup-plugin", newServiceAccountBackupPlugin).
 		RegisterRestoreItemAction("openshift.io/02-serviceaccount-restore-plugin", newServiceAccountRestorePlugin).
+		RegisterItemBlockAction("openshift.io/02-serviceaccount-iba-plugin", newServiceAccountIBAPlugin).
 		RegisterBackupItemAction("openshift.io/03-pv-backup-plugin", newPVBackupPlugin).
 		RegisterRestoreItemAction("openshift.io/03-pv-restore-plugin", newPVRestorePlugin).
 		RegisterRestoreItemAction("openshift.io/04-pvc-restore-plugin", newPVCRestorePlugin).
@@ -175,6 +176,15 @@ func newServiceAccountBackupPlugin(logger logrus.FieldLogger) (interface{}, erro
 	saBackupPlugin.SCCMap = make(map[string]map[string][]apisecurity.SecurityContextConstraints)
 	return saBackupPlugin, nil
 }
+
+func newServiceAccountIBAPlugin(logger logrus.FieldLogger) (interface{}, error) {
+	saPlugin := &serviceaccount.IBAPlugin{Log: logger}
+	saPlugin.UpdatedForBackup = make(map[string]bool)
+	// we need to create a dependency between scc and service accounts. Service accounts are listed in SCC's users list.
+	saPlugin.SCCMap = make(map[string]map[string][]apisecurity.SecurityContextConstraints)
+	return saPlugin, nil
+}
+
 
 func newPVBackupPlugin(logger logrus.FieldLogger) (interface{}, error) {
 	return &persistentvolume.BackupPlugin{Log: logger}, nil
