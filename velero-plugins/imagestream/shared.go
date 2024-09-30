@@ -97,25 +97,39 @@ func GetRegistryEnvsForLocation(location string, namespace string) ([]string, er
 	if err != nil {
 		return nil, fmt.Errorf("errors getting registry env vars: %v", err)
 	}
-	return coreV1EnvVarArrToStringArr(envVars, bsl.Namespace), nil
+	return coreV1EnvVarArrToStringArr(envVars, bsl.Namespace)
 }
 
-func coreV1EnvVarArrToStringArr(envVars []corev1.EnvVar, namespace string) []string {
-	var envVarsStr []string
+func coreV1EnvVarArrToStringArr(envVars []corev1.EnvVar, namespace string) ([]string, error) {
+	var envVarsStrings []string
 	for _, envVar := range envVars {
-		envVarsStr = append(envVarsStr, coreV1EnvVarToString(envVar, namespace))
+		envVarStr, err := coreV1EnvVarToString(envVar, namespace)
+		if err != nil {
+			return nil, err
+		}
+		if envVarStr != "" {
+			envVarsStrings = append(envVarsStrings, envVarStr)
+		}
 	}
-	return envVarsStr
+	return envVarsStrings, nil
 }
-func coreV1EnvVarToString(envVar corev1.EnvVar, namespace string) string {
+func coreV1EnvVarToString(envVar corev1.EnvVar, namespace string) (string, error) {
 	if envVar.ValueFrom != nil && envVar.ValueFrom.SecretKeyRef != nil {
 		secretData, err := getSecretKeyRefData(envVar.ValueFrom.SecretKeyRef, namespace)
 		if err != nil {
-			return err.Error()
+			return "", err
 		}
-		return fmt.Sprintf("%s=%s", envVar.Name, secretData)
+		return fmt.Sprintf("%s=%s", envVar.Name, secretData), nil
 	}
-	return fmt.Sprintf("%s=%s", envVar.Name, envVar.Value)
+	if envVar.Name == "" {
+		return "", errors.New("envVar.Name is empty")
+	}
+	// some value is expected to be nil.. such as s3url in default case.
+	// if it is empty, we probably shouldn't include it. Return empty string so coreV1EnvVarArrToStringArr can discard.
+	if envVar.Value == "" {
+		return "", nil
+	}
+	return fmt.Sprintf("%s=%s", envVar.Name, envVar.Value), nil
 }
 
 // Get secret from reference and namespace and return decoded data
