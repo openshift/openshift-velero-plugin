@@ -17,9 +17,13 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
-// BackupPlugin is a backup item action plugin for Heptio Velero.
+// BackupPlugin is a backup item action plugin for Velero.
 type BackupPlugin struct {
 	Log              logrus.FieldLogger
+	sccCache
+}
+
+type sccCache struct {
 	SCCMap           map[string]map[string][]apisecurity.SecurityContextConstraints
 	UpdatedForBackup map[string]bool
 }
@@ -38,14 +42,18 @@ var securityClientError error
 // Execute copies local registry images into migration registry
 func (p *BackupPlugin) Execute(item runtime.Unstructured, backup *v1.Backup) (runtime.Unstructured, []velero.ResourceIdentifier, error) {
 	p.Log.Info("[serviceaccount-backup] Entering ServiceAccount backup plugin")
+	additionalItems, err := sccsForSA(p.Log, item, backup, p.sccCache)
+	return item, additionalItems, err
+}
 
-	if !p.UpdatedForBackup[backup.Name] {
-		err := p.UpdateSCCMap()
+func sccsForSA(log logrus.FieldLogger, item runtime.Unstructured, backup *v1.Backup, cache sccCache) ([]velero.ResourceIdentifier, error) {
+	if !cache.UpdatedForBackup[backup.Name] {
+		err := cache.UpdateSCCMap()
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 
-		p.UpdatedForBackup[backup.Name] = true
+		cache.UpdatedForBackup[backup.Name] = true
 	}
 
 	serviceAccount := corev1.ServiceAccount{}
@@ -54,24 +62,23 @@ func (p *BackupPlugin) Execute(item runtime.Unstructured, backup *v1.Backup) (ru
 
 	var additionalItems []velero.ResourceIdentifier
 
-	if p.SCCMap[serviceAccount.Namespace] == nil {
-		return item, additionalItems, nil
+	if cache.SCCMap[serviceAccount.Namespace] == nil {
+		return additionalItems, nil
 	}
 
-	for _, scc := range p.SCCMap[serviceAccount.Namespace][serviceAccount.Name] {
-		p.Log.Infof("Adding security context constraint - %s as additional item for service account - %s in namespace - %s", scc.Name,
+	for _, scc := range cache.SCCMap[serviceAccount.Namespace][serviceAccount.Name] {
+		log.Infof("Adding security context constraint - %s as additional item for service account - %s in namespace - %s", scc.Name,
 			serviceAccount.Name, serviceAccount.Namespace)
 		additionalItems = append(additionalItems, velero.ResourceIdentifier{
 			Name:          scc.Name,
 			GroupResource: schema.GroupResource{Group: "security.openshift.io", Resource: "securitycontextconstraints"},
 		})
 	}
-
-	return item, additionalItems, nil
+	return additionalItems, nil
 }
 
 // UpdateSCCMap fill scc map with service account as key and SCCs slice as value
-func (p *BackupPlugin) UpdateSCCMap() error {
+func (c *sccCache) UpdateSCCMap() error {
 	sClient, err := SecurityClient()
 	if err != nil {
 		return err
@@ -100,8 +107,8 @@ func (p *BackupPlugin) UpdateSCCMap() error {
 				if namespace == "" {
 					continue
 				}
-				if p.SCCMap[namespace] == nil {
-					p.SCCMap[namespace] = make(map[string][]apisecurity.SecurityContextConstraints)
+				if c.SCCMap[namespace] == nil {
+					c.SCCMap[namespace] = make(map[string][]apisecurity.SecurityContextConstraints)
 				}
 
 				if len(splitUsername) == 3 { // map to all SAs
@@ -110,11 +117,11 @@ func (p *BackupPlugin) UpdateSCCMap() error {
 						return err
 					}
 					for _, serviceAccount := range serviceAccounts.Items {
-						addSaNameToMap(p.SCCMap[namespace], serviceAccount.Name, scc)
+						addSaNameToMap(c.SCCMap[namespace], serviceAccount.Name, scc)
 					}
 				} else {
 					saName := splitUsername[3]
-					addSaNameToMap(p.SCCMap[namespace], saName, scc)
+					addSaNameToMap(c.SCCMap[namespace], saName, scc)
 				}
 
 			}
