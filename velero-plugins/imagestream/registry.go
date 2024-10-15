@@ -99,15 +99,6 @@ var cloudProviderEnvVarMap = map[string][]corev1.EnvVar{
 	},
 }
 
-type azureCredentials struct {
-	subscriptionID     string
-	tenantID           string
-	clientID           string
-	clientSecret       string
-	resourceGroup      string
-	strorageAccountKey string
-}
-
 func getRegistryEnvVars(bsl *velerov1.BackupStorageLocation) ([]corev1.EnvVar, error) {
 	var envVars []corev1.EnvVar
 	provider := bsl.Spec.Provider
@@ -132,6 +123,9 @@ func getRegistryEnvVars(bsl *velerov1.BackupStorageLocation) ([]corev1.EnvVar, e
 
 func getAWSRegistryEnvVars(bsl *velerov1.BackupStorageLocation) ([]corev1.EnvVar, error) {
 	// if region is not set in bsl, then get it from bucket
+	if bsl.Spec.Config == nil {
+		bsl.Spec.Config = make(map[string]string)
+	}
 	if bsl.Spec.Config[S3URL] == ""  && bsl.Spec.Config[Region] == "" {
 		var err error
 		bsl.Spec.Config[Region], err = GetBucketRegion(bsl.Spec.StorageType.ObjectStorage.Bucket)
