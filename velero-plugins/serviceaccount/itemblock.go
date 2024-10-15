@@ -25,3 +25,8 @@ func (p *IBAPlugin) GetRelatedItems(item runtime.Unstructured, backup *v1.Backup
 	p.Log.Info("[serviceaccount-iba] Entering ServiceAccount ItemBlock plugin")
 	return sccsForSA(p.Log, item, backup, p.sccCache)
 }
+
+// This won't be called but is needed to implement interface
+func (p *IBAPlugin) Name() string {
+	return "serviceaccount-iba"
+}
