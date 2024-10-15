@@ -2,8 +2,9 @@ package imagestream
 
 import (
 	"context"
-	"slices"
 	"testing"
+
+	"golang.org/x/exp/slices"
 
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/clients"
 	velerov1 "github.com/vmware-tanzu/velero/pkg/apis/velero/v1"
