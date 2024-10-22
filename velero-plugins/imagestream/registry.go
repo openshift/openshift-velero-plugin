@@ -213,7 +213,9 @@ func getBslSecretPath(bsl *velerov1.BackupStorageLocation) string {
 }
 
 func getAzureRegistryEnvVars(bsl *velerov1.BackupStorageLocation, azureEnvVars []corev1.EnvVar) ([]corev1.EnvVar, error) {
-
+	if bsl.Spec.Config == nil {
+		bsl.Spec.Config = make(map[string]string)
+	}
 	for i := range azureEnvVars {
 		if azureEnvVars[i].Name == RegistryStorageAzureContainerEnvVarKey {
 			azureEnvVars[i].Value = bsl.Spec.StorageType.ObjectStorage.Bucket
