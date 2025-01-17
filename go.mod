@@ -210,4 +210,4 @@ require (
 
 replace github.com/vmware-tanzu/velero => github.com/openshift/velero v0.10.2-0.20240919150610-92244630d90b
 
-replace github.com/distribution/distribution/v3 => github.com/openshift/docker-distribution/v3 v3.0.0-20230626115833-c7be7b49aed9
+replace github.com/distribution/distribution/v3 => github.com/openshift/docker-distribution/v3 v3.0.0-20250120104846-a24972526437
