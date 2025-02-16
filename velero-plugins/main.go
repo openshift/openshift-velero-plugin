@@ -15,6 +15,7 @@ import (
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/imagestreamtag"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/imagetag"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/job"
+	"github.com/konveyor/openshift-velero-plugin/velero-plugins/nonadmin"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/persistentvolume"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/pod"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/pvc"
@@ -70,6 +71,7 @@ func main() {
 		RegisterRestoreItemAction("openshift.io/24-horizontalpodautoscaler-restore-plugin", newHorizontalPodAutoscalerRestorePlugin).
 		RegisterBackupItemAction("openshift.io/25-configmap-backup-plugin", newConfigMapBackupPlugin).
 		RegisterRestoreItemAction("openshift.io/25-configmap-restore-plugin", newConfigMapRestorePlugin).
+		RegisterRestoreItemAction("openshift.io/26-nonadmin-restore-plugin", newNonAdminRestorePlugin).
 		Serve()
 }
 
@@ -185,7 +187,6 @@ func newServiceAccountIBAPlugin(logger logrus.FieldLogger) (interface{}, error) 
 	return saPlugin, nil
 }
 
-
 func newPVBackupPlugin(logger logrus.FieldLogger) (interface{}, error) {
 	return &persistentvolume.BackupPlugin{Log: logger}, nil
 }
@@ -224,4 +225,8 @@ func newConfigMapBackupPlugin(logger logrus.FieldLogger) (interface{}, error) {
 
 func newConfigMapRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
 	return &configmap.RestorePlugin{Log: logger}, nil
+}
+
+func newNonAdminRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
+	return &nonadmin.RestorePluginNonAdmin{Log: logger}, nil
 }
