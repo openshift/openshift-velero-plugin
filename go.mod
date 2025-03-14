@@ -1,6 +1,6 @@
 module github.com/konveyor/openshift-velero-plugin
 
-go 1.23.0
+go 1.23
 
 toolchain go1.23.6
 
