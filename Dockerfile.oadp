@@ -1,4 +1,4 @@
-FROM registry.ci.openshift.org/openshift/release:rhel-9-release-golang-1.23-openshift-4.19 AS builder
+FROM brew.registry.redhat.io/rh-osbs/openshift-golang-builder:rhel_9_golang_1.23 AS builder
 COPY --chown=1001:0 . .
 COPY go.mod go.sum $APP_ROOT/src/github.com/konveyor/openshift-velero-plugin/
 RUN go mod download
