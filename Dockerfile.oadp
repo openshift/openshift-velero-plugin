@@ -1,33 +1,33 @@
-#@follow_tag(registry-proxy.engineering.redhat.com/rh-osbs/openshift-golang-builder:rhel_9_golang_1.23)
 FROM registry.ci.openshift.org/openshift/release:rhel-9-release-golang-1.23-openshift-4.19 AS builder
-COPY --chown=1001:0 $REMOTE_SOURCE $REMOTE_SOURCE_DIR
-RUN mkdir -p $REMOTE_SOURCE_DIR/src/github.com/konveyor/openshift-velero-plugin
-RUN mv $REMOTE_SOURCE_DIR/app/* $REMOTE_SOURCE_DIR/src/github.com/konveyor/openshift-velero-plugin
-WORKDIR $REMOTE_SOURCE_DIR/src/github.com/konveyor/openshift-velero-plugin
+COPY --chown=1001:0 . .
+COPY go.mod go.sum $APP_ROOT/src/github.com/konveyor/openshift-velero-plugin/
+RUN go mod download
+COPY . $APP_ROOT/src/github.com/konveyor/openshift-velero-plugin
+WORKDIR $APP_ROOT/src/github.com/konveyor/openshift-velero-plugin
+ENV GOPATH=$APP_ROOT
 ENV BUILDTAGS containers_image_ostree_stub exclude_graphdriver_devicemapper exclude_graphdriver_btrfs containers_image_openpgp exclude_graphdriver_overlay include_gcs include_oss strictfipsruntime
 ENV BIN velero-plugins
 ENV GOEXPERIMENT strictfipsruntime
-RUN source $CACHITO_ENV_FILE && go build -installsuffix "static" -tags "$BUILDTAGS" -mod=mod -o _output/$BIN ./$BIN
+RUN go build -installsuffix "static" -tags "$BUILDTAGS" -mod=mod -o _output/$BIN ./$BIN
 
-# FROM ubuntu:bionic //
-#@follow_tag(registry.redhat.io/ubi9/ubi-minimal:latest)
-FROM registry.redhat.io/ubi9/ubi-minimal:9.5-1745855087
+
+FROM registry.redhat.io/ubi9/ubi-minimal:latest
 RUN microdnf -y update && microdnf -y install openssl && microdnf -y reinstall tzdata && microdnf clean all
 RUN mkdir /plugins
-COPY --from=builder $REMOTE_SOURCE_DIR/src/github.com/konveyor/openshift-velero-plugin/_output/$BIN /plugins/
+COPY --from=builder $APP_ROOT/src/github.com/konveyor/openshift-velero-plugin/_output/$BIN /plugins/
 USER 65534:65534
 ENTRYPOINT ["/bin/bash", "-c", "cp /plugins/* /target/."]
 
-LABEL \
-        com.redhat.component="oadp-velero-plugin-container" \
-        version="1.5.0" \
-        name="oadp/oadp-velero-plugin-rhel9" \
-        License="Apache License 2.0" \
-        io.k8s.display-name="OADP Velero Plugin" \
-        io.openshift.tags="migration" \
-        io.k8s.description="OpenShift API for Data Protection - Velero Plugin" \
-        io.openshift.build.commit.id="3c7ddab2c437c9ba120ff11f6972643931cfeb4c" \
-        io.openshift.build.source-location="https://github.com/openshift/openshift-velero-plugin" \
-        io.openshift.build.commit.url="https://github.com/openshift/openshift-velero-plugin/commit/3c7ddab2c437c9ba120ff11f6972643931cfeb4c" \
-        summary="OpenShift API for Data Protection - Velero Plugin" \
-        maintainer="OpenShift API for Data Protection Team <oadp-team@redhat.com>"
+#LABEL \
+#        com.redhat.component="oadp-velero-plugin-container" \
+#        version="1.5.0" \
+#        name="oadp/oadp-velero-plugin-rhel9" \
+#        License="Apache License 2.0" \
+#        io.k8s.display-name="OADP Velero Plugin" \
+#        io.openshift.tags="migration" \
+#        io.k8s.description="OpenShift API for Data Protection - Velero Plugin" \
+#        io.openshift.build.commit.id="3c7ddab2c437c9ba120ff11f6972643931cfeb4c" \
+#        io.openshift.build.source-location="https://github.com/openshift/openshift-velero-plugin" \
+#        io.openshift.build.commit.url="https://github.com/openshift/openshift-velero-plugin/commit/3c7ddab2c437c9ba120ff11f6972643931cfeb4c" \
+#        summary="OpenShift API for Data Protection - Velero Plugin" \
+#        maintainer="OpenShift API for Data Protection Team <oadp-team@redhat.com>"
