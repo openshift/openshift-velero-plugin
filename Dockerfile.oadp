@@ -1,5 +1,5 @@
 #@follow_tag(registry-proxy.engineering.redhat.com/rh-osbs/openshift-golang-builder:rhel_9_golang_1.23)
-FROM registry-proxy.engineering.redhat.com/rh-osbs/openshift-golang-builder:v1.23.6-202503041452.g6c23478.el9 AS builder
+FROM registry.ci.openshift.org/openshift/release:rhel-9-release-golang-1.23-openshift-4.19 AS builder
 COPY --chown=1001:0 $REMOTE_SOURCE $REMOTE_SOURCE_DIR
 RUN mkdir -p $REMOTE_SOURCE_DIR/src/github.com/konveyor/openshift-velero-plugin
 RUN mv $REMOTE_SOURCE_DIR/app/* $REMOTE_SOURCE_DIR/src/github.com/konveyor/openshift-velero-plugin
