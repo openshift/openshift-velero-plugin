@@ -51,7 +51,7 @@ require (
 	github.com/containers/storage v1.53.0 // indirect
 	github.com/cyphar/filepath-securejoin v0.3.1 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
-	github.com/denverdino/aliyungo v0.0.0-20190125010748-a747050bb1ba // indirect
+	github.com/denverdino/aliyungo ab98a9173ace // indirect
 	github.com/distribution/distribution/v3 v3.0.0-20230511163743-f7717b7855ca // indirect
 	github.com/docker/distribution v2.8.3+incompatible // indirect
 	github.com/docker/docker v27.1.1+incompatible // indirect
