@@ -180,7 +180,7 @@ require (
 	github.com/google/s2a-go v0.1.8 // indirect
 	github.com/kubernetes-csi/external-snapshotter/client/v7 v7.0.0 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
-	github.com/letsencrypt/boulder v0.0.0-20240418210053-89b07f4543e0 // indirect
+	github.com/letsencrypt/boulder faa07f5e365f // indirect
 	github.com/mattn/go-shellwords v1.0.12 // indirect
 	github.com/mattn/go-sqlite3 v1.14.22 // indirect
 	github.com/mistifyio/go-zfs/v3 v3.0.1 // indirect
