@@ -304,6 +304,7 @@ time="2020-07-29T18:51:04Z" level=info msg="[pvc-restore] Returning pvc object a
 
 ### Role Binding
 #### Restore Plugin 
+- Skips restore of system rolebindings ("system:image-pullers", "system:image-builders", "system:deployers") as these are automatically created by OpenShift
 - If restore namespace mapping is enabled, then the namespaces in RoleRef.Namespace, usernames, groupnames, and subjects are swapped accordingly
 
 ### Route
