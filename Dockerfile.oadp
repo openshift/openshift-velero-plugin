@@ -1,5 +1,5 @@
 FROM brew.registry.redhat.io/rh-osbs/openshift-golang-builder:rhel_9_golang_1.23 AS builder
-COPY --chown=1001:0 . .
+COPY . .
 COPY go.mod go.sum $APP_ROOT/src/github.com/konveyor/openshift-velero-plugin/
 RUN go mod download
 COPY . $APP_ROOT/src/github.com/konveyor/openshift-velero-plugin
@@ -12,22 +12,22 @@ RUN go build -installsuffix "static" -tags "$BUILDTAGS" -mod=mod -o _output/$BIN
 
 
 FROM registry.redhat.io/ubi9/ubi-minimal:latest
-RUN microdnf -y update && microdnf -y install openssl && microdnf -y reinstall tzdata && microdnf clean all
+RUN microdnf -y install openssl && microdnf -y reinstall tzdata && microdnf clean all
 RUN mkdir /plugins
 COPY --from=builder $APP_ROOT/src/github.com/konveyor/openshift-velero-plugin/_output/$BIN /plugins/
 USER 65534:65534
 ENTRYPOINT ["/bin/bash", "-c", "cp /plugins/* /target/."]
 
-#LABEL \
-#        com.redhat.component="oadp-velero-plugin-container" \
-#        version="1.5.0" \
-#        name="oadp/oadp-velero-plugin-rhel9" \
-#        License="Apache License 2.0" \
-#        io.k8s.display-name="OADP Velero Plugin" \
-#        io.openshift.tags="migration" \
-#        io.k8s.description="OpenShift API for Data Protection - Velero Plugin" \
-#        io.openshift.build.commit.id="3c7ddab2c437c9ba120ff11f6972643931cfeb4c" \
-#        io.openshift.build.source-location="https://github.com/openshift/openshift-velero-plugin" \
-#        io.openshift.build.commit.url="https://github.com/openshift/openshift-velero-plugin/commit/3c7ddab2c437c9ba120ff11f6972643931cfeb4c" \
-#        summary="OpenShift API for Data Protection - Velero Plugin" \
-#        maintainer="OpenShift API for Data Protection Team <oadp-team@redhat.com>"
+LABEL \
+        com.redhat.component="oadp-velero-plugin-container" \
+        version="1.5.0" \
+        name="oadp/oadp-velero-plugin-rhel9" \
+        License="Apache License 2.0" \
+        io.k8s.display-name="OADP Velero Plugin" \
+        io.openshift.tags="migration" \
+        io.k8s.description="OpenShift API for Data Protection - Velero Plugin" \
+        io.openshift.build.commit.id="3c7ddab2c437c9ba120ff11f6972643931cfeb4c" \
+        io.openshift.build.source-location="https://github.com/openshift/openshift-velero-plugin" \
+        io.openshift.build.commit.url="https://github.com/openshift/openshift-velero-plugin/commit/3c7ddab2c437c9ba120ff11f6972643931cfeb4c" \
+        summary="OpenShift API for Data Protection - Velero Plugin" \
+        maintainer="OpenShift API for Data Protection Team <oadp-team@redhat.com>"
