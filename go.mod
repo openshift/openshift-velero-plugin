@@ -43,7 +43,7 @@ require (
 	github.com/aws/aws-sdk-go v1.51.6
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bshuster-repo/logrus-logstash-hook v1.1.0 // indirect
-	github.com/bugsnag/bugsnag-go v2.3.1+incompatible // indirect
+	github.com/bugsnag/bugsnag-go v2.5.1 // indirect
 	github.com/bugsnag/osext v0.0.0-20130617224835-0dd3f918b21b // indirect
 	github.com/bugsnag/panicwrap v0.0.0-20151223152923-e2c28503fcd0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
