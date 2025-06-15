@@ -2,7 +2,7 @@ module github.com/konveyor/openshift-velero-plugin
 
 go 1.23.0
 
-toolchain go1.23.6
+toolchain go1.24.4
 
 require (
 	github.com/bombsimon/logrusr/v3 v3.0.0
