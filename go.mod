@@ -25,7 +25,7 @@ require (
 
 // release-4.14 or above to get ImageRegistry capabilities
 require (
-	github.com/openshift/api v0.0.0-20240304080513-3e8192a10b13
+	github.com/openshift/api 29b831646a5f
 	github.com/openshift/client-go v0.0.0-20230807132528-be5346fb33cb
 	github.com/openshift/library-go v0.0.0-20231030114140-33085da695c8
 )
