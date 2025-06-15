@@ -47,7 +47,7 @@ require (
 	github.com/bugsnag/osext v0.0.0-20130617224835-0dd3f918b21b // indirect
 	github.com/bugsnag/panicwrap v0.0.0-20151223152923-e2c28503fcd0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
-	github.com/containerd/stargz-snapshotter/estargz v0.15.1 // indirect
+	github.com/containerd/stargz-snapshotter/estargz v0.16.3 // indirect
 	github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01 // indirect
 	github.com/containers/ocicrypt v1.2.0 // indirect
 	github.com/containers/storage v1.53.0 // indirect
@@ -125,7 +125,7 @@ require (
 	github.com/sylabs/sif/v2 v2.18.0 // indirect
 	github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635 // indirect
 	github.com/ulikunitz/xz v0.5.12 // indirect
-	github.com/vbatts/tar-split v0.11.5 // indirect
+	github.com/vbatts/tar-split v0.11.6 // indirect
 	go.mozilla.org/pkcs7 v0.0.0-20210826202110-33d05740a352 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	golang.org/x/crypto v0.36.0 // indirect
