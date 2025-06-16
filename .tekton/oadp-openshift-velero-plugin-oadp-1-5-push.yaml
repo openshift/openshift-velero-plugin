@@ -240,6 +240,20 @@ spec:
         value: $(tasks.prefetch-dependencies.results.CACHI2_ARTIFACT)
       - name: IMAGE_APPEND_PLATFORM
         value: "true"
+      - name: LABELS
+        value:
+        - $(tasks.generate-labels.results.labels[*])
+        - License=Apache License 2.0
+        - com.redhat.component=oadp-velero-plugin-container
+        - io.k8s.description=OpenShift API for Data Protection - Velero Plugin
+        - io.k8s.display-name=OADP Velero Plugin
+        - io.openshift.build.source-location=https://github.com/openshift/openshift-velero-plugin
+        - io.openshift.tags=migration
+        - maintainer=OpenShift API for Data Protection Team <oadp-team@redhat.com>
+        - name=oadp/oadp-velero-plugin-rhel9
+        - summary=OpenShift API for Data Protection - Velero Plugin
+        - vendor=Red Hat, Inc.
+        - version=1.5.0
       runAfter:
       - prefetch-dependencies
       taskRef:
@@ -603,6 +617,28 @@ spec:
         operator: in
         values:
         - "false"
+    - name: generate-labels
+      params:
+      - name: label-templates
+        value:
+        - build-date=$SOURCE_DATE
+        - short-commit=$(tasks.clone-repository.results.short-commit)
+        - io.openshift.build.commit.id=$(tasks.clone-repository.results.commit)
+        - io.openshift.build.commit.url=https://github.com/openshift/openshift-velero-plugin/commit/$(tasks.clone-repository.results.commit)
+        - release=$ACTUAL_DATE_EPOCH
+      - name: source-date-epoch
+        value: $(tasks.clone-repository.results.commit-timestamp)
+      runAfter:
+      - clone-repository
+      taskRef:
+        params:
+        - name: name
+          value: generate-labels
+        - name: bundle
+          value: quay.io/konflux-ci/tekton-catalog/task-generate-labels:0.1@sha256:e1f4746dc33206a17867ead8f5c82a569cd925d352a19d108f205f54efc5589d
+        - name: kind
+          value: task
+        resolver: bundles
     workspaces:
     - name: git-auth
       optional: true
