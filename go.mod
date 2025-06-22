@@ -12,7 +12,7 @@ require (
 	github.com/hashicorp/go-hclog v1.2.0 // indirect
 	github.com/migtools/udistribution v0.0.14-oadp-1.4
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
-	github.com/openshift/oadp-operator v1.0.3
+	github.com/openshift/oadp-operator v1.2.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.10.0
 	github.com/vmware-tanzu/velero v1.15.0
