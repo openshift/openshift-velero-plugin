@@ -5,7 +5,7 @@ go 1.23.0
 toolchain go1.23.6
 
 require (
-	github.com/bombsimon/logrusr/v3 v3.0.0
+	github.com/bombsimon/logrusr/v3 v3.1.0
 	github.com/containers/image/v5 v5.30.2
 	github.com/go-logr/logr v1.4.2
 	github.com/google/go-cmp v0.6.0
