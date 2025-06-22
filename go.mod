@@ -40,7 +40,7 @@ require (
 	github.com/Shopify/logrus-bugsnag v0.0.0-20171204204709-577dee27f20d // indirect
 	github.com/VividCortex/ewma v1.2.0 // indirect
 	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d // indirect
-	github.com/aws/aws-sdk-go v1.51.6
+	github.com/aws/aws-sdk-go v1.55.7
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bshuster-repo/logrus-logstash-hook v1.1.0 // indirect
 	github.com/bugsnag/bugsnag-go v2.3.1+incompatible // indirect
