@@ -16,18 +16,18 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.10.0
 	github.com/vmware-tanzu/velero v1.15.0
-	k8s.io/api v0.31.3
-	k8s.io/apimachinery v0.31.3
-	k8s.io/client-go v0.31.3
-	k8s.io/utils v0.0.0-20240711033017-18e509b52bc8
+	k8s.io/api v0.32.1
+	k8s.io/apimachinery v0.32.1
+	k8s.io/client-go v0.32.1
+	k8s.io/utils v0.0.0-20241104100929-3ea5e8cea738
 	sigs.k8s.io/controller-runtime v0.19.3
 )
 
 // release-4.14 or above to get ImageRegistry capabilities
 require (
-	github.com/openshift/api v0.0.0-20240304080513-3e8192a10b13
-	github.com/openshift/client-go v0.0.0-20230807132528-be5346fb33cb
-	github.com/openshift/library-go v0.0.0-20231030114140-33085da695c8
+	github.com/openshift/api v0.0.0-20250320170726-75d64d71980b
+	github.com/openshift/client-go v0.0.0-20250125113824-8e1f0b8fa9a7
+	github.com/openshift/library-go v0.0.0-20250623173617-60108c9616bf
 )
 
 require (
@@ -87,7 +87,6 @@ require (
 	github.com/hashicorp/go-plugin v1.6.0 // indirect
 	github.com/hashicorp/golang-lru v1.0.2 // indirect
 	github.com/hashicorp/yamux v0.1.1 // indirect
-	github.com/imdario/mergo v0.3.13 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
@@ -142,16 +141,16 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/apiextensions-apiserver v0.31.3
+	k8s.io/apiextensions-apiserver v0.32.1
 	k8s.io/klog/v2 v2.130.1 // indirect
-	k8s.io/kube-openapi v0.0.0-20240228011516-70dd3763d340 // indirect
-	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
-	sigs.k8s.io/structured-merge-diff/v4 v4.4.1 // indirect
+	k8s.io/kube-openapi v0.0.0-20241105132330-32ad38e42d3f // indirect
+	sigs.k8s.io/json v0.0.0-20241010143419-9aa6b5e7a4b3 // indirect
+	sigs.k8s.io/structured-merge-diff/v4 v4.4.2 // indirect
 	sigs.k8s.io/yaml v1.4.0
 )
 
 require (
-	cel.dev/expr v0.16.2 // indirect
+	cel.dev/expr v0.18.0 // indirect
 	cloud.google.com/go v0.116.0 // indirect
 	cloud.google.com/go/auth v0.14.0 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.7 // indirect
@@ -217,11 +216,12 @@ require (
 	go.opentelemetry.io/otel/sdk v1.34.0 // indirect
 	go.opentelemetry.io/otel/sdk/metric v1.34.0 // indirect
 	go.opentelemetry.io/otel/trace v1.34.0 // indirect
-	golang.org/x/exp v0.0.0-20240613232115-7f521ea00fb8 // indirect
+	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
 	google.golang.org/genproto v0.0.0-20241118233622-e639e219e697 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250115164207-1a7da9e5054f // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250115164207-1a7da9e5054f // indirect
+	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
 )
 
 replace github.com/vmware-tanzu/velero => github.com/openshift/velero v0.10.2-0.20250514165055-8fbcf3a8da11
