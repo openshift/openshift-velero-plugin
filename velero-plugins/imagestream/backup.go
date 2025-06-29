@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/bombsimon/logrusr/v3"
+	"github.com/bombsimon/logrusr/v4"
 	"github.com/containers/image/v5/copy"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/common"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/imagecopy"
@@ -44,7 +44,7 @@ func (p *BackupPlugin) Execute(item runtime.Unstructured, backup *v1.Backup) (ru
 	var ut *udistribution.UdistributionTransport
 	if backup.Labels[common.MigrationApplicationLabelKey] != common.MigrationApplicationLabelValue {
 		// if the current workflow is not CAM(i.e B/R) then get the backup registry route and set the same on annotation to use in plugins.
-		if imagecopy.UsePluginRegistry(){
+		if imagecopy.UsePluginRegistry() {
 			var err error
 			p.Log.Info(fmt.Sprintf("[is-backup] Getting UdistributionTransportForLocation(%s, namespace: %s)", backup.Spec.StorageLocation, backup.Namespace))
 			ut, err = GetUdistributionTransportForLocation(backup.GetUID(), backup.Spec.StorageLocation, backup.Namespace, p.Log)
@@ -53,7 +53,7 @@ func (p *BackupPlugin) Execute(item runtime.Unstructured, backup *v1.Backup) (ru
 				p.Log.Error(fmt.Sprintf("[is-backup] Error getting UdistributionTransportForLocation: %v", err))
 				return nil, nil, err
 			}
-			p.Log.Info(fmt.Sprintf("[is-backup] migrationRegistry: %s)", fmt.Sprintf("%s%s", imagecopy.BSLRoutePrefix,  GetUdistributionKey(backup.Spec.StorageLocation, backup.Namespace))))
+			p.Log.Info(fmt.Sprintf("[is-backup] migrationRegistry: %s)", fmt.Sprintf("%s%s", imagecopy.BSLRoutePrefix, GetUdistributionKey(backup.Spec.StorageLocation, backup.Namespace))))
 			annotations[common.MigrationRegistry] = imagecopy.BSLRoutePrefix
 		} else {
 			// if not using plugin registry, return immediately
@@ -102,16 +102,16 @@ func (p *BackupPlugin) Execute(item runtime.Unstructured, backup *v1.Backup) (ru
 		imageStream,
 		imagecopy.CopyLocalImageStreamImagesOptions{
 			InternalRegistryPath: internalRegistry,
-			SrcRegistry: internalRegistry,
-			DestRegistry: migrationRegistry,
-			DestNamespace: imageStream.Namespace,
+			SrcRegistry:          internalRegistry,
+			DestRegistry:         migrationRegistry,
+			DestNamespace:        imageStream.Namespace,
 			CopyOptions: &copy.Options{
-							SourceCtx:      sourceCtx,
-							DestinationCtx: destinationCtx,
-						},
-			Log: logrusr.New(p.Log),
+				SourceCtx:      sourceCtx,
+				DestinationCtx: destinationCtx,
+			},
+			Log:          logrusr.New(p.Log),
 			UpdateDigest: true,
-			Ut: ut,
+			Ut:           ut,
 		})
 	if err != nil {
 		return nil, nil, err

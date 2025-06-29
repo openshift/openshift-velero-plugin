@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/bombsimon/logrusr/v3"
+	"github.com/bombsimon/logrusr/v4"
 	"github.com/containers/image/v5/copy"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/common"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/imagecopy"
@@ -46,20 +46,20 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 		if err != nil {
 			return nil, err
 		}
-		if imagecopy.UsePluginRegistry(){
+		if imagecopy.UsePluginRegistry() {
 			var err error
 			p.Log.Info(fmt.Sprintf("[is-restore] Getting UdistributionTransportForLocation(%s, namespace: %s)", backupLocation.Spec.StorageLocation, backupLocation.Namespace))
 			ut, err = GetUdistributionTransportForLocation(backupLocation.GetUID(), backupLocation.Spec.StorageLocation, backupLocation.Namespace, p.Log)
 			if err != nil {
 				return nil, err
 			}
-			p.Log.Info(fmt.Sprintf("[is-restore] migrationRegistry: %s)", fmt.Sprintf("%s%s", imagecopy.BSLRoutePrefix,  GetUdistributionKey(backupLocation.Spec.StorageLocation, backupLocation.Namespace))))
+			p.Log.Info(fmt.Sprintf("[is-restore] migrationRegistry: %s)", fmt.Sprintf("%s%s", imagecopy.BSLRoutePrefix, GetUdistributionKey(backupLocation.Spec.StorageLocation, backupLocation.Namespace))))
 			annotations[common.MigrationRegistry] = imagecopy.BSLRoutePrefix
 		} else {
 			// if not using plugin registry, return immediately
 			return velero.NewRestoreItemActionExecuteOutput(input.Item), nil
 		}
-		
+
 	} else {
 		// if the current workflow is CAM then get migration registry from backup object and set the same on annotation to use in plugins.
 		annotations[common.MigrationRegistry] = input.Restore.Annotations[common.MigrationRegistry]
@@ -108,16 +108,16 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 		imageStreamUnmodified,
 		imagecopy.CopyLocalImageStreamImagesOptions{
 			InternalRegistryPath: backupInternalRegistry,
-			SrcRegistry: migrationRegistry,
-			DestRegistry: internalRegistry,
-			DestNamespace: destNamespace,
+			SrcRegistry:          migrationRegistry,
+			DestRegistry:         internalRegistry,
+			DestNamespace:        destNamespace,
 			CopyOptions: &copy.Options{
-							SourceCtx:      sourceCtx,
-							DestinationCtx: destinationCtx,
-						},
-			Log: logrusr.New(p.Log),
+				SourceCtx:      sourceCtx,
+				DestinationCtx: destinationCtx,
+			},
+			Log:          logrusr.New(p.Log),
 			UpdateDigest: false,
-			Ut: ut,
+			Ut:           ut,
 		})
 	if err != nil {
 		return nil, err
