@@ -44,8 +44,7 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bshuster-repo/logrus-logstash-hook v1.1.0 // indirect
 	github.com/bugsnag/bugsnag-go v2.3.1+incompatible // indirect
-	github.com/bugsnag/osext v0.0.0-20130617224835-0dd3f918b21b // indirect
-	github.com/bugsnag/panicwrap v0.0.0-20151223152923-e2c28503fcd0 // indirect
+	github.com/bugsnag/panicwrap v1.3.4 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/containerd/stargz-snapshotter/estargz v0.15.1 // indirect
 	github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01 // indirect
@@ -188,6 +187,7 @@ require (
 	github.com/google/gnostic-models v0.6.8 // indirect
 	github.com/google/go-containerregistry v0.20.0 // indirect
 	github.com/google/s2a-go v0.1.9 // indirect
+	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0 // indirect
 	github.com/kubernetes-csi/external-snapshotter/client/v7 v7.0.0 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/letsencrypt/boulder v0.0.0-20240418210053-89b07f4543e0 // indirect
