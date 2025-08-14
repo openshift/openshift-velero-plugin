@@ -11,6 +11,15 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
+// systemRoleBindings contains rolebindings that are automatically created by OpenShift
+// These rolebindings are expected to be created by the system and don't need restoring
+// Reference: https://github.com/openshift/openshift-apiserver/blob/eefb161cffdc97a949d6e9cc81aa900005912a97/pkg/project/apiserver/registry/projectrequest/delegated/delegated.go#L111
+var systemRoleBindings = map[string]bool{
+	"system:image-pullers":  true,
+	"system:image-builders": true,
+	"system:deployers":      true,
+}
+
 // RestorePlugin is a restore item action plugin for Velero
 type RestorePlugin struct {
 	Log logrus.FieldLogger
@@ -32,6 +41,13 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 	json.Unmarshal(itemMarshal, &roleBinding)
 
 	p.Log.Infof("[rolebinding-restore] role binding - %s, API version", roleBinding.Name, roleBinding.APIVersion)
+
+	if systemRoleBindings[roleBinding.Name] {
+		p.Log.Infof("[rolebinding-restore] Skipping system rolebinding %s as it will be automatically created", roleBinding.Name)
+		return &velero.RestoreItemActionExecuteOutput{
+			SkipRestore: true,
+		}, nil
+	}
 
 	namespaceMapping := input.Restore.Spec.NamespaceMapping
 	if len(namespaceMapping) > 0 {
@@ -63,7 +79,7 @@ func SwapSubjectNamespaces(subjects []corev1.ObjectReference, namespaceMapping m
 
 		// subject names can point to all service accounts in a namespace(SystemGroup) - xxx:serviceaccounts:oldnamespace
 		splitName := strings.Split(subject.Name, ":")
-		if len(splitName) < 4 {
+		if len(splitName) < 3 {
 			continue
 		}
 
@@ -106,7 +122,7 @@ func SwapGroupNamesNamespaces(groupNames []string, namespaceMapping map[string]s
 	for i, group := range groupNames {
 		// group names can point to all service accounts in a namespace(SystemGroup) - xxx:serviceaccounts:oldnamespace
 		splitGroup := strings.Split(group, ":")
-		if len(splitGroup) < 4 {
+		if len(splitGroup) < 3 {
 			continue
 		}
 
