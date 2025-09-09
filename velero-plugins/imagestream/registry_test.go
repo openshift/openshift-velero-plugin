@@ -118,7 +118,9 @@ var (
 web_identity_token_file=/var/run/secrets/some/path
 `),
 	}
+	// Azure registry secret data with shared_key authentication
 	azureRegistrySecretData = map[string][]byte{
+		"credentials_type":    []byte("shared_key"), // Valid values: shared_key, client_secret, default_credentials
 		"client_id_key":       []byte(""),
 		"client_secret_key":   []byte(""),
 		"resource_group_key":  []byte(""),
@@ -126,13 +128,25 @@ web_identity_token_file=/var/run/secrets/some/path
 		"subscription_id_key": []byte(""),
 		"tenant_id_key":       []byte(""),
 	}
+	// Azure registry secret data with service principal (client_secret) authentication
 	azureRegistrySPSecretData = map[string][]byte{
+		"credentials_type":    []byte("client_secret"), // Service principal authentication
 		"client_id_key":       []byte(testClientID),
 		"client_secret_key":   []byte(testClientSecret),
 		"resource_group_key":  []byte(testResourceGroup),
 		"storage_account_key": []byte(testStoragekey),
 		"subscription_id_key": []byte(testSubscriptionID),
 		"tenant_id_key":       []byte(testTenantID),
+	}
+	// Azure registry secret data with managed identity (default_credentials) authentication
+	azureRegistryManagedIdentitySecretData = map[string][]byte{
+		"credentials_type":    []byte("default_credentials"), // Managed identity/workload identity
+		"client_id_key":       []byte(testClientID),
+		"client_secret_key":   []byte(""),
+		"resource_group_key":  []byte(testResourceGroup),
+		"storage_account_key": []byte(testStoragekey),
+		"subscription_id_key": []byte(testSubscriptionID),
+		"tenant_id_key":       []byte(""),
 	}
 )
 
@@ -632,6 +646,44 @@ func Test_getAzureRegistryEnvVars(t *testing.T) {
 			wantProfile:  "test-sp-profile",
 			matchProfile: true,
 		},
+		{
+			name: "given azure bsl & managed identity credentials, appropriate env var for the container are returned",
+			bsl: &velerov1.BackupStorageLocation{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-bsl",
+					Namespace: "test-ns",
+				},
+				Spec: velerov1.BackupStorageLocationSpec{
+					Provider: AzureProvider,
+					StorageType: velerov1.StorageType{
+						ObjectStorage: &velerov1.ObjectStorageLocation{
+							Bucket: "azure-bucket",
+						},
+					},
+					Config: map[string]string{
+						StorageAccount:   "velero-azure-account",
+						ResourceGroup:    testResourceGroup,
+						"subscriptionId": testSubscriptionID,
+					},
+				},
+			},
+			secret: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "cloud-credentials-azure",
+					Namespace: "test-ns",
+				},
+				Data: secretAzureData,
+			},
+			registrySecret: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "oadp-test-bsl-azure-registry-secret",
+					Namespace: "test-ns",
+				},
+				Data: azureRegistryManagedIdentitySecretData,
+			},
+			wantProfile:  "test-mi-profile",
+			matchProfile: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -658,11 +710,16 @@ func Test_getAzureRegistryEnvVars(t *testing.T) {
 					},
 				},
 				{
-					Name:  RegistryStorageAzureAADEndpointEnvVarKey,
-					Value: "",
+					Name: RegistryStorageAzureCredentialsTypeEnvVarKey,
+					ValueFrom: &corev1.EnvVarSource{
+						SecretKeyRef: &corev1.SecretKeySelector{
+							LocalObjectReference: corev1.LocalObjectReference{Name: "oadp-" + tt.bsl.Name + "-" + tt.bsl.Spec.Provider + "-registry-secret"},
+							Key:                  "credentials_type",
+						},
+					},
 				},
 				{
-					Name: RegistryStorageAzureSPNClientIDEnvVarKey,
+					Name: RegistryStorageAzureCredentialsClientIDEnvVarKey,
 					ValueFrom: &corev1.EnvVarSource{
 						SecretKeyRef: &corev1.SecretKeySelector{
 							LocalObjectReference: corev1.LocalObjectReference{Name: "oadp-" + tt.bsl.Name + "-" + tt.bsl.Spec.Provider + "-registry-secret"},
@@ -671,7 +728,7 @@ func Test_getAzureRegistryEnvVars(t *testing.T) {
 					},
 				},
 				{
-					Name: RegistryStorageAzureSPNClientSecretEnvVarKey,
+					Name: RegistryStorageAzureCredentialsSecretEnvVarKey,
 					ValueFrom: &corev1.EnvVarSource{
 						SecretKeyRef: &corev1.SecretKeySelector{
 							LocalObjectReference: corev1.LocalObjectReference{Name: "oadp-" + tt.bsl.Name + "-" + tt.bsl.Spec.Provider + "-registry-secret"},
@@ -680,7 +737,7 @@ func Test_getAzureRegistryEnvVars(t *testing.T) {
 					},
 				},
 				{
-					Name: RegistryStorageAzureSPNTenantIDEnvVarKey,
+					Name: RegistryStorageAzureCredentialsTenantIDEnvVarKey,
 					ValueFrom: &corev1.EnvVarSource{
 						SecretKeyRef: &corev1.SecretKeySelector{
 							LocalObjectReference: corev1.LocalObjectReference{Name: "oadp-" + tt.bsl.Name + "-" + tt.bsl.Spec.Provider + "-registry-secret"},
@@ -713,11 +770,16 @@ func Test_getAzureRegistryEnvVars(t *testing.T) {
 						},
 					},
 					{
-						Name:  RegistryStorageAzureAADEndpointEnvVarKey,
-						Value: "",
+						Name: RegistryStorageAzureCredentialsTypeEnvVarKey,
+						ValueFrom: &corev1.EnvVarSource{
+							SecretKeyRef: &corev1.SecretKeySelector{
+								LocalObjectReference: corev1.LocalObjectReference{Name: "oadp-" + tt.bsl.Name + "-" + tt.bsl.Spec.Provider + "-registry-secret"},
+								Key:                  "credentials_type",
+							},
+						},
 					},
 					{
-						Name: RegistryStorageAzureSPNClientIDEnvVarKey,
+						Name: RegistryStorageAzureCredentialsClientIDEnvVarKey,
 						ValueFrom: &corev1.EnvVarSource{
 							SecretKeyRef: &corev1.SecretKeySelector{
 								LocalObjectReference: corev1.LocalObjectReference{Name: "oadp-" + tt.bsl.Name + "-" + tt.bsl.Spec.Provider + "-registry-secret"},
@@ -726,7 +788,7 @@ func Test_getAzureRegistryEnvVars(t *testing.T) {
 						},
 					},
 					{
-						Name: RegistryStorageAzureSPNClientSecretEnvVarKey,
+						Name: RegistryStorageAzureCredentialsSecretEnvVarKey,
 						ValueFrom: &corev1.EnvVarSource{
 							SecretKeyRef: &corev1.SecretKeySelector{
 								LocalObjectReference: corev1.LocalObjectReference{Name: "oadp-" + tt.bsl.Name + "-" + tt.bsl.Spec.Provider + "-registry-secret"},
@@ -735,7 +797,68 @@ func Test_getAzureRegistryEnvVars(t *testing.T) {
 						},
 					},
 					{
-						Name: RegistryStorageAzureSPNTenantIDEnvVarKey,
+						Name: RegistryStorageAzureCredentialsTenantIDEnvVarKey,
+						ValueFrom: &corev1.EnvVarSource{
+							SecretKeyRef: &corev1.SecretKeySelector{
+								LocalObjectReference: corev1.LocalObjectReference{Name: "oadp-" + tt.bsl.Name + "-" + tt.bsl.Spec.Provider + "-registry-secret"},
+								Key:                  "tenant_id_key",
+							},
+						},
+					},
+				}
+			}
+			if tt.wantProfile == "test-mi-profile" {
+				tt.wantRegistryContainerEnvVar = []corev1.EnvVar{
+					{
+						Name:  RegistryStorageEnvVarKey,
+						Value: Azure,
+					},
+					{
+						Name:  RegistryStorageAzureContainerEnvVarKey,
+						Value: "azure-bucket",
+					},
+					{
+						Name:  RegistryStorageAzureAccountnameEnvVarKey,
+						Value: "velero-azure-account",
+					},
+					{
+						Name: RegistryStorageAzureAccountkeyEnvVarKey,
+						ValueFrom: &corev1.EnvVarSource{
+							SecretKeyRef: &corev1.SecretKeySelector{
+								LocalObjectReference: corev1.LocalObjectReference{Name: "oadp-" + tt.bsl.Name + "-" + tt.bsl.Spec.Provider + "-registry-secret"},
+								Key:                  "storage_account_key",
+							},
+						},
+					},
+					{
+						Name: RegistryStorageAzureCredentialsTypeEnvVarKey,
+						ValueFrom: &corev1.EnvVarSource{
+							SecretKeyRef: &corev1.SecretKeySelector{
+								LocalObjectReference: corev1.LocalObjectReference{Name: "oadp-" + tt.bsl.Name + "-" + tt.bsl.Spec.Provider + "-registry-secret"},
+								Key:                  "credentials_type",
+							},
+						},
+					},
+					{
+						Name: RegistryStorageAzureCredentialsClientIDEnvVarKey,
+						ValueFrom: &corev1.EnvVarSource{
+							SecretKeyRef: &corev1.SecretKeySelector{
+								LocalObjectReference: corev1.LocalObjectReference{Name: "oadp-" + tt.bsl.Name + "-" + tt.bsl.Spec.Provider + "-registry-secret"},
+								Key:                  "client_id_key",
+							},
+						},
+					},
+					{
+						Name: RegistryStorageAzureCredentialsSecretEnvVarKey,
+						ValueFrom: &corev1.EnvVarSource{
+							SecretKeyRef: &corev1.SecretKeySelector{
+								LocalObjectReference: corev1.LocalObjectReference{Name: "oadp-" + tt.bsl.Name + "-" + tt.bsl.Spec.Provider + "-registry-secret"},
+								Key:                  "client_secret_key",
+							},
+						},
+					},
+					{
+						Name: RegistryStorageAzureCredentialsTenantIDEnvVarKey,
 						ValueFrom: &corev1.EnvVarSource{
 							SecretKeyRef: &corev1.SecretKeySelector{
 								LocalObjectReference: corev1.LocalObjectReference{Name: "oadp-" + tt.bsl.Name + "-" + tt.bsl.Spec.Provider + "-registry-secret"},
