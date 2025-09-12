@@ -1,4 +1,4 @@
-FROM brew.registry.redhat.io/rh-osbs/openshift-golang-builder:rhel_9_golang_1.23 AS builder
+FROM brew.registry.redhat.io/rh-osbs/openshift-golang-builder:rhel_9_golang_1.24 AS builder
 COPY . .
 COPY go.mod go.sum $APP_ROOT/src/github.com/konveyor/openshift-velero-plugin/
 RUN go mod download
@@ -11,8 +11,8 @@ ENV GOEXPERIMENT strictfipsruntime
 RUN go build -installsuffix "static" -tags "$BUILDTAGS" -mod=mod -o _output/$BIN ./$BIN
 
 
-FROM registry.redhat.io/ubi9/ubi-minimal:latest
-RUN microdnf -y install openssl && microdnf -y reinstall tzdata && microdnf clean all
+FROM registry.redhat.io/ubi9/ubi:latest
+RUN dnf -y install openssl && dnf -y reinstall tzdata && dnf clean all
 RUN mkdir /plugins
 COPY --from=builder $APP_ROOT/src/github.com/konveyor/openshift-velero-plugin/_output/$BIN /plugins/
 COPY LICENSE /licenses/
