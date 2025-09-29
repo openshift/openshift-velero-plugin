@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/konveyor/openshift-velero-plugin/velero-plugins/common"
 	"github.com/sirupsen/logrus"
 	"github.com/vmware-tanzu/velero/pkg/plugin/velero"
 	corev1API "k8s.io/api/core/v1"
@@ -51,16 +52,18 @@ func (p *VMFRRestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput)
 		return nil, fmt.Errorf("[vmfr-pvc-restore] error unmarshaling PVC: %v", err)
 	}
 
-	// Generate unique PVC name by prefixing with backup name
+	// Generate unique PVC name using GenerateName to avoid length issues and ensure uniqueness
 	originalName := pvc.Name
 	backupName := input.Restore.Spec.BackupName
-	newPVCName := fmt.Sprintf("%s-%s", backupName, originalName)
+	generateNamePrefix := common.MakeGenerateName(backupName, originalName)
 
-	p.Log.Infof("[vmfr-pvc-restore] Renaming PVC from %s to %s for VMFR multi-backup restore", originalName, newPVCName)
+	p.Log.Infof("[vmfr-pvc-restore] Setting GenerateName for PVC from %s to %s for VMFR multi-backup restore", originalName, generateNamePrefix)
 
-	// Update PVC name
-	pvc.Name = newPVCName
-	pvc.ObjectMeta.Name = newPVCName
+	// Use GenerateName instead of Name to let Kubernetes generate unique suffix
+	pvc.GenerateName = generateNamePrefix
+	pvc.Name = ""
+	pvc.ObjectMeta.GenerateName = generateNamePrefix
+	pvc.ObjectMeta.Name = ""
 
 	// Add tracking labels for VMFR management
 	if pvc.Labels == nil {

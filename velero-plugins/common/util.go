@@ -12,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation"
 )
 
 // ReplaceImageRefPrefix replaces an image reference prefix with newPrefix.
@@ -182,4 +183,23 @@ func GetOwnerReferences(item runtime.Unstructured) ([]metav1.OwnerReference, err
 		return nil, err
 	}
 	return metadata.GetOwnerReferences(), nil
+}
+
+// MakeGenerateName creates a GenerateName prefix that respects Kubernetes naming limits
+// for use with PVC or other resources that need unique names with predictable prefixes.
+// This is particularly useful for VMFR (Virtual Machine File Restore) scenarios where
+// multiple backups might contain PVCs with the same original name.
+func MakeGenerateName(backupName, originalName string) string {
+	prefix := fmt.Sprintf("%s-%s-", backupName, originalName)
+
+	// Leave room for API server's random suffix (5 characters)
+	maxPrefixLen := validation.DNS1123SubdomainMaxLength - 5
+	if len(prefix) > maxPrefixLen {
+		// Truncate to leave room for the final dash
+		prefix = prefix[:maxPrefixLen-1]
+		prefix = strings.TrimRight(prefix, "-")
+		prefix += "-"
+	}
+
+	return prefix
 }
