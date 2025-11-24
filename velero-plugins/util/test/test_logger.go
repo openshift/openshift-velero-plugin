@@ -1,7 +1,7 @@
 package test
 
 import (
-	"io/ioutil"
+	"io"
 
 	"github.com/sirupsen/logrus"
 )
@@ -9,6 +9,6 @@ import (
 // NewLogger initialize test logger
 func NewLogger() logrus.FieldLogger {
 	logger := logrus.New()
-	logger.Out = ioutil.Discard
+	logger.Out = io.Discard
 	return logrus.NewEntry(logger)
 }
