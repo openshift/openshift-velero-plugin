@@ -10,7 +10,7 @@ import (
 // IBAPlugin is an ItemBlock action plugin for Velero.
 type IBAPlugin struct {
 	Log logrus.FieldLogger
-	sccCache
+	*SCCCache
 }
 
 // AppliesTo returns a velero.ResourceSelector that applies to everything.
@@ -23,7 +23,7 @@ func (p *IBAPlugin) AppliesTo() (velero.ResourceSelector, error) {
 // GetRelatedItems returns a list of SCCs related to this ServiceAccount
 func (p *IBAPlugin) GetRelatedItems(item runtime.Unstructured, backup *v1.Backup) ([]velero.ResourceIdentifier, error) {
 	p.Log.Info("[serviceaccount-iba] Entering ServiceAccount ItemBlock plugin")
-	return sccsForSA(p.Log, item, backup, p.sccCache)
+	return sccsForSA(p.Log, item, backup, p.SCCCache)
 }
 
 // This won't be called but is needed to implement interface

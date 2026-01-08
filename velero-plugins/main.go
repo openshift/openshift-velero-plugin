@@ -172,7 +172,7 @@ func newClusterRoleBindingRestorePlugin(logger logrus.FieldLogger) (interface{},
 }
 
 func newServiceAccountBackupPlugin(logger logrus.FieldLogger) (interface{}, error) {
-	saBackupPlugin := &serviceaccount.BackupPlugin{Log: logger}
+	saBackupPlugin := &serviceaccount.BackupPlugin{Log: logger, SCCCache: &serviceaccount.SCCCache{}}
 	saBackupPlugin.UpdatedForBackup = make(map[string]bool)
 	// we need to create a dependency between scc and service accounts. Service accounts are listed in SCC's users list.
 	saBackupPlugin.SCCMap = make(map[string]map[string][]apisecurity.SecurityContextConstraints)
@@ -180,7 +180,7 @@ func newServiceAccountBackupPlugin(logger logrus.FieldLogger) (interface{}, erro
 }
 
 func newServiceAccountIBAPlugin(logger logrus.FieldLogger) (interface{}, error) {
-	saPlugin := &serviceaccount.IBAPlugin{Log: logger}
+	saPlugin := &serviceaccount.IBAPlugin{Log: logger, SCCCache: &serviceaccount.SCCCache{}}
 	saPlugin.UpdatedForBackup = make(map[string]bool)
 	// we need to create a dependency between scc and service accounts. Service accounts are listed in SCC's users list.
 	saPlugin.SCCMap = make(map[string]map[string][]apisecurity.SecurityContextConstraints)
