@@ -42,7 +42,7 @@ func (p *BackupPlugin) Execute(item runtime.Unstructured, backup *v1.Backup) (ru
 	// clear out any previous istag annotations from old migrations
 	delete(annotations, common.RelatedIsTagAnnotation)
 	delete(annotations, common.RelatedIsTagNsAnnotation)
-	
+
 	p.Log.Info(fmt.Sprintf("[istag-backup] Backing up imagestreamtag %s", imageStreamTag.Name))
 
 	referenceTag := imageStreamTag.Tag != nil && imageStreamTag.Tag.From != nil

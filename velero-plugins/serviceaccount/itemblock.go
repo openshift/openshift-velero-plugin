@@ -9,7 +9,7 @@ import (
 
 // IBAPlugin is an ItemBlock action plugin for Velero.
 type IBAPlugin struct {
-	Log              logrus.FieldLogger
+	Log logrus.FieldLogger
 	sccCache
 }
 

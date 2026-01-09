@@ -72,7 +72,7 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 			disconnectIfDC = true
 		} else {
 			hasPodRestoreHooks, ok := deploymentConfig.Annotations[common.DCHasPodRestoreHooks]
-			if (ok && hasPodRestoreHooks == "true") {
+			if ok && hasPodRestoreHooks == "true" {
 				disconnectIfDC = true
 			} else {
 				podLabels, _ := labels.ConvertSelectorToLabelsMap(deploymentConfig.Annotations[common.DCPodLabels])

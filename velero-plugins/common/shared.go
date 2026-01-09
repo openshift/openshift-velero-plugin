@@ -30,15 +30,16 @@ import (
 )
 
 var (
-	registryInfo  *string
-	serverVersion *serverVersionStruct
-	BackupUidMap  map[types.UID]*CommonStruct
+	registryInfo       *string
+	serverVersion      *serverVersionStruct
+	BackupUidMap       map[types.UID]*CommonStruct
 	lastGarbageCollect time.Time
 )
+
 // common cache for backup UIDs
 type CommonStruct struct {
-	Backup *velero.Backup
-	Ut *udistribution.UdistributionTransport
+	Backup       *velero.Backup
+	Ut           *udistribution.UdistributionTransport
 	lastAccessed time.Time
 }
 
@@ -49,7 +50,7 @@ func (c *CommonStruct) JustAccessed() {
 }
 
 // GarbageCollectCommonStructs removes old entries from the cache
-func GarbageCollectCommonStruct(){
+func GarbageCollectCommonStruct() {
 	if lastGarbageCollect.Add(time.Minute).After(time.Now()) {
 		// do not run garbage collection more than once per minute
 		return
@@ -62,6 +63,7 @@ func GarbageCollectCommonStruct(){
 	}
 	lastGarbageCollect = time.Now()
 }
+
 type serverVersionStruct struct {
 	Major int
 	Minor int
@@ -325,20 +327,20 @@ func GetSecretKeyForBackupStorageLocation(name, namespace string) (*corev1.Secre
 	return secret, sKey, nil
 }
 
-func ParseOCPVersion(versionString string)(string, string, string, error) {
-	
+func ParseOCPVersion(versionString string) (string, string, string, error) {
+
 	// Split the version string by the dot separator
-    versionParts := strings.Split(versionString, ".")
-    
-    // Ensure that we have at least 3 parts
-    if len(versionParts) >= 3 {
-        // Extract X, Y, and Z versions
-        xVersion := versionParts[0]
-        yVersion := versionParts[1]
-        zVersion := versionParts[2]
+	versionParts := strings.Split(versionString, ".")
+
+	// Ensure that we have at least 3 parts
+	if len(versionParts) >= 3 {
+		// Extract X, Y, and Z versions
+		xVersion := versionParts[0]
+		yVersion := versionParts[1]
+		zVersion := versionParts[2]
 
 		return xVersion, yVersion, zVersion, nil
-        
-    }
+
+	}
 	return "", "", "", errors.New("unable to parse OCP Version")
 }
