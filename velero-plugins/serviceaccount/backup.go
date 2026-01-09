@@ -19,7 +19,7 @@ import (
 
 // BackupPlugin is a backup item action plugin for Velero.
 type BackupPlugin struct {
-	Log              logrus.FieldLogger
+	Log logrus.FieldLogger
 	sccCache
 }
 
