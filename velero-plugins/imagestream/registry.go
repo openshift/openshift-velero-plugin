@@ -126,7 +126,7 @@ func getAWSRegistryEnvVars(bsl *velerov1.BackupStorageLocation) ([]corev1.EnvVar
 	if bsl.Spec.Config == nil {
 		bsl.Spec.Config = make(map[string]string)
 	}
-	if bsl.Spec.Config[S3URL] == ""  && bsl.Spec.Config[Region] == "" {
+	if bsl.Spec.Config[S3URL] == "" && bsl.Spec.Config[Region] == "" {
 		var err error
 		bsl.Spec.Config[Region], err = GetBucketRegion(bsl.Spec.StorageType.ObjectStorage.Bucket)
 		if err != nil {

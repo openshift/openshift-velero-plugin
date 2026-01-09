@@ -24,7 +24,7 @@ func (p *RestorePlugin) AppliesTo() (velero.ResourceSelector, error) {
 // Execute action for the restore plugin for the pv resource
 func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*velero.RestoreItemActionExecuteOutput, error) {
 
-	if input.Restore.Labels[common.MigrationApplicationLabelKey] != common.MigrationApplicationLabelValue{
+	if input.Restore.Labels[common.MigrationApplicationLabelKey] != common.MigrationApplicationLabelValue {
 		p.Log.Info("[pv-restore] Returning pv object as is since this is not a migration activity")
 		return velero.NewRestoreItemActionExecuteOutput(input.Item), nil
 	}
@@ -38,7 +38,7 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 		// Skip the PV if this is a stage restore for a stage migration *and* it's a snapshot copy
 		// since snapshot restore is not incremental
 		if input.Restore.Annotations[common.StageOrFinalMigrationAnnotation] == common.StageMigration &&
-			len(input.Restore.Labels[common.StageRestoreLabel])>0 &&
+			len(input.Restore.Labels[common.StageRestoreLabel]) > 0 &&
 			pv.Annotations[common.MigrateCopyMethodAnnotation] == common.PvSnapshotCopyMethod {
 			p.Log.Infof("[pv-restore] skipping restore of pv %s, snapshot PVs restored only on final migration", pv.Name)
 			return velero.NewRestoreItemActionExecuteOutput(input.Item).WithoutRestore(), nil

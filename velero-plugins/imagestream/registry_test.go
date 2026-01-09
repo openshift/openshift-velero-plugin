@@ -207,7 +207,7 @@ func Test_getAWSRegistryEnvVars(t *testing.T) {
 						},
 					},
 					Config: map[string]string{
-						Profile:               "test-profile",
+						Profile: "test-profile",
 					},
 				},
 			},
