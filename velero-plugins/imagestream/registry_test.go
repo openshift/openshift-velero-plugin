@@ -2,6 +2,7 @@ package imagestream
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 	"testing"
 
@@ -29,6 +30,7 @@ const (
 	testClientID           = "someClientID"
 	testClientSecret       = "someClientSecret"
 	testResourceGroup      = "someResourceGroup"
+	DiscoverableBucket     = "tkaovila-aug30-velero-bsl"
 )
 
 var (
@@ -201,7 +203,7 @@ func Test_getAWSRegistryEnvVars(t *testing.T) {
 					Provider: AWSProvider,
 					StorageType: velerov1.StorageType{
 						ObjectStorage: &velerov1.ObjectStorageLocation{
-							Bucket: "tkaovila-aug30-velero-bsl",
+							Bucket: DiscoverableBucket,
 						},
 					},
 					Config: map[string]string{
@@ -412,6 +414,16 @@ func Test_getAWSRegistryEnvVars(t *testing.T) {
 	}
 	defer testEnv.Stop()
 	clients.SetInClusterConfig(cfg)
+	// Mock GetBucketRegionFunc to return a region for DiscoverableBucket
+	originalGetBucketRegionFunc := GetBucketRegionFunc
+	GetBucketRegionFunc = func(bucket string) (string, error) {
+		if bucket == DiscoverableBucket {
+			return "us-east-1", nil
+		}
+		return "", fmt.Errorf("bucket region not discoverable")
+	}
+	defer func() { GetBucketRegionFunc = originalGetBucketRegionFunc }()
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cv1c, err := corev1client.NewForConfig(cfg)
