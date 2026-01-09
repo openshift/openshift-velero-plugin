@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/sirupsen/logrus"
-	"github.com/vmware-tanzu/velero/pkg/plugin/velero"
 	velerov1api "github.com/vmware-tanzu/velero/pkg/apis/velero/v1"
+	"github.com/vmware-tanzu/velero/pkg/plugin/velero"
 	corev1API "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -14,46 +14,46 @@ import (
 
 func TestVMFRRestorePlugin_Execute(t *testing.T) {
 	tests := []struct {
-		name                     string
-		hasVMFRAnnotation        bool
-		restoreName              string
-		backupName               string
-		pvcName                  string
+		name                       string
+		hasVMFRAnnotation          bool
+		restoreName                string
+		backupName                 string
+		pvcName                    string
 		expectedGenerateNamePrefix string
-		expectedName             string
-		expectedLabels           map[string]string
+		expectedName               string
+		expectedLabels             map[string]string
 	}{
 		{
-			name:                     "VMFR restore with annotation should use GenerateName",
-			hasVMFRAnnotation:        true,
-			restoreName:              "vmfr-my-instance-backup-20250101",
-			backupName:               "backup-20250101",
-			pvcName:                  "my-app-pvc",
+			name:                       "VMFR restore with annotation should use GenerateName",
+			hasVMFRAnnotation:          true,
+			restoreName:                "vmfr-my-instance-backup-20250101",
+			backupName:                 "backup-20250101",
+			pvcName:                    "my-app-pvc",
 			expectedGenerateNamePrefix: "backup-20250101-my-app-pvc-",
-			expectedName:             "", // Name should be cleared when using GenerateName
+			expectedName:               "", // Name should be cleared when using GenerateName
 			expectedLabels: map[string]string{
 				VMFRBackupLabel:       "backup-20250101",
 				VMFROriginalNameLabel: "my-app-pvc",
 			},
 		},
 		{
-			name:                     "Non-VMFR restore should not modify PVC",
-			hasVMFRAnnotation:        false,
-			restoreName:              "regular-restore",
-			backupName:               "backup-20250101",
-			pvcName:                  "my-app-pvc",
+			name:                       "Non-VMFR restore should not modify PVC",
+			hasVMFRAnnotation:          false,
+			restoreName:                "regular-restore",
+			backupName:                 "backup-20250101",
+			pvcName:                    "my-app-pvc",
 			expectedGenerateNamePrefix: "",
-			expectedName:             "my-app-pvc",
-			expectedLabels:           map[string]string{},
+			expectedName:               "my-app-pvc",
+			expectedLabels:             map[string]string{},
 		},
 		{
-			name:                     "VMFR restore with very long names passes full prefix to K8s",
-			hasVMFRAnnotation:        true,
-			restoreName:              "vmfr-long-restore",
-			backupName:               "backup-for-production-environment-disaster-recovery-scenario-2024-12-01-full-system-backup-including-all-persistent-data-and-configuration-files-with-retention-policy",
-			pvcName:                  "application-database-persistent-volume-claim-for-postgresql-primary-instance-with-high-availability-configuration-and-automated-backup-scheduling",
+			name:                       "VMFR restore with very long names passes full prefix to K8s",
+			hasVMFRAnnotation:          true,
+			restoreName:                "vmfr-long-restore",
+			backupName:                 "backup-for-production-environment-disaster-recovery-scenario-2024-12-01-full-system-backup-including-all-persistent-data-and-configuration-files-with-retention-policy",
+			pvcName:                    "application-database-persistent-volume-claim-for-postgresql-primary-instance-with-high-availability-configuration-and-automated-backup-scheduling",
 			expectedGenerateNamePrefix: "backup-for-production-environment-disaster-recovery-scenario-2024-12-01-full-system-backup-including-all-persistent-data-and-configuration-files-with-retention-policy-application-database-persistent-volume-claim-for-postgresql-primary-instance-with-high-availability-configuration-and-automated-backup-scheduling-",
-			expectedName:             "", // Name should be cleared when using GenerateName
+			expectedName:               "", // Name should be cleared when using GenerateName
 			expectedLabels: map[string]string{
 				VMFRBackupLabel:       "backup-for-production-environment-disaster-recovery-scenario-2024-12-01-full-system-backup-including-all-persistent-data-and-configuration-files-with-retention-policy",
 				VMFROriginalNameLabel: "application-database-persistent-volume-claim-for-postgresql-primary-instance-with-high-availability-configuration-and-automated-backup-scheduling",
@@ -137,7 +137,6 @@ func TestVMFRRestorePlugin_Execute(t *testing.T) {
 		})
 	}
 }
-
 
 // Helper functions for testing
 func toUnstructured(obj interface{}) (*unstructured.Unstructured, error) {

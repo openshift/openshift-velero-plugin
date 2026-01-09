@@ -25,6 +25,7 @@ const (
 	MigrationApplicationLabelKey   string = "app.kubernetes.io/part-of"
 	MigrationApplicationLabelValue string = "openshift-migration"
 )
+
 // Skip buildconfig configmap restore
 const SkipBuildConfigConfigMapRestore string = "oadp.openshift.io/skip-buildconfig-configmap-restore"
 const SkipImageCopy string = "openshift.io/skip-image-copy"
@@ -74,6 +75,7 @@ const (
 	LegacySANameAnnotation       string = "kubernetes.io/service-account.name"                        // OCP version <= 4.15
 	LegacySAUIDAnnotation        string = "kubernetes.io/service-account.uid"                         // OCP version <= 4.15
 )
+
 // Other annotations
 const (
 	StagePodImageAnnotation   string = "migration.openshift.io/stage-pod-image"     // Stage pod (sleep) image

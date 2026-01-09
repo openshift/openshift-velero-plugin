@@ -3,8 +3,8 @@ package persistentvolume
 import (
 	"context"
 	"encoding/json"
-	"github.com/konveyor/openshift-velero-plugin/velero-plugins/common"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/clients"
+	"github.com/konveyor/openshift-velero-plugin/velero-plugins/common"
 	"github.com/sirupsen/logrus"
 	v1 "github.com/vmware-tanzu/velero/pkg/apis/velero/v1"
 	"github.com/vmware-tanzu/velero/pkg/plugin/velero"
@@ -28,7 +28,7 @@ func (p *BackupPlugin) AppliesTo() (velero.ResourceSelector, error) {
 // Execute sets a custom annotation on the item being backed up.
 func (p *BackupPlugin) Execute(item runtime.Unstructured, backup *v1.Backup) (runtime.Unstructured, []velero.ResourceIdentifier, error) {
 
-	if backup.Labels[common.MigrationApplicationLabelKey] != common.MigrationApplicationLabelValue{
+	if backup.Labels[common.MigrationApplicationLabelKey] != common.MigrationApplicationLabelValue {
 		p.Log.Info("[pv-backup] Returning pv object as is since this is not a migration activity")
 		return item, nil, nil
 	}
