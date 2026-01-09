@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"strings"
+	"sync"
 
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/clients"
 	apisecurity "github.com/openshift/api/security/v1"
@@ -20,12 +21,13 @@ import (
 // BackupPlugin is a backup item action plugin for Velero.
 type BackupPlugin struct {
 	Log logrus.FieldLogger
-	sccCache
+	*SCCCache
 }
 
-type sccCache struct {
+type SCCCache struct {
 	SCCMap           map[string]map[string][]apisecurity.SecurityContextConstraints
 	UpdatedForBackup map[string]bool
+	lock             sync.Mutex
 }
 
 // AppliesTo returns a velero.ResourceSelector that applies to everything.
@@ -42,11 +44,13 @@ var securityClientError error
 // Execute copies local registry images into migration registry
 func (p *BackupPlugin) Execute(item runtime.Unstructured, backup *v1.Backup) (runtime.Unstructured, []velero.ResourceIdentifier, error) {
 	p.Log.Info("[serviceaccount-backup] Entering ServiceAccount backup plugin")
-	additionalItems, err := sccsForSA(p.Log, item, backup, p.sccCache)
+	additionalItems, err := sccsForSA(p.Log, item, backup, p.SCCCache)
 	return item, additionalItems, err
 }
 
-func sccsForSA(log logrus.FieldLogger, item runtime.Unstructured, backup *v1.Backup, cache sccCache) ([]velero.ResourceIdentifier, error) {
+func sccsForSA(log logrus.FieldLogger, item runtime.Unstructured, backup *v1.Backup, cache *SCCCache) ([]velero.ResourceIdentifier, error) {
+	cache.lock.Lock()
+	defer cache.lock.Unlock()
 	if !cache.UpdatedForBackup[backup.Name] {
 		err := cache.UpdateSCCMap()
 		if err != nil {
@@ -78,7 +82,7 @@ func sccsForSA(log logrus.FieldLogger, item runtime.Unstructured, backup *v1.Bac
 }
 
 // UpdateSCCMap fill scc map with service account as key and SCCs slice as value
-func (c *sccCache) UpdateSCCMap() error {
+func (c *SCCCache) UpdateSCCMap() error {
 	sClient, err := SecurityClient()
 	if err != nil {
 		return err
