@@ -10,7 +10,7 @@ func TestGetBucketRegion(t *testing.T) {
 		name       string
 		bucket     string
 		mockRegion string
-		mockErr    bool
+		mockErr    error
 		wantRegion string
 		wantErr    bool
 	}{
