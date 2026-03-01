@@ -8,7 +8,7 @@ require (
 	github.com/go-logr/logr v1.2.4
 	github.com/google/go-cmp v0.6.0
 	github.com/hashicorp/go-hclog v1.2.0 // indirect
-	github.com/migtools/udistribution v0.0.13-oadp-1.3
+	github.com/migtools/udistribution v0.0.14-oadp-1.4
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/openshift/oadp-operator v1.0.3
 	github.com/sirupsen/logrus v1.9.3
