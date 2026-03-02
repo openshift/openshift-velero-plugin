@@ -76,10 +76,20 @@ KUBEBUILDER_ASSETS=$(shell echo $(shell $(GOBIN)/setup-envtest use -p path) | se
 #         "KUBEBUILDER_ASSETS": "/Users/tiger/Library/Application Support/io.kubebuilder.envtest/k8s/1.26.1-darwin-arm64"
 #     }
 # }
-envtest: $(GOBIN)/setup-envtest
+envtest:
+	@if [ -f $(GOBIN)/setup-envtest ]; then \
+		installed=$$(go version -m $(GOBIN)/setup-envtest 2>/dev/null | awk '/^\tmod\t/{print $$3}'); \
+		latest=$$(GOFLAGS= go list -m -json sigs.k8s.io/controller-runtime/tools/setup-envtest@latest 2>/dev/null | awk -F'"' '/"Version"/{print $$4}'); \
+		if [ "$$installed" = "$$latest" ]; then \
+			echo "setup-envtest is up to date ($$installed)"; \
+		else \
+			echo "Upgrading setup-envtest from $$installed to $$latest"; \
+			GOFLAGS= go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest; \
+			echo "Upgraded setup-envtest to $$latest"; \
+		fi; \
+	else \
+		echo "Installing setup-envtest"; \
+		GOFLAGS= go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest; \
+		echo "Installed setup-envtest"; \
+	fi
 	$(GOBIN)/setup-envtest use -p path
-
-$(GOBIN)/setup-envtest:
-	@echo Installing envtest tools
-	GOFLAGS= go install sigs.k8s.io/controller-runtime/tools/setup-envtest@v0.0.0-20240320141353-395cfc7486e6
-	@echo Installed envtest tools
