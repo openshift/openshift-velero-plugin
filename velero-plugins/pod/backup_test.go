@@ -30,7 +30,7 @@ const (
 	NoError       ErrorType = "NoError"
 )
 
-func getNewSecurityClient(errorType ErrorType, objects ...*securityv1.SecurityContextConstraints) func() (security.SecurityV1Interface, error) {
+func getNewSecurityClient(errorType ErrorType, withSecurityClientError error, objects ...*securityv1.SecurityContextConstraints) func() (security.SecurityV1Interface, error) {
 	// the fake client has a weird bug where if the object is added to NewSimpleClientSet the resource value is set wrong
 	// as a result the object will not be found
 	// [key 0]: schema.GroupVersionResource {Group: "security.openshift.io", Version: "v1", Resource: "securitycontextconstraintses"} <--- should be securitycontextconstraints
@@ -53,16 +53,16 @@ func getNewSecurityClient(errorType ErrorType, objects ...*securityv1.SecurityCo
 	return func() (security.SecurityV1Interface, error) {
 		client := cs.SecurityV1()
 		for _, object := range objects {
-			_, err := client.SecurityContextConstraints().Create(context.Background(), object, metav1.CreateOptions{})
-			if err != nil {
-				return nil, err
+			_, localError := client.SecurityContextConstraints().Create(context.Background(), object, metav1.CreateOptions{})
+			if localError != nil {
+				return nil, localError
 			}
 		}
-		return client, nil
+		return client, withSecurityClientError
 	}
 }
 
-func TestExecute_AddsSCC(t *testing.T) {
+func TestExecute_BackupPod(t *testing.T) {
 
 	scc := &securityv1.SecurityContextConstraints{
 		ObjectMeta: metav1.ObjectMeta{
@@ -80,18 +80,14 @@ func TestExecute_AddsSCC(t *testing.T) {
 		},
 	}
 
-	objs := []*securityv1.SecurityContextConstraints{scc}
-
-	podData, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&pod)
-	assert.NoError(t, err)
-	unstructuredPod := unstructured.Unstructured{Object: podData}
-
 	tests := []struct {
 		name                string
+		annotations         map[string]string
 		inducedErrorType    ErrorType
 		expectedSccCount    int
 		shouldErr           bool
 		expectedIdentifiers []velero.ResourceIdentifier
+		securityClientError error
 	}{
 		{
 			name:             "SCC exists and is added to additional items",
@@ -107,6 +103,9 @@ func TestExecute_AddsSCC(t *testing.T) {
 					},
 				},
 			},
+			annotations: map[string]string{
+				common.SCCPodAnnotation: "test-scc",
+			},
 		},
 		{
 			name:                "SCC does not exist and error is handled",
@@ -114,6 +113,9 @@ func TestExecute_AddsSCC(t *testing.T) {
 			expectedSccCount:    0,
 			shouldErr:           false,
 			expectedIdentifiers: []velero.ResourceIdentifier{},
+			annotations: map[string]string{
+				common.SCCPodAnnotation: "test-scc",
+			},
 		},
 		{
 			name:                "error getting SCC for any other reason",
@@ -121,11 +123,40 @@ func TestExecute_AddsSCC(t *testing.T) {
 			expectedSccCount:    0,
 			shouldErr:           true,
 			expectedIdentifiers: []velero.ResourceIdentifier{},
+			annotations: map[string]string{
+				common.SCCPodAnnotation: "test-scc",
+			},
+		},
+		{
+			name:                "pod has no annotations",
+			inducedErrorType:    NoError,
+			expectedSccCount:    0,
+			shouldErr:           false,
+			expectedIdentifiers: []velero.ResourceIdentifier{},
+			annotations:         nil,
+		},
+		{
+			name:                "security client initialize error",
+			inducedErrorType:    NoError,
+			expectedSccCount:    0,
+			shouldErr:           true,
+			expectedIdentifiers: []velero.ResourceIdentifier{},
+			securityClientError: assert.AnError,
+			annotations: map[string]string{
+				common.SCCPodAnnotation: "test-scc",
+			},
 		},
 	}
 
 	for _, test := range tests {
-		clients.SecurityClient = getNewSecurityClient(test.inducedErrorType, objs...)
+		pod.Annotations = test.annotations
+
+		objs := []*securityv1.SecurityContextConstraints{scc}
+
+		podData, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&pod)
+		assert.NoError(t, err)
+		unstructuredPod := unstructured.Unstructured{Object: podData}
+		clients.SecurityClient = getNewSecurityClient(test.inducedErrorType, test.securityClientError, objs...)
 
 		backupPlugin := &BackupPlugin{
 			Log: logrus.WithField("plugin", "pod-backup-test"),
@@ -139,4 +170,14 @@ func TestExecute_AddsSCC(t *testing.T) {
 		}
 		assert.Len(t, items, test.expectedSccCount, "Expected %d additional items for the SCC", test.expectedSccCount)
 	}
+}
+
+func TestAppliesTo(t *testing.T) {
+	backupPlugin := &BackupPlugin{
+		Log: logrus.WithField("plugin", "pod-backup-test"),
+	}
+
+	resourceSelector, err := backupPlugin.AppliesTo()
+	assert.NoError(t, err)
+	assert.Contains(t, resourceSelector.IncludedResources, "pods", "Expected resource selector to include pods")
 }
