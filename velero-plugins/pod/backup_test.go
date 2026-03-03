@@ -63,6 +63,10 @@ func getNewSecurityClient(errorType ErrorType, withSecurityClientError error, ob
 }
 
 func TestExecute_BackupPod(t *testing.T) {
+	originalSecurityClient := clients.SecurityClient
+	t.Cleanup(func() {
+		clients.SecurityClient = originalSecurityClient
+	})
 
 	scc := &securityv1.SecurityContextConstraints{
 		ObjectMeta: metav1.ObjectMeta{
@@ -168,7 +172,8 @@ func TestExecute_BackupPod(t *testing.T) {
 		} else {
 			assert.NoError(t, err, "Test %s errored when should not %v", test.name, err)
 		}
-		assert.Len(t, items, test.expectedSccCount, "Expected %d additional items for the SCC", test.expectedSccCount)
+		assert.Len(t, items, test.expectedSccCount, "Test %s Expected %d additional items for the SCC", test.name, test.expectedSccCount)
+		assert.ElementsMatch(t, items, test.expectedIdentifiers, "Test %s expected additional items to match expected identifiers", test.name)
 	}
 }
 

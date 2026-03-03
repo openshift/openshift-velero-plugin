@@ -84,7 +84,7 @@ func (p *BackupPlugin) addSCC(sccName string) (velero.ResourceIdentifier, error)
 	// resource plural can be retrieved from the openshift api but more trouble than it is worth
 	return velero.ResourceIdentifier{
 		GroupResource: schema.GroupResource{
-			Group:    scc.GroupVersionKind().Group,
+			Group:    "security.openshift.io",
 			Resource: "securitycontextconstraints",
 		},
 		Name: scc.Name,
