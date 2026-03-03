@@ -168,9 +168,9 @@ func TestExecute_BackupPod(t *testing.T) {
 
 		_, items, err := backupPlugin.Execute(&unstructuredPod, &velerov1.Backup{})
 		if test.shouldErr {
-			assert.Error(t, err, "Test %s errored when should not %v", test.name, err)
+			assert.Error(t, err, "Test %s NOT errored when should %v", test.name, err)
 		} else {
-			assert.NoError(t, err, "Test %s errored when should not %v", test.name, err)
+			assert.NoError(t, err, "Test %s errored when should succeed %v", test.name, err)
 		}
 		assert.Len(t, items, test.expectedSccCount, "Test %s Expected %d additional items for the SCC", test.name, test.expectedSccCount)
 		assert.ElementsMatch(t, items, test.expectedIdentifiers, "Test %s expected additional items to match expected identifiers", test.name)
