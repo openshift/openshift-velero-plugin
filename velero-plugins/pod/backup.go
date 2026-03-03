@@ -46,7 +46,7 @@ func (p *BackupPlugin) Execute(item runtime.Unstructured, backup *v1.Backup) (ru
 	annotations[common.DCIncludesDMFix] = "true"
 	pod.Annotations = annotations
 
-	if sccName, exists := pod.Annotations[common.SCCPodAnnotation]; exists {
+	if sccName, exists := pod.Annotations[common.SCCPodAnnotation]; exists && len(sccName) > 0 {
 		p.Log.Infof("[pod-backup] Pod %s has SCC annotation with value: %s", pod.Name, sccName)
 
 		sccIdentifier, localerr := p.addSCC(sccName)
