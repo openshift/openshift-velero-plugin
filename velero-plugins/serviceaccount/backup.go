@@ -83,7 +83,7 @@ func sccsForSA(log logrus.FieldLogger, item runtime.Unstructured, backup *v1.Bac
 
 // UpdateSCCMap fill scc map with service account as key and SCCs slice as value
 func (c *SCCCache) UpdateSCCMap() error {
-	sClient, err := SecurityClient()
+	sClient, err := clients.SecurityClient()
 	if err != nil {
 		return err
 	}
@@ -143,28 +143,4 @@ func addSaNameToMap(nsMap map[string][]apisecurity.SecurityContextConstraints, s
 	}
 
 	nsMap[saName] = append(nsMap[saName], scc)
-}
-
-// This should be moved to clients package in future
-
-// SecurityClient returns an openshift AppsV1Client
-func SecurityClient() (*security.SecurityV1Client, error) {
-	if securityClient == nil && securityClientError == nil {
-		securityClient, securityClientError = newSecurityClient()
-	}
-	return securityClient, securityClientError
-}
-
-// This should be moved to clients package in future
-func newSecurityClient() (*security.SecurityV1Client, error) {
-	config, err := clients.GetInClusterConfig()
-	if err != nil {
-		return nil, err
-	}
-	client, err := security.NewForConfig(config)
-	if err != nil {
-		return nil, err
-	}
-
-	return client, nil
 }
