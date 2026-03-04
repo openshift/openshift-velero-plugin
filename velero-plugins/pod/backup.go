@@ -33,7 +33,7 @@ func (p *BackupPlugin) Execute(item runtime.Unstructured, backup *v1.Backup) (ru
 	p.Log.Info("[pod-backup] Entering Pod backup plugin")
 
 	var additionalItems []velero.ResourceIdentifier
-	var err error = nil
+	var err error
 	pod := corev1API.Pod{}
 	itemMarshal, _ := json.Marshal(item)
 	json.Unmarshal(itemMarshal, &pod)

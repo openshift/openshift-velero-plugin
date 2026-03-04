@@ -8,7 +8,6 @@ import (
 
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/clients"
 	apisecurity "github.com/openshift/api/security/v1"
-	security "github.com/openshift/client-go/security/clientset/versioned/typed/security/v1"
 	"github.com/sirupsen/logrus"
 	v1 "github.com/vmware-tanzu/velero/pkg/apis/velero/v1"
 	"github.com/vmware-tanzu/velero/pkg/plugin/velero"
@@ -36,10 +35,6 @@ func (p *BackupPlugin) AppliesTo() (velero.ResourceSelector, error) {
 		IncludedResources: []string{"serviceaccounts"},
 	}, nil
 }
-
-// This should be moved to clients package in future
-var securityClient *security.SecurityV1Client
-var securityClientError error
 
 // Execute copies local registry images into migration registry
 func (p *BackupPlugin) Execute(item runtime.Unstructured, backup *v1.Backup) (runtime.Unstructured, []velero.ResourceIdentifier, error) {
