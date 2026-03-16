@@ -7,6 +7,7 @@ import (
 	imagev1 "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	ocpirconfigv1 "github.com/openshift/client-go/imageregistry/clientset/versioned/typed/imageregistry/v1"
 	routev1 "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
+	securityv1 "github.com/openshift/client-go/security/clientset/versioned/typed/security/v1"
 	"k8s.io/client-go/discovery"
 	appsv1 "k8s.io/client-go/kubernetes/typed/apps/v1"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -40,6 +41,10 @@ var routeClientError error
 
 var buildClient *buildv1.BuildV1Client
 var buildClientError error
+
+// SCC client
+var securityClient securityv1.SecurityV1Interface
+var securityClientError error
 
 var inClusterConfig *rest.Config
 
@@ -245,6 +250,30 @@ func newOCPImageRegistryConfigClient() (*ocpirconfigv1.ImageregistryV1Client, er
 	return client, nil
 }
 
+// this setup allows for fake client overrides in unit tests
+var SecurityClient = getSecurityClient
+
+// SecurityClient returns an openshift SecurityV1Client
+func getSecurityClient() (securityv1.SecurityV1Interface, error) {
+	if securityClient == nil && securityClientError == nil {
+		securityClient, securityClientError = newSecurityClient()
+	}
+	return securityClient, securityClientError
+}
+
+func newSecurityClient() (securityv1.SecurityV1Interface, error) {
+	config, err := GetInClusterConfig()
+	if err != nil {
+		return nil, err
+	}
+	client, err := securityv1.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+
+	return client, nil
+}
+
 func init() {
 	coreClient, coreClientError = nil, nil
 	imageClient, imageClientError = nil, nil
@@ -253,4 +282,5 @@ func init() {
 	buildClient, buildClientError = nil, nil
 	ocpAppsClient, ocpAppsClientError = nil, nil
 	appsClient, appsClientError = nil, nil
+	securityClient, securityClientError = nil, nil
 }
