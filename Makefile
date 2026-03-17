@@ -76,10 +76,6 @@ KUBEBUILDER_ASSETS=$(shell echo $(shell $(GOBIN)/setup-envtest use -p path) | se
 #         "KUBEBUILDER_ASSETS": "/Users/tiger/Library/Application Support/io.kubebuilder.envtest/k8s/1.26.1-darwin-arm64"
 #     }
 # }
-envtest: $(GOBIN)/setup-envtest
+envtest:
+	GOFLAGS= go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
 	$(GOBIN)/setup-envtest use -p path
-
-$(GOBIN)/setup-envtest:
-	@echo Installing envtest tools
-	GOFLAGS= go install sigs.k8s.io/controller-runtime/tools/setup-envtest@v0.0.0-20240320141353-395cfc7486e6
-	@echo Installed envtest tools
