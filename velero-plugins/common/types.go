@@ -85,6 +85,11 @@ const (
 	PVOriginalReclaimPolicy   string = "migration.openshift.io/orig-reclaim-policy" // Original PersistentVolumeReclaimPolicy
 )
 
+// SCC related annotations
+const (
+	SCCPodAnnotation string = "openshift.io/scc" // SCC annotation on pods
+)
+
 // DC-related labels/annotations
 const (
 	DCPodDeploymentLabel       string = "deployment"                              // identifies associated RC
