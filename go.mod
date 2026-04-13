@@ -124,16 +124,16 @@ require (
 	github.com/vbatts/tar-split v0.11.5 // indirect
 	go.mozilla.org/pkcs7 v0.0.0-20210826202110-33d05740a352 // indirect
 	go.opencensus.io v0.24.0 // indirect
-	golang.org/x/crypto v0.45.0 // indirect
-	golang.org/x/net v0.47.0 // indirect
-	golang.org/x/oauth2 v0.33.0 // indirect
-	golang.org/x/sync v0.18.0 // indirect
+	golang.org/x/crypto v0.46.0 // indirect
+	golang.org/x/net v0.48.0 // indirect
+	golang.org/x/oauth2 v0.34.0 // indirect
+	golang.org/x/sync v0.19.0 // indirect
 	golang.org/x/sys v0.40.0 // indirect
-	golang.org/x/term v0.37.0 // indirect
-	golang.org/x/text v0.31.0 // indirect
+	golang.org/x/term v0.38.0 // indirect
+	golang.org/x/text v0.32.0 // indirect
 	golang.org/x/time v0.14.0 // indirect
 	google.golang.org/api v0.256.0 // indirect
-	google.golang.org/grpc v1.77.0 // indirect
+	google.golang.org/grpc v1.79.3 // indirect
 	google.golang.org/protobuf v1.36.10 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
@@ -147,7 +147,7 @@ require (
 )
 
 require (
-	cel.dev/expr v0.24.0 // indirect
+	cel.dev/expr v0.25.1 // indirect
 	cloud.google.com/go v0.121.6 // indirect
 	cloud.google.com/go/auth v0.17.0 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.8 // indirect
@@ -163,17 +163,17 @@ require (
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping v0.53.0 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
-	github.com/cncf/xds/go v0.0.0-20251022180443-0feb69152e9f // indirect
+	github.com/cncf/xds/go v0.0.0-20251210132809-ee656c7534f5 // indirect
 	github.com/containerd/cgroups/v3 v3.0.3 // indirect
 	github.com/containerd/errdefs v0.1.0 // indirect
 	github.com/cyberphone/json-canonicalization v0.0.0-20231217050601-ba74d44ecf5f // indirect
 	github.com/distribution/reference v0.6.0 // indirect
-	github.com/envoyproxy/go-control-plane/envoy v1.35.0 // indirect
-	github.com/envoyproxy/protoc-gen-validate v1.2.1 // indirect
+	github.com/envoyproxy/go-control-plane/envoy v1.36.0 // indirect
+	github.com/envoyproxy/protoc-gen-validate v1.3.0 // indirect
 	github.com/evanphx/json-patch/v5 v5.9.11 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.7.0 // indirect
-	github.com/go-jose/go-jose/v4 v4.1.3 // indirect
+	github.com/go-jose/go-jose/v4 v4.1.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-openapi/analysis v0.23.0 // indirect
 	github.com/go-openapi/errors v0.22.0 // indirect
@@ -187,7 +187,7 @@ require (
 	github.com/google/gnostic-models v0.6.9 // indirect
 	github.com/google/go-containerregistry v0.20.0 // indirect
 	github.com/google/s2a-go v0.1.9 // indirect
-	github.com/kubernetes-csi/external-snapshotter/client/v8 v8.2.0 // indirect
+	github.com/kubernetes-csi/external-snapshotter/client/v8 v8.4.0 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/letsencrypt/boulder v0.0.0-20240418210053-89b07f4543e0 // indirect
 	github.com/mattn/go-shellwords v1.0.12 // indirect
@@ -209,7 +209,7 @@ require (
 	github.com/x448/float16 v0.8.4 // indirect
 	go.mongodb.org/mongo-driver v1.14.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
-	go.opentelemetry.io/contrib/detectors/gcp v1.38.0 // indirect
+	go.opentelemetry.io/contrib/detectors/gcp v1.39.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.61.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.61.0 // indirect
 	go.opentelemetry.io/otel v1.40.0 // indirect
@@ -221,12 +221,12 @@ require (
 	golang.org/x/exp v0.0.0-20241009180824-f66d83c29e7c // indirect
 	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
 	google.golang.org/genproto v0.0.0-20250603155806-513f23925822 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20251022142026-3a174f9686a8 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20251103181224-f26f9409b101 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20251202230838-ff82c1b0f217 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20251202230838-ff82c1b0f217 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
 )
 
-replace github.com/vmware-tanzu/velero => github.com/openshift/velero v0.10.2-0.20260309143310-b283a9b047e0
+replace github.com/vmware-tanzu/velero => github.com/openshift/velero v0.10.2-0.20260413161955-ea34d4d90057
 
 replace github.com/distribution/distribution/v3 => github.com/openshift/docker-distribution/v3 v3.0.0-20250120104846-a24972526437
