@@ -5,6 +5,7 @@ import (
 
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/common"
 	"github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/assert"
 	velerov1 "github.com/vmware-tanzu/velero/pkg/apis/velero/v1"
 	corev1API "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -166,6 +167,73 @@ func TestRestorePlugin_podHasRestoreHooks(t *testing.T) {
 			if got != tt.want {
 				t.Errorf("RestorePlugin.podHasRestoreHooks() = %v, want %v", got, tt.want)
 			}
+		})
+	}
+}
+
+func TestStripCNIAnnotations(t *testing.T) {
+	tests := []struct {
+		name                string
+		annotations         map[string]string
+		expectedAnnotations map[string]string
+	}{
+		{
+			name:                "pod with no annotations",
+			annotations:         nil,
+			expectedAnnotations: nil,
+		},
+		{
+			name: "pod with all CNI annotations",
+			annotations: map[string]string{
+				common.OVNPodNetworksAnnotation:      `{"default":{"ip_addresses":["10.129.2.14/23"]}}`,
+				common.MultusNetworkStatusAnnotation:  `[{"name":"ovn-kubernetes","interface":"eth0"}]`,
+				common.MultusNetworksStatusAnnotation: `[{"name":"ovn-kubernetes","interface":"eth0"}]`,
+				"app": "test",
+			},
+			expectedAnnotations: map[string]string{
+				"app": "test",
+			},
+		},
+		{
+			name: "pod with only OVN-K annotation",
+			annotations: map[string]string{
+				common.OVNPodNetworksAnnotation: `{"default":{"ip_addresses":["10.129.2.14/23"]}}`,
+				"app":                           "test",
+			},
+			expectedAnnotations: map[string]string{
+				"app": "test",
+			},
+		},
+		{
+			name: "pod with no CNI annotations",
+			annotations: map[string]string{
+				"app":     "test",
+				"version": "v1",
+			},
+			expectedAnnotations: map[string]string{
+				"app":     "test",
+				"version": "v1",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pod := corev1API.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        "test-pod",
+					Namespace:   "test-ns",
+					Annotations: tt.annotations,
+				},
+			}
+
+			if pod.Annotations != nil {
+				for _, annotation := range common.CNIAnnotationsToStrip {
+					delete(pod.Annotations, annotation)
+				}
+			}
+
+			assert.Equal(t, tt.expectedAnnotations, pod.Annotations)
 		})
 	}
 }
