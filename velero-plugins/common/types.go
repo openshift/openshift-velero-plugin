@@ -119,3 +119,21 @@ const (
 	//InitContainer restore hook must contain this annotation
 	InitContainerRestoreHookAnnotation string = "init.hook.restore.velero.io/container-image"
 )
+
+// OVN-Kubernetes and Multus CNI-injected annotations.
+// These contain pod-specific networking state (IPs, MAC addresses, gateway
+// routes) that are managed by the CNI and must not be restored. The CNI
+// will re-inject correct values when the pod is created.
+const (
+	OVNPodNetworksAnnotation       string = "k8s.ovn.org/pod-networks"
+	MultusNetworkStatusAnnotation  string = "k8s.v1.cni.cncf.io/network-status"
+	MultusNetworksStatusAnnotation string = "k8s.v1.cni.cncf.io/networks-status"
+)
+
+// CNIAnnotationsToStrip is the list of CNI-injected annotations to remove
+// from pods during restore.
+var CNIAnnotationsToStrip = []string{
+	OVNPodNetworksAnnotation,
+	MultusNetworkStatusAnnotation,
+	MultusNetworksStatusAnnotation,
+}

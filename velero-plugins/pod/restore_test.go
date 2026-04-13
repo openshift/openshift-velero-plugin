@@ -303,6 +303,73 @@ func TestPodHasRestoreHookAnnotations(t *testing.T) {
 	}
 }
 
+func TestStripCNIAnnotations(t *testing.T) {
+	tests := []struct {
+		name                string
+		annotations         map[string]string
+		expectedAnnotations map[string]string
+	}{
+		{
+			name:                "pod with no annotations",
+			annotations:         nil,
+			expectedAnnotations: nil,
+		},
+		{
+			name: "pod with all CNI annotations",
+			annotations: map[string]string{
+				common.OVNPodNetworksAnnotation:       `{"default":{"ip_addresses":["10.129.2.14/23"]}}`,
+				common.MultusNetworkStatusAnnotation:   `[{"name":"ovn-kubernetes","interface":"eth0"}]`,
+				common.MultusNetworksStatusAnnotation:  `[{"name":"ovn-kubernetes","interface":"eth0"}]`,
+				"app":                                  "test",
+			},
+			expectedAnnotations: map[string]string{
+				"app": "test",
+			},
+		},
+		{
+			name: "pod with only OVN-K annotation",
+			annotations: map[string]string{
+				common.OVNPodNetworksAnnotation: `{"default":{"ip_addresses":["10.129.2.14/23"]}}`,
+				"app":                           "test",
+			},
+			expectedAnnotations: map[string]string{
+				"app": "test",
+			},
+		},
+		{
+			name: "pod with no CNI annotations",
+			annotations: map[string]string{
+				"app":     "test",
+				"version": "v1",
+			},
+			expectedAnnotations: map[string]string{
+				"app":     "test",
+				"version": "v1",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pod := corev1API.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        "test-pod",
+					Namespace:   "test-ns",
+					Annotations: tt.annotations,
+				},
+			}
+
+			if pod.Annotations != nil {
+				for _, annotation := range common.CNIAnnotationsToStrip {
+					delete(pod.Annotations, annotation)
+				}
+			}
+
+			assert.Equal(t, tt.expectedAnnotations, pod.Annotations)
+		})
+	}
+}
+
 // Note: The following functions are not tested here due to their dependencies:
 // - Execute(): Requires mocking of multiple dependencies including clients, secrets, namespaces
 // - GetOCPVersion(): Requires mocking openshift.GetClusterVersion() which depends on external cluster state
