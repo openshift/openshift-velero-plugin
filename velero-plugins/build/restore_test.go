@@ -25,7 +25,7 @@ func TestRestorePluginAppliesTo(t *testing.T) {
 
 func TestRestorePluginExecute(t *testing.T) {
 	t.Run("Test Execute() for build", func(t *testing.T) {
-		testEnv := & envtest.Environment{}
+		testEnv := &envtest.Environment{}
 		cfg, err := testEnv.Start()
 		require.NoError(t, err)
 		defer testEnv.Stop()
@@ -59,7 +59,7 @@ func TestRestorePluginExecute(t *testing.T) {
 			Items: []corev1API.Secret{
 				{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: "builder-dockercfg-old",
+						Name:      "builder-dockercfg-old",
 						Namespace: "default",
 						Annotations: map[string]string{
 							"kubernetes.io/service-account.name": "builder",
@@ -69,7 +69,7 @@ func TestRestorePluginExecute(t *testing.T) {
 				},
 				{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: "builder-dockercfg-new",
+						Name:      "builder-dockercfg-new",
 						Namespace: "default",
 						Annotations: map[string]string{
 							"kubernetes.io/service-account.name": "builder",

@@ -57,13 +57,14 @@ func (o CopyLocalImageStreamImagesOptions) GetDestRegistry() string {
 // CopyLocalImageStreamImages copies all local images associated with the ImageStream
 // is: ImageStream resource that images are being copied for
 // options: CopyLocalImageStreamImagesOptions struct contains options for this function.
-//   internalRegistryPath: The internal registry path for the cluster in which is comes from, used to determine which images are local
-//   srcRegistry: the registry to copy the images from
-//   destRegistry: the registry to copy the images to
-//   destNamespace: the namespace to copy to
-//   log: the logger to log to
-//   updateDigest: whether to update the input imageStream if the digest changes on pushing to the new registry
-//   ut: the udistribution transport to use
+//
+//	internalRegistryPath: The internal registry path for the cluster in which is comes from, used to determine which images are local
+//	srcRegistry: the registry to copy the images from
+//	destRegistry: the registry to copy the images to
+//	destNamespace: the namespace to copy to
+//	log: the logger to log to
+//	updateDigest: whether to update the input imageStream if the digest changes on pushing to the new registry
+//	ut: the udistribution transport to use
 func CopyLocalImageStreamImages(
 	imageStream imagev1API.ImageStream,
 	o CopyLocalImageStreamImagesOptions,

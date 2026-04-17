@@ -26,6 +26,8 @@ const (
 	MigrationApplicationLabelValue string = "openshift-migration"
 )
 
+// Skip buildconfig configmap restore
+const SkipBuildConfigConfigMapRestore string = "oadp.openshift.io/skip-buildconfig-configmap-restore"
 const SkipImageCopy string = "openshift.io/skip-image-copy"
 const DisableImageCopy string = "migration.openshift.io/disable-image-copy"
 
@@ -64,6 +66,14 @@ const (
 	PvMoveAction                  string = "move"
 	PvFilesystemCopyMethod        string = "filesystem"
 	PvSnapshotCopyMethod          string = "snapshot"
+)
+
+// Annotations related to image pull secrets and SAs
+const (
+	RegistrySANameAnnotation     string = "openshift.io/internal-registry-auth-token.service-account" // OCP version >= 4.16
+	RegistryPullSecretAnnotation string = "openshift.io/internal-registry-pull-secret-ref"            // OCP version >= 4.16
+	LegacySANameAnnotation       string = "kubernetes.io/service-account.name"                        // OCP version <= 4.15
+	LegacySAUIDAnnotation        string = "kubernetes.io/service-account.uid"                         // OCP version <= 4.15
 )
 
 // Other annotations
