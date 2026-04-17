@@ -1,4 +1,4 @@
-FROM brew.registry.redhat.io/rh-osbs/openshift-golang-builder:rhel_9_golang_1.24 AS builder
+FROM brew.registry.redhat.io/rh-osbs/openshift-golang-builder:rhel_9_golang_1.25 AS builder
 COPY . /app-root
 RUN mkdir -p /workspace/src/github.com/konveyor/openshift-velero-plugin
 RUN mv /app-root/* /workspace/src/github.com/konveyor/openshift-velero-plugin
