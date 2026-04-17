@@ -75,5 +75,5 @@ envtest: $(GOBIN)/setup-envtest
 
 $(GOBIN)/setup-envtest:
 	@echo Installing envtest tools
-	GOFLAGS= go install sigs.k8s.io/controller-runtime/tools/setup-envtest@v0.0.0-20240320141353-395cfc7486e6
+	GOFLAGS= go install sigs.k8s.io/controller-runtime/tools/setup-envtest@v0.0.0-20260405152528-6210f847b2c1
 	@echo Installed envtest tools
