@@ -120,6 +120,17 @@ const (
 	InitContainerRestoreHookAnnotation string = "init.hook.restore.velero.io/container-image"
 )
 
+// Reclaim space annotations for CSI-Addons/ODF integration.
+// Users set ReclaimSpaceScheduleAnnotation on the Restore CR with a cron schedule
+// (e.g. "@weekly"). The PVC restore plugin propagates this as
+// CSIAddonsReclaimSpaceScheduleAnnotation on each restored PVC, which the
+// CSI-Addons controller (shipped with ODF) uses to create a ReclaimSpaceCronJob
+// that runs rbd sparsify automatically. No-op when CSI-Addons is not installed.
+const (
+	ReclaimSpaceScheduleAnnotation         string = "oadp.openshift.io/reclaim-space-schedule"         // set on Restore CR
+	CSIAddonsReclaimSpaceScheduleAnnotation string = "reclaimspace.csiaddons.openshift.io/schedule"     // set on restored PVCs
+)
+
 // OVN-Kubernetes and Multus CNI-injected annotations.
 // These contain pod-specific networking state (IPs, MAC addresses, gateway
 // routes) that are managed by the CNI and must not be restored. The CNI
