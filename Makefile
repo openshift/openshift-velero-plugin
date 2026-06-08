@@ -16,7 +16,7 @@ BINS = $(wildcard velero-*)
 
 REPO ?= github.com/konveyor/openshift-velero-plugin
 
-BUILD_IMAGE ?= openshift/origin-release:golang-1.14
+BUILD_IMAGE ?= golang:1.25
 
 IMAGE ?= docker.io/konveyor/openshift-velero-plugin
 
@@ -34,19 +34,16 @@ build-%:
 build: _output/$(BIN)
 
 _output/$(BIN): $(BIN)/*.go
-	mkdir -p .go/src/$(REPO) .go/pkg .go/.cache .go/std/$(ARCH) _output
-	cp -rp * .go/src/$(REPO)
+	mkdir -p .go/.cache _output
 	docker run \
 				 --rm \
-				 -v $$(pwd)/.go/pkg:/go/pkg:z \
-				 -v $$(pwd)/.go/src:/go/src:z \
-				 -v $$(pwd)/.go/std:/go/std:z \
+				 -v $$(pwd):/workspace:z \
 				 -v $$(pwd)/.go/.cache:/go/.cache:z \
-				 -v $$(pwd)/_output:/go/src/$(REPO)/_output:z \
-				 -v $$(pwd)/.go/std/$(ARCH):/usr/local/go/pkg/linux_$(ARCH)_static:z \
-				 -w /go/src/$(REPO) \
+				 -w /workspace \
+				 -e GOCACHE=/go/.cache \
+				 -e GOFLAGS="-mod=mod -buildvcs=false" \
 				 $(BUILD_IMAGE) \
-				 go build -installsuffix "static" -tags $(BUILDTAGS) -i -v -o _output/$(BIN) ./$(BIN)
+				 go build -tags $(BUILDTAGS) -v -o _output/$(BIN) ./$(BIN)
 
 DOCKER_BUILD_ARGS ?= --platform=linux/amd64
 ifneq ($(CLUSTER_OS),)
