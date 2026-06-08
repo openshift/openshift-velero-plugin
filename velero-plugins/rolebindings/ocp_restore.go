@@ -11,10 +11,10 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
-// systemRoleBindings contains rolebindings that are automatically created by OpenShift
-// These rolebindings are expected to be created by the system and don't need restoring
+// SystemRoleBindings contains rolebindings that are automatically created by OpenShift
+// when a new project/namespace is created. These don't need restoring.
 // Reference: https://github.com/openshift/openshift-apiserver/blob/eefb161cffdc97a949d6e9cc81aa900005912a97/pkg/project/apiserver/registry/projectrequest/delegated/delegated.go#L111
-var systemRoleBindings = map[string]bool{
+var SystemRoleBindings = map[string]bool{
 	"system:image-pullers":  true,
 	"system:image-builders": true,
 	"system:deployers":      true,
@@ -42,7 +42,7 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 
 	p.Log.Infof("[rolebinding-restore] role binding - %s, API version", roleBinding.Name, roleBinding.APIVersion)
 
-	if systemRoleBindings[roleBinding.Name] {
+	if SystemRoleBindings[roleBinding.Name] {
 		p.Log.Infof("[rolebinding-restore] Skipping system rolebinding %s as it will be automatically created", roleBinding.Name)
 		return &velero.RestoreItemActionExecuteOutput{
 			SkipRestore: true,
