@@ -37,7 +37,8 @@ Velero currently supports the following kinds of plugins:
 - Pod
 - Replica Set
 - Replication Controller
-- Role Binding
+- Role Binding (authorization.openshift.io)
+- Role Binding (rbac.authorization.k8s.io)
 - Route
 - Security Context Constraints (SCC)
 - Secret
@@ -545,15 +546,22 @@ time="2020-07-29T18:51:04Z" level=info msg="[pvc-restore] Returning pvc object a
 
 ### Role Binding
 
-#### Restore Plugin
+#### Restore Plugin (OpenShift authorization.openshift.io)
 
-- **Resources**: rolebindings
+- **Resources**: rolebinding.authorization.openshift.io
 - **Actions**:
   - Skips restore of system rolebindings ("system:image-pullers", "system:image-builders", "system:deployers") as these are automatically created by OpenShift
   - Updates namespaces in subjects when namespace mapping is enabled
   - Handles ServiceAccount subject namespace mapping
   - Preserves role references while updating namespace contexts
   - If restore namespace mapping is enabled, then the namespaces in RoleRef.Namespace, usernames, groupnames, and subjects are swapped accordingly
+
+#### Restore Plugin (Kubernetes RBAC)
+
+- **Resources**: rolebindings (rbac.authorization.k8s.io)
+- **Actions**:
+  - Skips restore of the same system rolebindings ("system:image-pullers", "system:image-builders", "system:deployers") for the Kubernetes RBAC API group
+  - OpenShift stores rolebindings in rbac.authorization.k8s.io format and exposes them via both API groups; both must be skipped during restore to avoid conflicts with auto-created rolebindings
 
 ### Route
 
