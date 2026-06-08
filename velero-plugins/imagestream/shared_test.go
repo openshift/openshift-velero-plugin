@@ -167,6 +167,13 @@ func TestGetRegistryEnvsForLocation(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer testEnv.Stop()
+
+	originalGetBucketRegionFunc := GetBucketRegionFunc
+	GetBucketRegionFunc = func(bucket string) (string, error) {
+		return "us-east-2", nil
+	}
+	defer func() { GetBucketRegionFunc = originalGetBucketRegionFunc }()
+
 	clients.SetInClusterConfig(cfg)
 	client, err := dynamic.NewForConfig(cfg)
 	if err != nil {
