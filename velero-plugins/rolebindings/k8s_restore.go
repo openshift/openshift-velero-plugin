@@ -25,8 +25,13 @@ func (p *K8sRestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) 
 	p.Log.Info("[rbac-rolebinding-restore] Entering RBAC Role Bindings restore plugin")
 
 	roleBinding := rbacv1.RoleBinding{}
-	itemMarshal, _ := json.Marshal(input.Item)
-	json.Unmarshal(itemMarshal, &roleBinding)
+	itemMarshal, err := json.Marshal(input.Item)
+	if err != nil {
+		return nil, err
+	}
+	if err = json.Unmarshal(itemMarshal, &roleBinding); err != nil {
+		return nil, err
+	}
 
 	p.Log.Infof("[rbac-rolebinding-restore] role binding - %s, API version %s", roleBinding.Name, roleBinding.APIVersion)
 
