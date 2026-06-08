@@ -73,6 +73,7 @@ func main() {
 		RegisterBackupItemAction("openshift.io/25-configmap-backup-plugin", newConfigMapBackupPlugin).
 		RegisterRestoreItemAction("openshift.io/25-configmap-restore-plugin", newConfigMapRestorePlugin).
 		RegisterRestoreItemAction("openshift.io/26-nonadmin-restore-plugin", newNonAdminRestorePlugin).
+		RegisterRestoreItemAction("openshift.io/27-rbac-role-bindings-restore-plugin", newRBACRoleBindingRestorePlugin).
 		Serve()
 }
 
@@ -234,4 +235,8 @@ func newConfigMapRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
 
 func newNonAdminRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
 	return &nonadmin.RestorePluginNonAdmin{Log: logger}, nil
+}
+
+func newRBACRoleBindingRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
+	return &rolebindings.K8sRestorePlugin{Log: logger}, nil
 }
