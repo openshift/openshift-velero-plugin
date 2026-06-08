@@ -18,7 +18,7 @@ Velero currently supports the following kinds of plugins:
 
 ## Resources Included in Plugin 
 
-- Build, Build Config, Cluster Role Binding, Cron Job, Daemonset, Deployment, Deployment Config, Image Stream, Image Stream Tag, Image Tag, Persistent Volume, Persistent Volume Claim, Pod, Replica Set, Replication Controller, Role Binding, Route, SCC, Service, Service Account, and Stateful Set
+- Build, Build Config, Cluster Role Binding, Cron Job, Daemonset, Deployment, Deployment Config, Image Stream, Image Stream Tag, Image Tag, Persistent Volume, Persistent Volume Claim, Pod, Replica Set, Replication Controller, Role Binding (authorization.openshift.io), Role Binding (rbac.authorization.k8s.io), Route, SCC, Service, Service Account, and Stateful Set
 
 ## Enabling and Disabling the Plugin for Individual Resources
 
@@ -303,9 +303,16 @@ time="2020-07-29T18:51:04Z" level=info msg="[pvc-restore] Returning pvc object a
 - If the Replication Controller is owned by Deployment Config, set SkipRestore to true, so that the resource is not restored by Replication Controller
 
 ### Role Binding
-#### Restore Plugin 
+#### Restore Plugin (OpenShift authorization.openshift.io)
 - Skips restore of system rolebindings ("system:image-pullers", "system:image-builders", "system:deployers") as these are automatically created by OpenShift
 - If restore namespace mapping is enabled, then the namespaces in RoleRef.Namespace, usernames, groupnames, and subjects are swapped accordingly
+
+#### Restore Plugin (Kubernetes RBAC)
+
+- **Resources**: rolebindings (rbac.authorization.k8s.io)
+- **Actions**:
+  - Skips restore of the same system rolebindings ("system:image-pullers", "system:image-builders", "system:deployers") for the Kubernetes RBAC API group
+  - OpenShift stores rolebindings in rbac.authorization.k8s.io format and exposes them via both API groups; both must be skipped during restore to avoid conflicts with auto-created rolebindings
 
 ### Route
 #### Restore Plugin 

@@ -69,6 +69,7 @@ func main() {
 		RegisterRestoreItemAction("openshift.io/24-horizontalpodautoscaler-restore-plugin", newHorizontalPodAutoscalerRestorePlugin).
 		RegisterBackupItemAction("openshift.io/25-configmap-backup-plugin", newConfigMapBackupPlugin).
 		RegisterRestoreItemAction("openshift.io/25-configmap-restore-plugin", newConfigMapRestorePlugin).
+		RegisterRestoreItemAction("openshift.io/27-rbac-role-bindings-restore-plugin", newRBACRoleBindingRestorePlugin).
 		Serve()
 }
 
@@ -214,4 +215,8 @@ func newConfigMapBackupPlugin(logger logrus.FieldLogger) (interface{}, error) {
 
 func newConfigMapRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
 	return &configmap.RestorePlugin{Log: logger}, nil
+}
+
+func newRBACRoleBindingRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
+	return &rolebindings.K8sRestorePlugin{Log: logger}, nil
 }
