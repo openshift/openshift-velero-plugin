@@ -308,6 +308,18 @@ func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*v
 			pod.Spec.Containers[n].VolumeMounts = volumeMount
 		}
 	}
+	// Strip CNI-injected annotations (OVN-K, Multus) that contain
+	// pod-specific networking state. The CNI will re-inject correct
+	// values when the pod is created.
+	if pod.Annotations != nil {
+		for _, annotation := range common.CNIAnnotationsToStrip {
+			if _, exists := pod.Annotations[annotation]; exists {
+				p.Log.Infof("[pod-restore] stripping CNI annotation %s from pod %s", annotation, pod.Name)
+				delete(pod.Annotations, annotation)
+			}
+		}
+	}
+
 	var out map[string]interface{}
 	objrec, _ := json.Marshal(pod)
 	json.Unmarshal(objrec, &out)
