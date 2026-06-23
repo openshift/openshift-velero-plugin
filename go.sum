@@ -4452,8 +4452,8 @@ github.com/openshift/library-go v0.0.0-20231030114140-33085da695c8 h1:mHH2dYxSr6
 github.com/openshift/library-go v0.0.0-20231030114140-33085da695c8/go.mod h1:ZFwNwC3opc/7aOvzUbU95zp33Lbxet48h80ryH3p6DY=
 github.com/openshift/oadp-operator v1.0.3 h1:vdSRQiFJyya0NkFQciB2rh9rof9sEFgMHshQnhO4ijw=
 github.com/openshift/oadp-operator v1.0.3/go.mod h1:o2qGXFDtZQC+NWkRtKso5gFcmSYHjc0M+9V26t1/4DI=
-github.com/openshift/velero v0.10.2-0.20260601183324-af1b4409d3db h1:OiHogeMtHaLefNcKL/5+jcitMgdn1PKGEUHLiYUPm3s=
-github.com/openshift/velero v0.10.2-0.20260601183324-af1b4409d3db/go.mod h1:Ls4mlezDUOyn25N2rKy8HtLnNj3tyCKARBXYuh5QwNE=
+github.com/openshift/velero v0.10.2-0.20260623201227-3da6a7a30d21 h1:n5C5b/U9L3vwrRvT/bWQ7BckLFqsi84wzROU/nZUwlI=
+github.com/openshift/velero v0.10.2-0.20260623201227-3da6a7a30d21/go.mod h1:Ls4mlezDUOyn25N2rKy8HtLnNj3tyCKARBXYuh5QwNE=
 github.com/opentracing-contrib/go-observer v0.0.0-20170622124052-a52f23424492/go.mod h1:Ngi6UdF0k5OKD5t5wlmGhe/EDKPoUM3BXZSSfIuJbis=
 github.com/opentracing/basictracer-go v1.0.0/go.mod h1:QfBfYuafItcjQuMwinw9GhYKwFXS9KnPs5lxoYwgW74=
 github.com/opentracing/opentracing-go v1.0.2/go.mod h1:UkNAQd3GIcIGf0SeVgPpRdFStlNbqXla1AfSYxPUl2o=
