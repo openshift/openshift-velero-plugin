@@ -230,4 +230,5 @@ replace github.com/vmware-tanzu/velero => github.com/openshift/velero v0.10.2-0.
 
 replace github.com/distribution/distribution/v3 => github.com/openshift/docker-distribution/v3 v3.0.0-20250120104846-a24972526437
 
-replace github.com/kcp-dev/kcp/sdk v0.0.0-00010101000000-000000000000 => github.com/kcp-dev/kcp/sdk v0.27.1
+// workaround for https://github.com/vmware-tanzu/crash-diagnostics/issues/283
+exclude github.com/kcp-dev/kcp/sdk v0.0.0-00010101000000-000000000000
