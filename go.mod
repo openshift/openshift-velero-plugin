@@ -13,7 +13,7 @@ require (
 	github.com/openshift/oadp-operator v1.0.2-0.20250813014433-d5a424bd6488
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.11.1
-	github.com/vmware-tanzu/velero v1.16.0-rc.1
+	github.com/vmware-tanzu/velero v1.16.2
 	k8s.io/api v0.31.3
 	k8s.io/apimachinery v0.31.3
 	k8s.io/client-go v0.31.3
@@ -242,6 +242,8 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260209200024-4cfbd4190f57 // indirect
 )
 
-replace github.com/vmware-tanzu/velero => github.com/openshift/velero v0.10.2-0.20260629201244-e9c89e4985d0
+replace github.com/vmware-tanzu/velero => github.com/openshift/velero v0.10.2-0.20260630214534-d673230b813e
 
 replace github.com/distribution/distribution/v3 => github.com/openshift/docker-distribution/v3 v3.0.0-20250403075108-ac5742e896d4
+
+exclude github.com/kcp-dev/kcp/sdk v0.0.0-00010101000000-000000000000
