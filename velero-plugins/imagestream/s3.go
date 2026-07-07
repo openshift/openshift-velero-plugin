@@ -9,9 +9,17 @@ import (
 	"github.com/pkg/errors"
 )
 
+// GetBucketRegionFunc is the function used to get bucket region.
+// It can be replaced in tests for mocking.
+var GetBucketRegionFunc = getBucketRegionImpl
+
 // GetBucketRegion returns the AWS region that a bucket is in, or an error
-// if the region cannot be determined.
+// if the region cannot be determined. This is a wrapper that calls GetBucketRegionFunc.
 func GetBucketRegion(bucket string) (string, error) {
+	return GetBucketRegionFunc(bucket)
+}
+
+func getBucketRegionImpl(bucket string) (string, error) {
 	var region string
 
 	session, err := session.NewSession()

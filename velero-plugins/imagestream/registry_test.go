@@ -2,6 +2,7 @@ package imagestream
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 	"testing"
 
@@ -15,6 +16,7 @@ import (
 )
 
 const (
+	DiscoverableBucket     = "tkaovila-aug30-velero-bsl"
 	testProfile            = "someProfile"
 	testAccessKey          = "someAccessKey"
 	testSecretAccessKey    = "someSecretAccessKey"
@@ -201,7 +203,7 @@ func Test_getAWSRegistryEnvVars(t *testing.T) {
 					Provider: AWSProvider,
 					StorageType: velerov1.StorageType{
 						ObjectStorage: &velerov1.ObjectStorageLocation{
-							Bucket: "tkaovila-aug30-velero-bsl",
+							Bucket: DiscoverableBucket,
 						},
 					},
 					Config: map[string]string{
@@ -230,7 +232,7 @@ func Test_getAWSRegistryEnvVars(t *testing.T) {
 				},
 				{
 					Name:  RegistryStorageS3BucketEnvVarKey,
-					Value: "tkaovila-aug30-velero-bsl",
+					Value: DiscoverableBucket,
 				},
 				{
 					Name:  RegistryStorageS3RegionEnvVarKey,
@@ -412,6 +414,15 @@ func Test_getAWSRegistryEnvVars(t *testing.T) {
 	}
 	defer testEnv.Stop()
 	clients.SetInClusterConfig(cfg)
+	originalGetBucketRegionFunc := GetBucketRegionFunc
+	GetBucketRegionFunc = func(bucket string) (string, error) {
+		if bucket == DiscoverableBucket {
+			return "us-east-1", nil
+		}
+		return "", fmt.Errorf("bucket region not discoverable")
+	}
+	defer func() { GetBucketRegionFunc = originalGetBucketRegionFunc }()
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cv1c, err := corev1client.NewForConfig(cfg)
