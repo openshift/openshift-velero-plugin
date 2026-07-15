@@ -443,8 +443,8 @@ github.com/openshift/library-go v0.0.0-20231030114140-33085da695c8 h1:mHH2dYxSr6
 github.com/openshift/library-go v0.0.0-20231030114140-33085da695c8/go.mod h1:ZFwNwC3opc/7aOvzUbU95zp33Lbxet48h80ryH3p6DY=
 github.com/openshift/oadp-operator v1.0.2-0.20250813014433-d5a424bd6488 h1:rR8p67df/Lcxrf6Mbhu4P42yVoOSvDYgZ81mpshDgHk=
 github.com/openshift/oadp-operator v1.0.2-0.20250813014433-d5a424bd6488/go.mod h1:Rysi54HrLBCSLV+Euuk93O+01dzSYY9YngH72ie7SRM=
-github.com/openshift/velero v0.10.2-0.20260629201244-e9c89e4985d0 h1:t26ysrIlQDmLtY6Spz3N9XavoLLgcqsXzp8aV1GdGGE=
-github.com/openshift/velero v0.10.2-0.20260629201244-e9c89e4985d0/go.mod h1:00rQooaGl4HGi/WsOm5cs/t1cGxcZq84+V4ODd2BJE8=
+github.com/openshift/velero v0.10.2-0.20260630214534-d673230b813e h1:JqfWclf/f2S5lyHx+s8KPNJ1zprqyC7TncjCrFnQg8I=
+github.com/openshift/velero v0.10.2-0.20260630214534-d673230b813e/go.mod h1:00rQooaGl4HGi/WsOm5cs/t1cGxcZq84+V4ODd2BJE8=
 github.com/ostreedev/ostree-go v0.0.0-20210805093236-719684c64e4f h1:/UDgs8FGMqwnHagNDPGOlts35QkhAZ8by3DR7nMih7M=
 github.com/ostreedev/ostree-go v0.0.0-20210805093236-719684c64e4f/go.mod h1:J6OG6YJVEWopen4avK3VNQSnALmmjvniMmni/YFYAwc=
 github.com/otiai10/copy v1.14.0 h1:dCI/t1iTdYGtkvCuBG2BgR6KZa83PTclw4U5n2wAllU=
