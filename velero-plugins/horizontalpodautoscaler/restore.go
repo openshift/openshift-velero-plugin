@@ -7,7 +7,7 @@ import (
 	appsv1API "github.com/openshift/api/apps/v1"
 	"github.com/sirupsen/logrus"
 	"github.com/vmware-tanzu/velero/pkg/plugin/velero"
-	"k8s.io/api/autoscaling/v2beta1"
+	"k8s.io/api/autoscaling/v2"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
@@ -26,11 +26,11 @@ func (p *RestorePlugin) AppliesTo() (velero.ResourceSelector, error) {
 // Execute fixes apiVersion in ScaleTargetRef of HPA
 func (p *RestorePlugin) Execute(input *velero.RestoreItemActionExecuteInput) (*velero.RestoreItemActionExecuteOutput, error) {
 	p.Log.Info("[hpa-restore] Entering HorizontalPodAutoscaler restore plugin")
-	hpa := v2beta1.HorizontalPodAutoscaler{}
+	hpa := v2.HorizontalPodAutoscaler{}
 	itemMarshal, _ := json.Marshal(input.Item)
 	json.Unmarshal(itemMarshal, &hpa)
 
-	if (v2beta1.CrossVersionObjectReference{}) != hpa.Spec.ScaleTargetRef {
+	if (v2.CrossVersionObjectReference{}) != hpa.Spec.ScaleTargetRef {
 		gv, err := schema.ParseGroupVersion(hpa.Spec.ScaleTargetRef.APIVersion)
 		if err != nil {
 			p.Log.Error("[hpa-restore] error parsing API version of spec.scaleTargetRef: ", err)

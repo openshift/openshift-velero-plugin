@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/vmware-tanzu/velero/pkg/plugin/velero"
-	"k8s.io/api/autoscaling/v2beta1"
+	"k8s.io/api/autoscaling/v2"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -24,14 +24,14 @@ func TestRestorePluginExecute(t *testing.T) {
 		name                   string
 		hpa                    *unstructured.Unstructured
 		expectedAPIVersion     string
-		expectedScaleTargetRef v2beta1.CrossVersionObjectReference
+		expectedScaleTargetRef v2.CrossVersionObjectReference
 		shouldModify           bool
 	}{
 		{
 			name: "HPA with DeploymentConfig and v1 API version should be updated",
 			hpa: &unstructured.Unstructured{
 				Object: map[string]interface{}{
-					"apiVersion": "autoscaling/v2beta1",
+					"apiVersion": "autoscaling/v2",
 					"kind":       "HorizontalPodAutoscaler",
 					"metadata": map[string]interface{}{
 						"name":      "test-hpa",
@@ -53,7 +53,7 @@ func TestRestorePluginExecute(t *testing.T) {
 			name: "HPA with DeploymentConfig and apps.openshift.io/v1 API version should not be modified",
 			hpa: &unstructured.Unstructured{
 				Object: map[string]interface{}{
-					"apiVersion": "autoscaling/v2beta1",
+					"apiVersion": "autoscaling/v2",
 					"kind":       "HorizontalPodAutoscaler",
 					"metadata": map[string]interface{}{
 						"name":      "test-hpa",
@@ -75,7 +75,7 @@ func TestRestorePluginExecute(t *testing.T) {
 			name: "HPA with Deployment should not be modified",
 			hpa: &unstructured.Unstructured{
 				Object: map[string]interface{}{
-					"apiVersion": "autoscaling/v2beta1",
+					"apiVersion": "autoscaling/v2",
 					"kind":       "HorizontalPodAutoscaler",
 					"metadata": map[string]interface{}{
 						"name":      "test-hpa",
@@ -97,7 +97,7 @@ func TestRestorePluginExecute(t *testing.T) {
 			name: "HPA without scaleTargetRef should not be modified",
 			hpa: &unstructured.Unstructured{
 				Object: map[string]interface{}{
-					"apiVersion": "autoscaling/v2beta1",
+					"apiVersion": "autoscaling/v2",
 					"kind":       "HorizontalPodAutoscaler",
 					"metadata": map[string]interface{}{
 						"name":      "test-hpa",
@@ -112,7 +112,7 @@ func TestRestorePluginExecute(t *testing.T) {
 			name: "HPA with invalid API version should return error",
 			hpa: &unstructured.Unstructured{
 				Object: map[string]interface{}{
-					"apiVersion": "autoscaling/v2beta1",
+					"apiVersion": "autoscaling/v2",
 					"kind":       "HorizontalPodAutoscaler",
 					"metadata": map[string]interface{}{
 						"name":      "test-hpa",
