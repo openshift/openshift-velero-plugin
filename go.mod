@@ -238,4 +238,6 @@ exclude github.com/kcp-dev/kcp/sdk v0.0.0-00010101000000-000000000000
 
 replace github.com/vmware-tanzu/velero => github.com/openshift/velero v0.10.2-0.20260716151240-e2178e7e7c29
 
+replace github.com/vmware-tanzu/velero/pkg/apis => github.com/openshift/velero/pkg/apis v0.0.0-20260716151240-e2178e7e7c29
+
 replace github.com/distribution/distribution/v3 => github.com/openshift/docker-distribution/v3 v3.0.0-20250120104846-a24972526437

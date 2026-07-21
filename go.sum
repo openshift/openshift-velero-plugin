@@ -4912,6 +4912,8 @@ github.com/openshift/oadp-operator v1.0.3 h1:vdSRQiFJyya0NkFQciB2rh9rof9sEFgMHsh
 github.com/openshift/oadp-operator v1.0.3/go.mod h1:o2qGXFDtZQC+NWkRtKso5gFcmSYHjc0M+9V26t1/4DI=
 github.com/openshift/velero v0.10.2-0.20260716151240-e2178e7e7c29 h1:csf6KeWbu01yvHl7aLjf3l0jnAmRyP+w3MveiorYnz8=
 github.com/openshift/velero v0.10.2-0.20260716151240-e2178e7e7c29/go.mod h1:1CKuSsX9EmPmtkIGpjkAC4hVJ22gOCu7kdwYMjEeyOI=
+github.com/openshift/velero/pkg/apis v0.0.0-20260716151240-e2178e7e7c29 h1:yVxr7g97Yyh4tfR3tFonu9Kg4oLJ2zFteH37Ymf2sMo=
+github.com/openshift/velero/pkg/apis v0.0.0-20260716151240-e2178e7e7c29/go.mod h1:zxtjtSupjpT6oOO48gvFhOpTl3SOAkCwuGG7BOxN3Fk=
 github.com/opentracing-contrib/go-observer v0.0.0-20170622124052-a52f23424492/go.mod h1:Ngi6UdF0k5OKD5t5wlmGhe/EDKPoUM3BXZSSfIuJbis=
 github.com/opentracing/basictracer-go v1.0.0/go.mod h1:QfBfYuafItcjQuMwinw9GhYKwFXS9KnPs5lxoYwgW74=
 github.com/opentracing/opentracing-go v1.0.2/go.mod h1:UkNAQd3GIcIGf0SeVgPpRdFStlNbqXla1AfSYxPUl2o=
@@ -5302,8 +5304,6 @@ github.com/vektah/gqlparser v1.1.2/go.mod h1:1ycwN7Ij5njmMkPPAOaRFY4rET2Enx7IkVv
 github.com/viki-org/dnscache v0.0.0-20130720023526-c70c1f23c5d8/go.mod h1:dniwbG03GafCjFohMDmz6Zc6oCuiqgH6tGNyXTkHzXE=
 github.com/vladimirvivien/gexe v0.4.0/go.mod h1:fp7cy60ON1xjhtEI/+bfSEIXX35qgmI+iRYlGOqbBFM=
 github.com/vmware-tanzu/crash-diagnostics v0.4.3/go.mod h1:pIcBvCnsWg4PWrrFsEmNoRj5qvakOTfm7oyOa63zqgc=
-github.com/vmware-tanzu/velero/pkg/apis v0.0.0-20260713215154-c825e3c136bc h1:JwFvio/oC9GFNnTDf5w/Xp7dOh4iMAEQIqCaKMjv49k=
-github.com/vmware-tanzu/velero/pkg/apis v0.0.0-20260713215154-c825e3c136bc/go.mod h1:zxtjtSupjpT6oOO48gvFhOpTl3SOAkCwuGG7BOxN3Fk=
 github.com/wk8/go-ordered-map/v2 v2.1.8/go.mod h1:5nJHM5DyteebpVlHnWMV0rPz6Zp7+xBAnxjb1X5vnTw=
 github.com/x448/float16 v0.8.4 h1:qLwI1I70+NjRFUR3zs1JPUCgaCXSh3SW62uAKT1mSBM=
 github.com/x448/float16 v0.8.4/go.mod h1:14CWIYCyZA/cWjXOioeEpHeN/83MdbZDRQHoFcYsOfg=
