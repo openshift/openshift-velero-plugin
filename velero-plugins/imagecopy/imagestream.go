@@ -88,6 +88,14 @@ func CopyLocalImageStreamImages(
 		for i := len(tag.Items) - 1; i >= 0; i-- {
 			dockerImageReference := tag.Items[i].DockerImageReference
 			if len(o.InternalRegistryPath) > 0 && strings.HasPrefix(dockerImageReference, o.InternalRegistryPath) {
+				// Verbatim reference tags (`oc tag --reference`) have no image digest in
+				// their tag event, so there is nothing content-addressed to copy; the
+				// imagestreamtag restore path restores such tags as pointers without
+				// needing the image data.
+				if len(tag.Items[i].Image) == 0 {
+					o.Log.Info(fmt.Sprintf("[imagecopy] skipping copy of %s (tag %s): tag event has no image digest (reference tag)", dockerImageReference, tag.Tag))
+					continue
+				}
 				if len(o.SrcRegistry) == 0 {
 					return errors.New("copy source registry not found but ImageStream has internal images")
 				}
@@ -128,7 +136,12 @@ func CopyLocalImageStreamImages(
 				} else {
 					destPath += dockerTransport
 				}
-				srcPath += fmt.Sprintf("%s%s", srcPathRegistry, strings.TrimPrefix(dockerImageReference, o.InternalRegistryPath))
+				// Copy from the imagestream's own repository rather than the repository
+				// named in DockerImageReference: the digest is by definition a member of
+				// this stream, while a cross-namespace reference (e.g. from `oc tag`)
+				// stops being servable once the source tag is deleted or pruned.
+				// https://github.com/openshift/openshift-velero-plugin/issues/443
+				srcPath += fmt.Sprintf("%s/%s/%s@%s", srcPathRegistry, imageStream.Namespace, imageStream.Name, tag.Items[i].Image)
 				destPath += fmt.Sprintf("%s/%s/%s%s", destPathRegistry, o.DestNamespace, imageStream.Name, destTag)
 
 				// if src or dest registry is empty (ie. when using udistribution), remove extra '/'
@@ -138,7 +151,7 @@ func CopyLocalImageStreamImages(
 				o.Log.Info(fmt.Sprintf("[imagecopy] copying from: %s", srcPath))
 				o.Log.Info(fmt.Sprintf("[imagecopy] copying to: %s", destPath))
 
-				imgManifest, err := copyImage(o.Log, srcPath, destPath, o.CopyOptions)
+				imgManifest, err := copyImageFn(o.Log, srcPath, destPath, o.CopyOptions)
 				if err != nil {
 					o.Log.Info(fmt.Sprintf("[imagecopy] Error copying image: %v", err))
 					return err
@@ -167,6 +180,10 @@ func CopyLocalImageStreamImages(
 	o.Log.Info(fmt.Sprintf("[imagecopy] copied at least one local image by tag: %t", localImageCopiedByTag))
 	return nil
 }
+
+// copyImageFn is a package-level indirection so unit tests can stub out the
+// actual registry-to-registry copy.
+var copyImageFn = copyImage
 
 func copyImage(log logr.Logger, src, dest string, copyOptions *copy.Options) ([]byte, error) {
 	policyContext, err := getPolicyContext()
