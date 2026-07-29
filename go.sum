@@ -3556,8 +3556,9 @@ github.com/go-jose/go-jose/v4 v4.0.4/go.mod h1:NKb5HO1EZccyMpiZNbdUw/14tiXNyUJh1
 github.com/go-jose/go-jose/v4 v4.0.5/go.mod h1:s3P1lRrkT8igV8D9OjyL4WRyHvjB6a4JSllnOrmmBOA=
 github.com/go-jose/go-jose/v4 v4.1.1/go.mod h1:BdsZGqgdO3b6tTc6LSE56wcDbMMLuPsw5d4ZD5f94kA=
 github.com/go-jose/go-jose/v4 v4.1.2/go.mod h1:22cg9HWM1pOlnRiY+9cQYJ9XHmya1bYW8OeDM6Ku6Oo=
-github.com/go-jose/go-jose/v4 v4.1.3 h1:CVLmWDhDVRa6Mi/IgCgaopNosCaHz7zrMeF9MlZRkrs=
 github.com/go-jose/go-jose/v4 v4.1.3/go.mod h1:x4oUasVrzR7071A4TnHLGSPpNOm2a21K9Kf04k1rs08=
+github.com/go-jose/go-jose/v4 v4.1.4 h1:moDMcTHmvE6Groj34emNPLs/qtYXRVcd6S7NHbHz3kA=
+github.com/go-jose/go-jose/v4 v4.1.4/go.mod h1:x4oUasVrzR7071A4TnHLGSPpNOm2a21K9Kf04k1rs08=
 github.com/go-kit/kit v0.8.0/go.mod h1:xBxKIO96dXMWWy0MnWVtmwkA9/13aqxPnvrjFYMA2as=
 github.com/go-kit/kit v0.9.0/go.mod h1:xBxKIO96dXMWWy0MnWVtmwkA9/13aqxPnvrjFYMA2as=
 github.com/go-kit/kit v0.10.0/go.mod h1:xUsJbQ/Fp4kEt7AFgCuvyX4a71u8h9jB8tj/ORgOZ7o=
@@ -4353,8 +4354,8 @@ github.com/openshift/library-go v0.0.0-20231030114140-33085da695c8 h1:mHH2dYxSr6
 github.com/openshift/library-go v0.0.0-20231030114140-33085da695c8/go.mod h1:ZFwNwC3opc/7aOvzUbU95zp33Lbxet48h80ryH3p6DY=
 github.com/openshift/oadp-operator v1.0.3 h1:vdSRQiFJyya0NkFQciB2rh9rof9sEFgMHshQnhO4ijw=
 github.com/openshift/oadp-operator v1.0.3/go.mod h1:o2qGXFDtZQC+NWkRtKso5gFcmSYHjc0M+9V26t1/4DI=
-github.com/openshift/velero v0.10.2-0.20260708153014-21da6ab34f9e h1:vFYedvZdrPJ7TTQzLYBJf1IurM3HVf33+FJvSAshslw=
-github.com/openshift/velero v0.10.2-0.20260708153014-21da6ab34f9e/go.mod h1:ckgLJqhW/Am7j4U7ZCQWvKfqjRovrv5xR6MMBkTthEE=
+github.com/openshift/velero v0.10.2-0.20260729180340-abbc6c9095c9 h1:HCQcr51NxhcOMMd0x97HMMvpAXWslrgCmLddh17cPB0=
+github.com/openshift/velero v0.10.2-0.20260729180340-abbc6c9095c9/go.mod h1:6VnhtRl5TuYTNgtQksUdflRzbbdbukf9FBkLbBDQnWg=
 github.com/opentracing-contrib/go-observer v0.0.0-20170622124052-a52f23424492/go.mod h1:Ngi6UdF0k5OKD5t5wlmGhe/EDKPoUM3BXZSSfIuJbis=
 github.com/opentracing/basictracer-go v1.0.0/go.mod h1:QfBfYuafItcjQuMwinw9GhYKwFXS9KnPs5lxoYwgW74=
 github.com/opentracing/opentracing-go v1.0.2/go.mod h1:UkNAQd3GIcIGf0SeVgPpRdFStlNbqXla1AfSYxPUl2o=
