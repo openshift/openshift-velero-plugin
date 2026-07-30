@@ -175,7 +175,7 @@ require (
 	github.com/envoyproxy/protoc-gen-validate v1.3.0 // indirect
 	github.com/evanphx/json-patch/v5 v5.8.0 // indirect
 	github.com/go-jose/go-jose/v3 v3.0.3 // indirect
-	github.com/go-jose/go-jose/v4 v4.1.3 // indirect
+	github.com/go-jose/go-jose/v4 v4.1.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-openapi/analysis v0.21.4 // indirect
 	github.com/go-openapi/errors v0.21.1 // indirect
@@ -221,7 +221,7 @@ require (
 	gopkg.in/go-jose/go-jose.v2 v2.6.3 // indirect
 )
 
-replace github.com/vmware-tanzu/velero => github.com/openshift/velero v0.10.2-0.20260708153014-21da6ab34f9e
+replace github.com/vmware-tanzu/velero => github.com/openshift/velero v0.10.2-0.20260729180340-abbc6c9095c9
 
 replace github.com/opencontainers/runc => github.com/opencontainers/runc v1.2.8
 
