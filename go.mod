@@ -221,7 +221,7 @@ require (
 	gopkg.in/go-jose/go-jose.v2 v2.6.3 // indirect
 )
 
-replace github.com/vmware-tanzu/velero => github.com/openshift/velero v0.10.2-0.20260731161550-787b83d5efeb
+replace github.com/vmware-tanzu/velero => github.com/openshift/velero v0.10.2-0.20260806152914-2945c62545ba
 
 replace github.com/opencontainers/runc => github.com/opencontainers/runc v1.2.8
 
