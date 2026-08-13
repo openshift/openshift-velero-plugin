@@ -4910,10 +4910,10 @@ github.com/openshift/library-go v0.0.0-20231030114140-33085da695c8 h1:mHH2dYxSr6
 github.com/openshift/library-go v0.0.0-20231030114140-33085da695c8/go.mod h1:ZFwNwC3opc/7aOvzUbU95zp33Lbxet48h80ryH3p6DY=
 github.com/openshift/oadp-operator v1.0.3 h1:vdSRQiFJyya0NkFQciB2rh9rof9sEFgMHshQnhO4ijw=
 github.com/openshift/oadp-operator v1.0.3/go.mod h1:o2qGXFDtZQC+NWkRtKso5gFcmSYHjc0M+9V26t1/4DI=
-github.com/openshift/velero v0.10.2-0.20260723224224-37c17dda0586 h1:WhKX4Mu6R9rMiA0+aWPLZ7c+0u3yRtz7ptGrQwAFses=
-github.com/openshift/velero v0.10.2-0.20260723224224-37c17dda0586/go.mod h1:v0uPqPhsCaBvT3ObdH07qaHRnG3bE1D8fEaAWlUtWs4=
-github.com/openshift/velero/pkg/apis v0.0.0-20260723224224-37c17dda0586 h1:ssCsdf304MdlFUsq21KEa/FTCjwX4xlqEe/S05DG/VY=
-github.com/openshift/velero/pkg/apis v0.0.0-20260723224224-37c17dda0586/go.mod h1:zxtjtSupjpT6oOO48gvFhOpTl3SOAkCwuGG7BOxN3Fk=
+github.com/openshift/velero v0.10.2-0.20260805134104-2091b09b93bb h1:FmyNqhhtdJ2vgIT6XZmIwcs9RHHKS1RuBWqI/S3nkis=
+github.com/openshift/velero v0.10.2-0.20260805134104-2091b09b93bb/go.mod h1:v0uPqPhsCaBvT3ObdH07qaHRnG3bE1D8fEaAWlUtWs4=
+github.com/openshift/velero/pkg/apis v0.0.0-20260805134104-2091b09b93bb h1:Wezb2zsAX8R0op1YLU0cMO78hA6ZiED4PYXMZZoadDo=
+github.com/openshift/velero/pkg/apis v0.0.0-20260805134104-2091b09b93bb/go.mod h1:zxtjtSupjpT6oOO48gvFhOpTl3SOAkCwuGG7BOxN3Fk=
 github.com/opentracing-contrib/go-observer v0.0.0-20170622124052-a52f23424492/go.mod h1:Ngi6UdF0k5OKD5t5wlmGhe/EDKPoUM3BXZSSfIuJbis=
 github.com/opentracing/basictracer-go v1.0.0/go.mod h1:QfBfYuafItcjQuMwinw9GhYKwFXS9KnPs5lxoYwgW74=
 github.com/opentracing/opentracing-go v1.0.2/go.mod h1:UkNAQd3GIcIGf0SeVgPpRdFStlNbqXla1AfSYxPUl2o=
