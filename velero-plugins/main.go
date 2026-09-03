@@ -15,6 +15,7 @@ import (
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/imagestreamtag"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/imagetag"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/job"
+	"github.com/konveyor/openshift-velero-plugin/velero-plugins/namespacescc"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/nonadmin"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/persistentvolume"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/pod"
@@ -40,6 +41,8 @@ func main() {
 		RegisterBackupItemAction("openshift.io/02-serviceaccount-backup-plugin", newServiceAccountBackupPlugin).
 		RegisterRestoreItemAction("openshift.io/02-serviceaccount-restore-plugin", newServiceAccountRestorePlugin).
 		RegisterItemBlockAction("openshift.io/02-serviceaccount-iba-plugin", newServiceAccountIBAPlugin).
+		RegisterBackupItemAction("openshift.io/02-namespacescc-backup-plugin", newNamespaceSccBackupPlugin).
+		RegisterRestoreItemAction("openshift.io/02-namespacescc-restore-plugin", newNamespaceSccRestorePlugin).
 		RegisterBackupItemAction("openshift.io/03-pv-backup-plugin", newPVBackupPlugin).
 		RegisterRestoreItemAction("openshift.io/03-pv-restore-plugin", newPVRestorePlugin).
 		RegisterRestoreItemAction("openshift.io/04-pvc-restore-plugin", newPVCRestorePlugin).
@@ -239,4 +242,12 @@ func newNonAdminRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
 
 func newRBACRoleBindingRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
 	return &rolebindings.K8sRestorePlugin{Log: logger}, nil
+}
+
+func newNamespaceSccBackupPlugin(logger logrus.FieldLogger) (interface{}, error) {
+	return &namespacescc.BackupPlugin{Log: logger}, nil
+}
+
+func newNamespaceSccRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
+	return &namespacescc.RestorePlugin{Log: logger}, nil
 }

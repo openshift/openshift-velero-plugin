@@ -104,6 +104,17 @@ const (
 	DCPodLabels                string = "oadp.openshift.io/pod-labels"            // labels from DC pod
 )
 
+// Namespace SCC UID/GID range bookkeeping annotations.
+// Namespace objects never pass through RestoreItemAction plugins (Velero core
+// special-cases and skips them), so these values are stashed onto each backed-up
+// ServiceAccount at backup time and read back at restore time to detect a
+// UID/GID-range mismatch between the backed-up and restored namespace.
+const (
+	BackupNsSccUIDRange           string = "oadp.openshift.io/backup-ns-scc-uid-range"
+	BackupNsSccSupplementalGroups string = "oadp.openshift.io/backup-ns-scc-supplemental-groups"
+	BackupNsSccMcs                string = "oadp.openshift.io/backup-ns-scc-mcs"
+)
+
 // Configmap Name
 const RegistryConfigMap string = "oadp-registry-config"
 
@@ -127,8 +138,8 @@ const (
 // CSI-Addons controller (shipped with ODF) uses to create a ReclaimSpaceCronJob
 // that runs rbd sparsify automatically. No-op when CSI-Addons is not installed.
 const (
-	ReclaimSpaceScheduleAnnotation         string = "oadp.openshift.io/reclaim-space-schedule"         // set on Restore CR
-	CSIAddonsReclaimSpaceScheduleAnnotation string = "reclaimspace.csiaddons.openshift.io/schedule"     // set on restored PVCs
+	ReclaimSpaceScheduleAnnotation          string = "oadp.openshift.io/reclaim-space-schedule"     // set on Restore CR
+	CSIAddonsReclaimSpaceScheduleAnnotation string = "reclaimspace.csiaddons.openshift.io/schedule" // set on restored PVCs
 )
 
 // OVN-Kubernetes and Multus CNI-injected annotations.
