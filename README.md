@@ -35,6 +35,7 @@ Velero currently supports the following kinds of plugins:
 - Persistent Volume
 - Persistent Volume Claim
 - Pod
+- Proxy
 - Replica Set
 - Replication Controller
 - Role Binding (authorization.openshift.io)
