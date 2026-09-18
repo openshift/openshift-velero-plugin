@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/build"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/buildconfig"
+	"github.com/konveyor/openshift-velero-plugin/velero-plugins/clients"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/clusterrolebindings"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/common"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/configmap"
@@ -236,7 +237,11 @@ func newConfigMapRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
 }
 
 func newProxyBackupPlugin(logger logrus.FieldLogger) (interface{}, error) {
-	return &proxy.BackupPlugin{Log: logger}, nil
+	client, err := clients.CoreClient()
+	if err != nil {
+		return nil, err
+	}
+	return &proxy.BackupPlugin{Log: logger, Client: client}, nil
 }
 
 func newNonAdminRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
