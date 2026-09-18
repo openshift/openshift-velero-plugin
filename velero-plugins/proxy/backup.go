@@ -3,6 +3,7 @@ package proxy
 import (
 	"context"
 	"encoding/json"
+	"time"
 
 	configv1 "github.com/openshift/api/config/v1"
 	"github.com/sirupsen/logrus"
@@ -16,7 +17,6 @@ import (
 )
 
 const (
-	mustIncludeAnnotation    = v1.MustIncludeAdditionalItemAnnotation
 	openshiftConfigNamespace = "openshift-config"
 )
 
@@ -60,22 +60,24 @@ func (p *BackupPlugin) Execute(item runtime.Unstructured, backup *v1.Backup) (ru
 	if len(additionalItems) > 0 {
 		out := item.UnstructuredContent()
 		if metadata, ok := out["metadata"].(map[string]interface{}); ok {
-			if annotations, ok := metadata["annotations"].(map[string]interface{}); ok {
-				annotations[mustIncludeAnnotation] = "true"
-			} else {
-				metadata["annotations"] = map[string]interface{}{
-					mustIncludeAnnotation: "true",
-				}
+			annotations, ok := metadata["annotations"].(map[string]interface{})
+			if !ok {
+				annotations = make(map[string]interface{})
+				metadata["annotations"] = annotations
 			}
+			annotations[v1.MustIncludeAdditionalItemAnnotation] = "true"
 		}
-		p.Log.Infof("[proxy-backup] Set %s annotation on Proxy to include additional items", mustIncludeAnnotation)
+		item.SetUnstructuredContent(out)
+		p.Log.Infof("[proxy-backup] Set %s annotation on Proxy to include additional items", v1.MustIncludeAdditionalItemAnnotation)
 	}
-
 	return item, additionalItems, err
 }
 
 func (p *BackupPlugin) addConfigMap(cmName string) (velero.ResourceIdentifier, error) {
-	cm, err := p.Client.ConfigMaps(openshiftConfigNamespace).Get(context.TODO(), cmName, metav1.GetOptions{})
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	cm, err := p.Client.ConfigMaps(openshiftConfigNamespace).Get(ctx, cmName, metav1.GetOptions{})
 	if err != nil {
 		return velero.ResourceIdentifier{}, err
 	}
