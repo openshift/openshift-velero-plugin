@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/build"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/buildconfig"
+	"github.com/konveyor/openshift-velero-plugin/velero-plugins/clients"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/clusterrolebindings"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/common"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/configmap"
@@ -18,6 +19,7 @@ import (
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/nonadmin"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/persistentvolume"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/pod"
+	"github.com/konveyor/openshift-velero-plugin/velero-plugins/proxy"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/pvc"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/replicaset"
 	"github.com/konveyor/openshift-velero-plugin/velero-plugins/replicationcontroller"
@@ -72,6 +74,7 @@ func main() {
 		RegisterRestoreItemAction("openshift.io/24-horizontalpodautoscaler-restore-plugin", newHorizontalPodAutoscalerRestorePlugin).
 		RegisterBackupItemAction("openshift.io/25-configmap-backup-plugin", newConfigMapBackupPlugin).
 		RegisterRestoreItemAction("openshift.io/25-configmap-restore-plugin", newConfigMapRestorePlugin).
+		RegisterBackupItemAction("openshift.io/26-proxy-backup-plugin", newProxyBackupPlugin).
 		RegisterRestoreItemAction("openshift.io/26-nonadmin-restore-plugin", newNonAdminRestorePlugin).
 		RegisterRestoreItemAction("openshift.io/27-rbac-role-bindings-restore-plugin", newRBACRoleBindingRestorePlugin).
 		Serve()
@@ -231,6 +234,14 @@ func newConfigMapBackupPlugin(logger logrus.FieldLogger) (interface{}, error) {
 
 func newConfigMapRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
 	return &configmap.RestorePlugin{Log: logger}, nil
+}
+
+func newProxyBackupPlugin(logger logrus.FieldLogger) (interface{}, error) {
+	client, err := clients.CoreClient()
+	if err != nil {
+		return nil, err
+	}
+	return &proxy.BackupPlugin{Log: logger, Client: client}, nil
 }
 
 func newNonAdminRestorePlugin(logger logrus.FieldLogger) (interface{}, error) {
