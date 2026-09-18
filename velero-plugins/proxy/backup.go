@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/konveyor/openshift-velero-plugin/velero-plugins/clients"
 	configv1 "github.com/openshift/api/config/v1"
 	"github.com/sirupsen/logrus"
 	v1 "github.com/vmware-tanzu/velero/pkg/apis/velero/v1"
@@ -13,19 +12,22 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
 const (
-	MustIncludeAnnotation = "backup.velero.io/must-include-additional-items"
+	mustIncludeAnnotation    = v1.MustIncludeAdditionalItemAnnotation
+	openshiftConfigNamespace = "openshift-config"
 )
 
 type BackupPlugin struct {
-	Log logrus.FieldLogger
+	Log    logrus.FieldLogger
+	Client corev1.CoreV1Interface
 }
 
 func (p *BackupPlugin) AppliesTo() (velero.ResourceSelector, error) {
 	return velero.ResourceSelector{
-		IncludedResources: []string{"proxies"},
+		IncludedResources: []string{"proxies.config.openshift.io"},
 	}, nil
 }
 
@@ -41,48 +43,39 @@ func (p *BackupPlugin) Execute(item runtime.Unstructured, backup *v1.Backup) (ru
 	p.Log.Infof("[proxy-backup] proxy: %s", proxy.Name)
 
 	if proxy.Spec.TrustedCA.Name != "" {
-		p.Log.Infof("[proxy-backup] Proxy %s references ConfigMap: %s/%s", proxy.Name, "openshift-config", proxy.Spec.TrustedCA.Name)
-		cmIdentifier, localerr := p.addConfigMap(proxy.Spec.TrustedCA.Name)
-		if localerr == nil {
+		p.Log.Infof("[proxy-backup] Proxy %s references ConfigMap: %s/%s", proxy.Name, openshiftConfigNamespace, proxy.Spec.TrustedCA.Name)
+		cmIdentifier, localErr := p.addConfigMap(proxy.Spec.TrustedCA.Name)
+		if localErr == nil {
 			additionalItems = append(additionalItems, cmIdentifier)
 		} else {
-			if errors.IsNotFound(localerr) {
-				p.Log.Warnf("[proxy-backup] ConfigMap openshift-config/%s for proxy %s not found: %s", proxy.Spec.TrustedCA.Name, proxy.Name, localerr.Error())
+			if errors.IsNotFound(localErr) {
+				p.Log.Warnf("[proxy-backup] ConfigMap %s/%s for proxy %s not found: %s", openshiftConfigNamespace, proxy.Spec.TrustedCA.Name, proxy.Name, localErr.Error())
 			} else {
-				p.Log.Errorf("[proxy-backup] Error adding ConfigMap openshift-config/%s for proxy %s: %s", proxy.Spec.TrustedCA.Name, proxy.Name, localerr.Error())
-				err = localerr
+				p.Log.Errorf("[proxy-backup] Error adding ConfigMap %s/%s for proxy %s: %s", openshiftConfigNamespace, proxy.Spec.TrustedCA.Name, proxy.Name, localErr.Error())
+				err = localErr
 			}
 		}
 	}
 
-	var out map[string]interface{}
-	objrec, _ := json.Marshal(proxy)
-	json.Unmarshal(objrec, &out)
-
 	if len(additionalItems) > 0 {
+		out := item.UnstructuredContent()
 		if metadata, ok := out["metadata"].(map[string]interface{}); ok {
 			if annotations, ok := metadata["annotations"].(map[string]interface{}); ok {
-				annotations[MustIncludeAnnotation] = "true"
+				annotations[mustIncludeAnnotation] = "true"
 			} else {
 				metadata["annotations"] = map[string]interface{}{
-					MustIncludeAnnotation: "true",
+					mustIncludeAnnotation: "true",
 				}
 			}
 		}
-		p.Log.Infof("[proxy-backup] Set %s annotation on Proxy to include additional items", MustIncludeAnnotation)
+		p.Log.Infof("[proxy-backup] Set %s annotation on Proxy to include additional items", mustIncludeAnnotation)
 	}
 
-	item.SetUnstructuredContent(out)
 	return item, additionalItems, err
 }
 
 func (p *BackupPlugin) addConfigMap(cmName string) (velero.ResourceIdentifier, error) {
-	coreClient, err := clients.CoreClient()
-	if err != nil {
-		return velero.ResourceIdentifier{}, err
-	}
-
-	cm, err := coreClient.ConfigMaps("openshift-config").Get(context.Background(), cmName, metav1.GetOptions{})
+	cm, err := p.Client.ConfigMaps(openshiftConfigNamespace).Get(context.TODO(), cmName, metav1.GetOptions{})
 	if err != nil {
 		return velero.ResourceIdentifier{}, err
 	}
