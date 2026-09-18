@@ -23,13 +23,13 @@ const (
 	RegistryStorageS3RootdirectoryEnvVarKey         = "REGISTRY_STORAGE_S3_ROOTDIRECTORY"
 	RegistryStorageS3SkipverifyEnvVarKey            = "REGISTRY_STORAGE_S3_SKIPVERIFY"
 	// Azure registry env vars
-	RegistryStorageAzureContainerEnvVarKey       = "REGISTRY_STORAGE_AZURE_CONTAINER"
-	RegistryStorageAzureAccountnameEnvVarKey     = "REGISTRY_STORAGE_AZURE_ACCOUNTNAME"
-	RegistryStorageAzureAccountkeyEnvVarKey      = "REGISTRY_STORAGE_AZURE_ACCOUNTKEY"
-	RegistryStorageAzureSPNClientIDEnvVarKey     = "REGISTRY_STORAGE_AZURE_SPN_CLIENT_ID"
-	RegistryStorageAzureSPNClientSecretEnvVarKey = "REGISTRY_STORAGE_AZURE_SPN_CLIENT_SECRET"
-	RegistryStorageAzureSPNTenantIDEnvVarKey     = "REGISTRY_STORAGE_AZURE_SPN_TENANT_ID"
-	RegistryStorageAzureAADEndpointEnvVarKey     = "REGISTRY_STORAGE_AZURE_AAD_ENDPOINT"
+	RegistryStorageAzureContainerEnvVarKey           = "REGISTRY_STORAGE_AZURE_CONTAINER"
+	RegistryStorageAzureAccountnameEnvVarKey         = "REGISTRY_STORAGE_AZURE_ACCOUNTNAME"
+	RegistryStorageAzureAccountkeyEnvVarKey          = "REGISTRY_STORAGE_AZURE_ACCOUNTKEY"
+	RegistryStorageAzureCredentialsTypeEnvVarKey     = "REGISTRY_STORAGE_AZURE_CREDENTIALS_TYPE"
+	RegistryStorageAzureCredentialsClientIDEnvVarKey = "REGISTRY_STORAGE_AZURE_CREDENTIALS_CLIENTID"
+	RegistryStorageAzureCredentialsSecretEnvVarKey   = "REGISTRY_STORAGE_AZURE_CREDENTIALS_SECRET"
+	RegistryStorageAzureCredentialsTenantIDEnvVarKey = "REGISTRY_STORAGE_AZURE_CREDENTIALS_TENANTID"
 	// GCP registry env vars
 	RegistryStorageGCSBucket        = "REGISTRY_STORAGE_GCS_BUCKET"
 	RegistryStorageGCSKeyfile       = "REGISTRY_STORAGE_GCS_KEYFILE"
@@ -81,19 +81,19 @@ var cloudProviderEnvVarMap = map[string][]corev1.EnvVar{
 			Value: "",
 		},
 		{
-			Name:  RegistryStorageAzureAADEndpointEnvVarKey,
+			Name:  RegistryStorageAzureCredentialsTypeEnvVarKey,
 			Value: "",
 		},
 		{
-			Name:  RegistryStorageAzureSPNClientIDEnvVarKey,
+			Name:  RegistryStorageAzureCredentialsClientIDEnvVarKey,
 			Value: "",
 		},
 		{
-			Name:  RegistryStorageAzureSPNClientSecretEnvVarKey,
+			Name:  RegistryStorageAzureCredentialsSecretEnvVarKey,
 			Value: "",
 		},
 		{
-			Name:  RegistryStorageAzureSPNTenantIDEnvVarKey,
+			Name:  RegistryStorageAzureCredentialsTenantIDEnvVarKey,
 			Value: "",
 		},
 	},
@@ -128,7 +128,7 @@ func getAWSRegistryEnvVars(bsl *velerov1.BackupStorageLocation) ([]corev1.EnvVar
 	}
 	if bsl.Spec.Config[S3URL] == "" && bsl.Spec.Config[Region] == "" {
 		var err error
-		bsl.Spec.Config[Region], err = GetBucketRegion(bsl.Spec.StorageType.ObjectStorage.Bucket)
+		bsl.Spec.Config[Region], err = GetBucketRegion(bsl.Spec.ObjectStorage.Bucket)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to get bucket region")
 		}
@@ -146,7 +146,7 @@ func getAWSRegistryEnvVars(bsl *velerov1.BackupStorageLocation) ([]corev1.EnvVar
 		},
 		{
 			Name:  RegistryStorageS3BucketEnvVarKey,
-			Value: bsl.Spec.StorageType.ObjectStorage.Bucket,
+			Value: bsl.Spec.ObjectStorage.Bucket,
 		},
 		{
 			Name:  RegistryStorageS3RegionEnvVarKey,
@@ -199,7 +199,7 @@ func getAWSRegistryEnvVars(bsl *velerov1.BackupStorageLocation) ([]corev1.EnvVar
 func getBslSecretPath(bsl *velerov1.BackupStorageLocation) string {
 	var secretName, secretKey string
 	if bsl.Spec.Credential != nil {
-		secretName = bsl.Spec.Credential.LocalObjectReference.Name
+		secretName = bsl.Spec.Credential.Name
 		secretKey = bsl.Spec.Credential.Key
 	}
 	// if secretName or secretKey is not set, inherit from OADP defaults for each provider
@@ -216,44 +216,53 @@ func getAzureRegistryEnvVars(bsl *velerov1.BackupStorageLocation, azureEnvVars [
 	if bsl.Spec.Config == nil {
 		bsl.Spec.Config = make(map[string]string)
 	}
+	secretName := "oadp-" + bsl.Name + "-" + bsl.Spec.Provider + "-registry-secret"
+
 	for i := range azureEnvVars {
-		if azureEnvVars[i].Name == RegistryStorageAzureContainerEnvVarKey {
-			azureEnvVars[i].Value = bsl.Spec.StorageType.ObjectStorage.Bucket
-		}
+		switch azureEnvVars[i].Name {
+		case RegistryStorageAzureContainerEnvVarKey:
+			azureEnvVars[i].Value = bsl.Spec.ObjectStorage.Bucket
 
-		if azureEnvVars[i].Name == RegistryStorageAzureAccountnameEnvVarKey {
+		case RegistryStorageAzureAccountnameEnvVarKey:
 			azureEnvVars[i].Value = bsl.Spec.Config[StorageAccount]
-		}
 
-		if azureEnvVars[i].Name == RegistryStorageAzureAccountkeyEnvVarKey {
+		case RegistryStorageAzureAccountkeyEnvVarKey:
 			azureEnvVars[i].ValueFrom = &corev1.EnvVarSource{
 				SecretKeyRef: &corev1.SecretKeySelector{
-					LocalObjectReference: corev1.LocalObjectReference{Name: "oadp-" + bsl.Name + "-" + bsl.Spec.Provider + "-registry-secret"},
+					LocalObjectReference: corev1.LocalObjectReference{Name: secretName},
 					Key:                  "storage_account_key",
 				},
 			}
-		}
-		if azureEnvVars[i].Name == RegistryStorageAzureSPNClientIDEnvVarKey {
+
+		case RegistryStorageAzureCredentialsTypeEnvVarKey:
+			// Get credentials type from secret
 			azureEnvVars[i].ValueFrom = &corev1.EnvVarSource{
 				SecretKeyRef: &corev1.SecretKeySelector{
-					LocalObjectReference: corev1.LocalObjectReference{Name: "oadp-" + bsl.Name + "-" + bsl.Spec.Provider + "-registry-secret"},
+					LocalObjectReference: corev1.LocalObjectReference{Name: secretName},
+					Key:                  "credentials_type",
+				},
+			}
+
+		case RegistryStorageAzureCredentialsClientIDEnvVarKey:
+			azureEnvVars[i].ValueFrom = &corev1.EnvVarSource{
+				SecretKeyRef: &corev1.SecretKeySelector{
+					LocalObjectReference: corev1.LocalObjectReference{Name: secretName},
 					Key:                  "client_id_key",
 				},
 			}
-		}
 
-		if azureEnvVars[i].Name == RegistryStorageAzureSPNClientSecretEnvVarKey {
+		case RegistryStorageAzureCredentialsSecretEnvVarKey:
 			azureEnvVars[i].ValueFrom = &corev1.EnvVarSource{
 				SecretKeyRef: &corev1.SecretKeySelector{
-					LocalObjectReference: corev1.LocalObjectReference{Name: "oadp-" + bsl.Name + "-" + bsl.Spec.Provider + "-registry-secret"},
+					LocalObjectReference: corev1.LocalObjectReference{Name: secretName},
 					Key:                  "client_secret_key",
 				},
 			}
-		}
-		if azureEnvVars[i].Name == RegistryStorageAzureSPNTenantIDEnvVarKey {
+
+		case RegistryStorageAzureCredentialsTenantIDEnvVarKey:
 			azureEnvVars[i].ValueFrom = &corev1.EnvVarSource{
 				SecretKeyRef: &corev1.SecretKeySelector{
-					LocalObjectReference: corev1.LocalObjectReference{Name: "oadp-" + bsl.Name + "-" + bsl.Spec.Provider + "-registry-secret"},
+					LocalObjectReference: corev1.LocalObjectReference{Name: secretName},
 					Key:                  "tenant_id_key",
 				},
 			}
@@ -270,7 +279,7 @@ func getGCPRegistryEnvVars(bsl *velerov1.BackupStorageLocation) ([]corev1.EnvVar
 		},
 		{
 			Name:  RegistryStorageGCSBucket,
-			Value: bsl.Spec.StorageType.ObjectStorage.Bucket,
+			Value: bsl.Spec.ObjectStorage.Bucket,
 		},
 		{
 			Name:  RegistryStorageGCSKeyfile,
