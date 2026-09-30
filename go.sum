@@ -480,10 +480,10 @@ github.com/openshift/docker-distribution/v3 v3.0.0-20250120104846-a24972526437 h
 github.com/openshift/docker-distribution/v3 v3.0.0-20250120104846-a24972526437/go.mod h1:+fqBJ4vPYo4Uu1ZE4d+bUtTLRXfdSL3NvCZIZ9GHv58=
 github.com/openshift/library-go v0.0.0-20231030114140-33085da695c8 h1:mHH2dYxSr6EB/UrAOUwvuGJPZ/cay0lhDaPB3Nplbhw=
 github.com/openshift/library-go v0.0.0-20231030114140-33085da695c8/go.mod h1:ZFwNwC3opc/7aOvzUbU95zp33Lbxet48h80ryH3p6DY=
-github.com/openshift/oadp-operator v1.0.2-0.20260928234346-69dc60e69000 h1:uHCEmcQL7o8Kkn6V2pqag4VB7BWOL5CxevcIwZEMZxA=
-github.com/openshift/oadp-operator v1.0.2-0.20260928234346-69dc60e69000/go.mod h1:BwPuH05jcbY/73D9O55uu3109THP+rHzMBlNliq/mSo=
-github.com/openshift/velero v0.10.2-0.20260928165935-bec15527d506 h1:XuD8kRi7UcIVEEXFinjOjmBcY4xaRPc47FEVEqsD+lI=
-github.com/openshift/velero v0.10.2-0.20260928165935-bec15527d506/go.mod h1:DheLnS57gNzCVvgswGkyUO92r9QHxy6Qlztx5NhlAlI=
+github.com/openshift/oadp-operator v1.0.2-0.20260930155525-fcf76100ee49 h1:K/zjQVEuqHfAxYIR21U11MQQPPAIZ664bdV/1/GxrZ8=
+github.com/openshift/oadp-operator v1.0.2-0.20260930155525-fcf76100ee49/go.mod h1:vIMM0ubq/aEtkR2EBkl9S1GCoyhJG0swqht6imZW85s=
+github.com/openshift/velero v0.10.2-0.20260929214925-8752b8364664 h1:c/pHzDeX6xzxdmdvvX7rjKqN2m4inRlS+6AcHaJrdC8=
+github.com/openshift/velero v0.10.2-0.20260929214925-8752b8364664/go.mod h1:DheLnS57gNzCVvgswGkyUO92r9QHxy6Qlztx5NhlAlI=
 github.com/ostreedev/ostree-go v0.0.0-20210805093236-719684c64e4f h1:/UDgs8FGMqwnHagNDPGOlts35QkhAZ8by3DR7nMih7M=
 github.com/ostreedev/ostree-go v0.0.0-20210805093236-719684c64e4f/go.mod h1:J6OG6YJVEWopen4avK3VNQSnALmmjvniMmni/YFYAwc=
 github.com/otiai10/copy v1.14.0 h1:dCI/t1iTdYGtkvCuBG2BgR6KZa83PTclw4U5n2wAllU=
