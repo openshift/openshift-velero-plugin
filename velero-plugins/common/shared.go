@@ -19,6 +19,7 @@ import (
 	"github.com/sirupsen/logrus"
 	velero "github.com/vmware-tanzu/velero/pkg/apis/velero/v1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -119,6 +120,13 @@ func GetRegistryInfo(log logrus.FieldLogger) (string, error) {
 	} else {
 		config, err := cClient.ConfigMaps("openshift-apiserver").Get(context.Background(), "config", metav1.GetOptions{})
 		if err != nil {
+			if apierrors.IsNotFound(err) {
+				// No openshift-apiserver config (e.g. HCP guest cluster, or no internal registry).
+				// Return empty registry host but no error; registry not found
+				log.Info("[GetRegistryInfo] openshift-apiserver config not found, no internal registry")
+				registryInfo = StringPtr("")
+				return "", nil
+			}
 			return "", err
 		}
 		serverConfig := APIServerConfig{}
