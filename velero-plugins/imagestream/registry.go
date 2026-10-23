@@ -2,6 +2,7 @@ package imagestream
 
 import (
 	"fmt"
+	"strings"
 
 	oadpv1alpha1 "github.com/openshift/oadp-operator/api/v1alpha1"
 	oadpCreds "github.com/openshift/oadp-operator/pkg/credentials"
@@ -58,6 +59,19 @@ const (
 const (
 	// https://github.com/vmware-tanzu/velero/blob/5afe837f76aea4dd59b1bf2792e7802d4966f0a7/pkg/cmd/server/server.go#L110
 	defaultCredentialsDirectory = "/tmp/credentials"
+)
+
+// Keys found in the Azure BSL credential secret (e.g. cloud-credentials-azure).
+// The OADP operator STS flow (pkg/credentials/stsflow) provisions a secret
+// containing AZURE_CLIENT_ID/AZURE_TENANT_ID/AZURE_SUBSCRIPTION_ID and no
+// long-lived credentials (no storage account key, no service principal secret)
+// on Azure Workload Identity (WIF) clusters.
+const (
+	AzureCredentialsClientIDKey           = "AZURE_CLIENT_ID"
+	AzureCredentialsTenantIDKey           = "AZURE_TENANT_ID"
+	AzureCredentialsClientSecretKey       = "AZURE_CLIENT_SECRET"
+	AzureCredentialsFederatedTokenFileKey = "AZURE_FEDERATED_TOKEN_FILE"
+	AzureCredentialsStorageAccountKeyKey  = "AZURE_STORAGE_ACCOUNT_ACCESS_KEY"
 )
 
 // TODO: remove this map and just define them in each function
@@ -197,24 +211,61 @@ func getAWSRegistryEnvVars(bsl *velerov1.BackupStorageLocation) ([]corev1.EnvVar
 // https://github.com/vmware-tanzu/velero/blob/5afe837f76aea4dd59b1bf2792e7802d4966f0a7/internal/credentials/file_store.go#L72
 // This file is written by velero server on startup
 func getBslSecretPath(bsl *velerov1.BackupStorageLocation) string {
+	selector := getBslSecretKeySelector(bsl)
+	return fmt.Sprintf("%s/%s/%s-%s", defaultCredentialsDirectory, bsl.Namespace, selector.Name, selector.Key)
+}
+
+// getBslSecretKeySelector returns the secret name and key referencing the BSL
+// credentials, inheriting from OADP defaults for the provider when the BSL
+// does not specify them.
+func getBslSecretKeySelector(bsl *velerov1.BackupStorageLocation) *corev1.SecretKeySelector {
 	var secretName, secretKey string
 	if bsl.Spec.Credential != nil {
 		secretName = bsl.Spec.Credential.LocalObjectReference.Name
 		secretKey = bsl.Spec.Credential.Key
 	}
 	// if secretName or secretKey is not set, inherit from OADP defaults for each provider
-	if bsl.Spec.Credential == nil || secretName == "" {
+	if secretName == "" {
 		secretName = oadpCreds.PluginSpecificFields[oadpv1alpha1.DefaultPlugin(bsl.Spec.Provider)].SecretName
 	}
-	if bsl.Spec.Credential == nil || secretKey == "" {
+	if secretKey == "" {
 		secretKey = oadpCreds.PluginSpecificFields[oadpv1alpha1.DefaultPlugin(bsl.Spec.Provider)].PluginSecretKey
 	}
-	return fmt.Sprintf("%s/%s/%s-%s", defaultCredentialsDirectory, bsl.Namespace, secretName, secretKey)
+	return &corev1.SecretKeySelector{
+		LocalObjectReference: corev1.LocalObjectReference{Name: secretName},
+		Key:                  secretKey,
+	}
 }
 
 func getAzureRegistryEnvVars(bsl *velerov1.BackupStorageLocation, azureEnvVars []corev1.EnvVar) ([]corev1.EnvVar, error) {
 	if bsl.Spec.Config == nil {
 		bsl.Spec.Config = make(map[string]string)
+	}
+	// On Azure Workload Identity (WIF) clusters the OADP operator does not
+	// create the oadp-<bsl>-azure-registry-secret (there are no long-lived
+	// credentials to extract), so the account key/SPN env vars below cannot be
+	// resolved. Set only storage type, container and account name; with no
+	// accountkey and no credentials parameters the openshift/docker-distribution
+	// azure storage driver falls through to azidentity.NewDefaultAzureCredential,
+	// which authenticates via WorkloadIdentityCredential using AZURE_CLIENT_ID,
+	// AZURE_TENANT_ID and AZURE_FEDERATED_TOKEN_FILE from the Velero pod
+	// environment (injected by the OADP operator via the
+	// azure-workload-identity-env secret).
+	if isAzureWorkloadIdentity(bsl) {
+		return []corev1.EnvVar{
+			{
+				Name:  RegistryStorageEnvVarKey,
+				Value: Azure,
+			},
+			{
+				Name:  RegistryStorageAzureContainerEnvVarKey,
+				Value: bsl.Spec.StorageType.ObjectStorage.Bucket,
+			},
+			{
+				Name:  RegistryStorageAzureAccountnameEnvVarKey,
+				Value: bsl.Spec.Config[StorageAccount],
+			},
+		}, nil
 	}
 	for i := range azureEnvVars {
 		if azureEnvVars[i].Name == RegistryStorageAzureContainerEnvVarKey {
@@ -260,6 +311,46 @@ func getAzureRegistryEnvVars(bsl *velerov1.BackupStorageLocation, azureEnvVars [
 		}
 	}
 	return azureEnvVars, nil
+}
+
+// isAzureWorkloadIdentity returns true when the BSL credential secret contains
+// Azure Workload Identity (WIF/STS) credentials, i.e. no long-lived
+// credentials (storage account key or service principal client secret) and
+// either a federated token file reference or a client ID + tenant ID pair.
+// If the credential secret cannot be read the credential type cannot be
+// determined and long-lived credentials are assumed, preserving the previous
+// behavior.
+func isAzureWorkloadIdentity(bsl *velerov1.BackupStorageLocation) bool {
+	secretData, err := getSecretKeyRefData(getBslSecretKeySelector(bsl), bsl.Namespace)
+	if err != nil {
+		return false
+	}
+	creds := parseAzureCredentialsConfig(secretData)
+	if creds[AzureCredentialsStorageAccountKeyKey] != "" || creds[AzureCredentialsClientSecretKey] != "" {
+		return false
+	}
+	return creds[AzureCredentialsFederatedTokenFileKey] != "" ||
+		(creds[AzureCredentialsClientIDKey] != "" && creds[AzureCredentialsTenantIDKey] != "")
+}
+
+// parseAzureCredentialsConfig parses env-file style azure credentials
+// (KEY=value lines, skipping blank lines, comments and [section] headers).
+func parseAzureCredentialsConfig(data []byte) map[string]string {
+	creds := map[string]string{}
+	for _, line := range strings.Split(string(data), "\n") {
+		line = strings.TrimSpace(strings.TrimSuffix(line, "\r"))
+		if line == "" || strings.HasPrefix(line, "#") || strings.HasPrefix(line, "[") {
+			continue
+		}
+		key, value, found := strings.Cut(line, "=")
+		if !found {
+			continue
+		}
+		value = strings.TrimSpace(value)
+		value = strings.Trim(value, `"'`)
+		creds[strings.TrimSpace(key)] = value
+	}
+	return creds
 }
 
 func getGCPRegistryEnvVars(bsl *velerov1.BackupStorageLocation) ([]corev1.EnvVar, error) {
