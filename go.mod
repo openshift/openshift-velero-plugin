@@ -10,7 +10,7 @@ require (
 	github.com/hashicorp/go-hclog v1.2.0 // indirect
 	github.com/migtools/udistribution v0.0.15-oadp-1.5
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
-	github.com/openshift/oadp-operator v1.0.2-0.20261022120837-20f15f524db1
+	github.com/openshift/oadp-operator v1.0.2-0.20261023113036-f0d21591a936
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.11.1
 	github.com/vmware-tanzu/velero v1.14.0
@@ -270,7 +270,7 @@ require (
 	k8s.io/component-base v0.29.0 // indirect
 )
 
-replace github.com/vmware-tanzu/velero => github.com/openshift/velero v0.10.2-0.20261022080039-7491cae435d3
+replace github.com/vmware-tanzu/velero => github.com/openshift/velero v0.10.2-0.20261023033737-872792ffd31c
 
 replace github.com/opencontainers/runc => github.com/opencontainers/runc v1.2.8
 
