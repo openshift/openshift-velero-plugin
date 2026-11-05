@@ -111,6 +111,15 @@ var (
 			"AZURE_CLIENT_SECRET=" + testClientSecret + "\n" +
 			"AZURE_RESOURCE_GROUP=" + testResourceGroup),
 	}
+	// Azure Workload Identity secret as created by the OADP operator STS flow
+	// (stsflow.CreateOrUpdateSTSAzureSecret): no storage account key, no client secret.
+	secretAzureWIFData = map[string][]byte{
+		"azurekey": []byte("\n" +
+			"AZURE_SUBSCRIPTION_ID=" + testSubscriptionID + "\n" +
+			"AZURE_TENANT_ID=" + testTenantID + "\n" +
+			"AZURE_CLIENT_ID=" + testClientID + "\n" +
+			"AZURE_CLOUD_NAME=AzurePublicCloud\n"),
+	}
 	awsRegistrySecretData = map[string][]byte{
 		"access_key": []byte(testBslAccessKey),
 		"secret_key": []byte(testBslSecretAccessKey),
@@ -767,6 +776,227 @@ func Test_getAzureRegistryEnvVars(t *testing.T) {
 
 			if tt.matchProfile && !reflect.DeepEqual(tt.wantRegistryContainerEnvVar, gotRegistryContainerEnvVar) {
 				t.Errorf("expected registry container env var to be %#v, got %#v", tt.wantRegistryContainerEnvVar, gotRegistryContainerEnvVar)
+			}
+		})
+	}
+}
+
+func Test_getAzureRegistryEnvVars_WorkloadIdentity(t *testing.T) {
+	azureLongLivedEnvVars := func(bsl *velerov1.BackupStorageLocation) []corev1.EnvVar {
+		registrySecretName := "oadp-" + bsl.Name + "-" + bsl.Spec.Provider + "-registry-secret"
+		return []corev1.EnvVar{
+			{
+				Name:  RegistryStorageEnvVarKey,
+				Value: Azure,
+			},
+			{
+				Name:  RegistryStorageAzureContainerEnvVarKey,
+				Value: "azure-bucket",
+			},
+			{
+				Name:  RegistryStorageAzureAccountnameEnvVarKey,
+				Value: "velero-azure-account",
+			},
+			{
+				Name: RegistryStorageAzureAccountkeyEnvVarKey,
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{Name: registrySecretName},
+						Key:                  "storage_account_key",
+					},
+				},
+			},
+			{
+				Name:  RegistryStorageAzureAADEndpointEnvVarKey,
+				Value: "",
+			},
+			{
+				Name: RegistryStorageAzureSPNClientIDEnvVarKey,
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{Name: registrySecretName},
+						Key:                  "client_id_key",
+					},
+				},
+			},
+			{
+				Name: RegistryStorageAzureSPNClientSecretEnvVarKey,
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{Name: registrySecretName},
+						Key:                  "client_secret_key",
+					},
+				},
+			},
+			{
+				Name: RegistryStorageAzureSPNTenantIDEnvVarKey,
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{Name: registrySecretName},
+						Key:                  "tenant_id_key",
+					},
+				},
+			},
+		}
+	}
+	azureWIFBsl := func(credential *corev1.SecretKeySelector) *velerov1.BackupStorageLocation {
+		return &velerov1.BackupStorageLocation{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-bsl",
+				Namespace: "test-wif-ns",
+			},
+			Spec: velerov1.BackupStorageLocationSpec{
+				Provider: AzureProvider,
+				StorageType: velerov1.StorageType{
+					ObjectStorage: &velerov1.ObjectStorageLocation{
+						Bucket: "azure-bucket",
+					},
+				},
+				Config: map[string]string{
+					StorageAccount: "velero-azure-account",
+					ResourceGroup:  testResourceGroup,
+				},
+				Credential: credential,
+			},
+		}
+	}
+	tests := []struct {
+		name                        string
+		bsl                         *velerov1.BackupStorageLocation
+		secret                      *corev1.Secret
+		wantRegistryContainerEnvVar []corev1.EnvVar
+	}{
+		{
+			name: "given azure WIF bsl, only storage, container and account name env vars are returned",
+			bsl: azureWIFBsl(&corev1.SecretKeySelector{
+				LocalObjectReference: corev1.LocalObjectReference{Name: "cloud-credentials-azure"},
+				Key:                  "azurekey",
+			}),
+			secret: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "cloud-credentials-azure",
+					Namespace: "test-wif-ns",
+				},
+				Data: secretAzureWIFData,
+			},
+			wantRegistryContainerEnvVar: []corev1.EnvVar{
+				{
+					Name:  RegistryStorageEnvVarKey,
+					Value: Azure,
+				},
+				{
+					Name:  RegistryStorageAzureContainerEnvVarKey,
+					Value: "azure-bucket",
+				},
+				{
+					Name:  RegistryStorageAzureAccountnameEnvVarKey,
+					Value: "velero-azure-account",
+				},
+			},
+		},
+		{
+			name: "given azure bsl with storage account key credentials, long-lived env vars are returned",
+			bsl:  azureWIFBsl(nil),
+			secret: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "cloud-credentials-azure",
+					Namespace: "test-wif-ns",
+				},
+				Data: secretAzureData,
+			},
+		},
+		{
+			name: "given azure bsl with service principal credentials, long-lived env vars are returned",
+			bsl:  azureWIFBsl(nil),
+			secret: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "cloud-credentials-azure",
+					Namespace: "test-wif-ns",
+				},
+				Data: secretAzureServicePrincipalData,
+			},
+		},
+		{
+			name: "given azure bsl whose credential secret is missing, long-lived env vars are returned",
+			bsl:  azureWIFBsl(nil),
+		},
+	}
+	testEnv := &envtest.Environment{}
+	cfg, err := testEnv.Start()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer testEnv.Stop()
+	clients.SetInClusterConfig(cfg)
+	cv1c, err := corev1client.NewForConfig(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.secret != nil {
+				cv1c.Namespaces().Create(context.Background(), &corev1.Namespace{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: tt.secret.Namespace,
+					},
+				}, metav1.CreateOptions{})
+				if _, err := cv1c.Secrets(tt.secret.Namespace).Create(context.Background(), tt.secret, metav1.CreateOptions{}); err != nil {
+					t.Fatal(err)
+				}
+				defer cv1c.Secrets(tt.secret.Namespace).Delete(context.Background(), tt.secret.Name, metav1.DeleteOptions{})
+			}
+			if tt.wantRegistryContainerEnvVar == nil {
+				tt.wantRegistryContainerEnvVar = azureLongLivedEnvVars(tt.bsl)
+			}
+
+			gotRegistryContainerEnvVar, gotErr := getAzureRegistryEnvVars(tt.bsl, cloudProviderEnvVarMap[AzureProvider])
+
+			if gotErr != nil {
+				t.Errorf("getAzureRegistryEnvVars() gotErr = %v", gotErr)
+				return
+			}
+			if !reflect.DeepEqual(tt.wantRegistryContainerEnvVar, gotRegistryContainerEnvVar) {
+				t.Errorf("expected registry container env var has diff %s", cmp.Diff(tt.wantRegistryContainerEnvVar, gotRegistryContainerEnvVar))
+			}
+		})
+	}
+}
+
+func Test_parseAzureCredentialsConfig(t *testing.T) {
+	tests := []struct {
+		name string
+		data []byte
+		want map[string]string
+	}{
+		{
+			name: "operator sts flow azurekey format",
+			data: secretAzureWIFData["azurekey"],
+			want: map[string]string{
+				"AZURE_SUBSCRIPTION_ID": testSubscriptionID,
+				"AZURE_TENANT_ID":       testTenantID,
+				"AZURE_CLIENT_ID":       testClientID,
+				"AZURE_CLOUD_NAME":      "AzurePublicCloud",
+			},
+		},
+		{
+			name: "section headers, comments, quotes, spaces and CRLF are handled",
+			data: []byte("[default]\r\n# a comment\nAZURE_CLIENT_ID = \"" + testClientID + "\"\r\nAZURE_TENANT_ID='" + testTenantID + "'\nAZURE_CLIENT_SECRET=" + testClientSecret + "=with=equals\nnot-a-key-value\n"),
+			want: map[string]string{
+				"AZURE_CLIENT_ID":     testClientID,
+				"AZURE_TENANT_ID":     testTenantID,
+				"AZURE_CLIENT_SECRET": testClientSecret + "=with=equals",
+			},
+		},
+		{
+			name: "empty data",
+			data: nil,
+			want: map[string]string{},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := parseAzureCredentialsConfig(tt.data); !reflect.DeepEqual(tt.want, got) {
+				t.Errorf("parseAzureCredentialsConfig() has diff %s", cmp.Diff(tt.want, got))
 			}
 		})
 	}
